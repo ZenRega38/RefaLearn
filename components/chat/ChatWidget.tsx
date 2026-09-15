@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { freshChannel } from "@/lib/supabase/realtime-channel";
 import { MessageCircle, X, Send, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -20,17 +21,28 @@ export function ChatWidget() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [hasUnread, setHasUnread] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // The realtime effect below only runs once ([] deps), so its closures
+  // capture `isOpen` as it was at mount time forever. A ref sidesteps that
+  // stale-closure problem — it's always read at call time, not effect-setup
+  // time — so the "was the widget open when this arrived" check is accurate.
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+    if (isOpen) setHasUnread(false);
+  }, [isOpen]);
 
   useEffect(() => {
     const initChat = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
+
       // Check if role is student, only students see this widget (admins have a full inbox page)
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
       if (profile?.role === 'admin') return;
-      
+
       setUser(user);
 
       // Find or create conversation
@@ -53,19 +65,18 @@ export function ChatWidget() {
 
       if (convId) {
         setConversationId(convId);
-        
+
         // Load messages
         const { data: msgs } = await supabase
           .from('chat_messages')
           .select('*')
           .eq('conversation_id', convId)
           .order('created_at', { ascending: true });
-          
+
         if (msgs) setMessages(msgs as Message[]);
 
         // Subscribe to new messages
-        const channel = supabase
-          .channel(`chat_${convId}`)
+        const channel = freshChannel(supabase, `chat_${convId}`)
           .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
@@ -73,7 +84,14 @@ export function ChatWidget() {
             filter: `conversation_id=eq.${convId}`
           }, (payload) => {
             const newMsg = payload.new as Message;
-            setMessages(prev => [...prev, newMsg]);
+            // The sender's own message is already added optimistically in
+            // sendMessage() below — when this same row comes back over
+            // realtime a moment later, skip it instead of duplicating it.
+            setMessages(prev => (prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]));
+
+            if (newMsg.sender_id !== user.id && !isOpenRef.current) {
+              setHasUnread(true);
+            }
           })
           .subscribe();
 
@@ -99,12 +117,27 @@ export function ChatWidget() {
     const content = newMessage;
     setNewMessage("");
 
-    await supabase.from('chat_messages').insert([{
-      conversation_id: conversationId,
-      sender_id: user.id,
-      content: content
-    }]);
-    
+    // .select().single() returns the inserted row (with its real id and
+    // created_at) so we can show it right away, instead of waiting on the
+    // realtime event for our own insert to round-trip back — that trip
+    // through Postgres's replication stream can lag a second or more,
+    // which is what made sent messages seem to "not appear" until a
+    // refresh or the next incoming message.
+    const { data: inserted, error } = await supabase
+      .from('chat_messages')
+      .insert([{
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: content
+      }])
+      .select()
+      .single();
+
+    if (!error && inserted) {
+      const msg = inserted as Message;
+      setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
+    }
+
     // Update conversation last_message_at
     await supabase.from('chat_conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId);
   };
@@ -113,11 +146,11 @@ export function ChatWidget() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      
+
       {/* Chat Window */}
       {isOpen && (
         <div className="absolute bottom-16 right-0 w-80 md:w-96 bg-[var(--color-paper-bg)] border-2 border-[var(--color-line)] rounded-[var(--radius-card)] shadow-[var(--shadow-sketch)] flex flex-col overflow-hidden mb-4 animate-slide-up">
-          
+
           {/* Header */}
           <div className="bg-[var(--color-brand-blue)] p-4 flex justify-between items-center text-white">
             <div>
@@ -140,12 +173,11 @@ export function ChatWidget() {
                 const isMe = msg.sender_id === user.id;
                 return (
                   <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div 
-                      className={`max-w-[80%] p-3 rounded-2xl text-sm font-[var(--font-inter)] ${
-                        isMe 
-                          ? 'bg-[var(--color-brand-blue)] text-white rounded-tr-none' 
+                    <div
+                      className={`max-w-[80%] p-3 rounded-2xl text-sm font-[var(--font-inter)] ${isMe
+                          ? 'bg-[var(--color-brand-blue)] text-white rounded-tr-none'
                           : 'bg-white border border-[var(--color-line)] text-[var(--color-ink)] rounded-tl-none shadow-sm'
-                      }`}
+                        }`}
                     >
                       {msg.content}
                     </div>
@@ -169,8 +201,8 @@ export function ChatWidget() {
                 onChange={e => setNewMessage(e.target.value)}
                 className="flex-1 bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[var(--color-brand-blue)] font-[var(--font-inter)]"
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={!newMessage.trim()}
                 className="w-9 h-9 rounded-full bg-[var(--color-brand-blue)] text-white flex items-center justify-center hover:bg-[var(--color-brand-blue)]/90 disabled:opacity-50 transition-colors shrink-0"
               >
@@ -184,9 +216,12 @@ export function ChatWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-[var(--color-accent-coral)] text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        className="relative w-14 h-14 rounded-full bg-[var(--color-accent-coral)] text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+        {hasUnread && !isOpen && (
+          <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white" />
+        )}
       </button>
 
     </div>

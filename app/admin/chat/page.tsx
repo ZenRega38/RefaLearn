@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { freshChannel } from "@/lib/supabase/realtime-channel";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -41,8 +42,7 @@ export default function AdminChatInbox() {
       await fetchConversations();
 
       // Subscribe to conversation updates (e.g. last_message_at changes, new convs)
-      const convChannel = supabase
-        .channel('admin_conversations')
+      const convChannel = freshChannel(supabase, 'admin_conversations')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_conversations' }, () => {
           fetchConversations();
         })
@@ -78,15 +78,15 @@ export default function AdminChatInbox() {
     fetchMessages();
 
     // Subscribe to new messages in this conversation
-    const msgChannel = supabase
-      .channel(`admin_chat_${selectedConvId}`)
+    const msgChannel = freshChannel(supabase, `admin_chat_${selectedConvId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'chat_messages',
         filter: `conversation_id=eq.${selectedConvId}`
       }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        const newMsg = payload.new as Message;
+        setMessages(prev => (prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]));
       })
       .subscribe();
 
@@ -106,11 +106,20 @@ export default function AdminChatInbox() {
     const content = newMessage;
     setNewMessage("");
 
-    await supabase.from('chat_messages').insert([{
-      conversation_id: selectedConvId,
-      sender_id: adminUser.id,
-      content: content
-    }]);
+    const { data: inserted, error } = await supabase
+      .from('chat_messages')
+      .insert([{
+        conversation_id: selectedConvId,
+        sender_id: adminUser.id,
+        content: content
+      }])
+      .select()
+      .single();
+
+    if (!error && inserted) {
+      const msg = inserted as Message;
+      setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
+    }
 
     await supabase.from('chat_conversations').update({ last_message_at: new Date().toISOString() }).eq('id', selectedConvId);
   };
@@ -211,8 +220,8 @@ export default function AdminChatInbox() {
                         <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                           <div
                             className={`max-w-[70%] p-3 rounded-2xl text-sm font-[var(--font-inter)] ${isMe
-                                ? 'bg-[var(--color-brand-blue)] text-white rounded-tr-none shadow-sm'
-                                : 'bg-white border border-[var(--color-line)] text-[var(--color-ink)] rounded-tl-none shadow-sm'
+                              ? 'bg-[var(--color-brand-blue)] text-white rounded-tr-none shadow-sm'
+                              : 'bg-white border border-[var(--color-line)] text-[var(--color-ink)] rounded-tl-none shadow-sm'
                               }`}
                           >
                             {msg.content}
