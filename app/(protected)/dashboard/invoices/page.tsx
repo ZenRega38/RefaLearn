@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
-import { Receipt, Upload, RefreshCw, AlertCircle, ExternalLink } from "lucide-react";
+import { Receipt, Upload, RefreshCw, AlertCircle, ExternalLink, Landmark, Wallet, Copy, Check } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { uploadPaymentProof, getSignedProofUrl } from "@/lib/storage";
 import { useRouter } from "next/navigation";
@@ -24,12 +24,55 @@ type Invoice = {
   generated_at: string;
 };
 
+type BankDetails = { bank_name: string; account_number: string; account_name: string };
+type EwalletDetails = { provider: string; number: string; account_name: string };
+
+// A single "field + copy button" row used inside the payment instructions card.
+function CopyableRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API can fail (permissions, insecure context) — not worth
+      // blocking the flow over, the number is still visible to copy by hand.
+    }
+  };
+
+  if (!value) return null;
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <div>
+        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{label}</p>
+        <p className="font-bold font-[var(--font-inter)] text-[var(--color-ink)]">{value}</p>
+      </div>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="p-2 text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] hover:bg-white rounded-md transition-colors shrink-0"
+        title="Salin"
+      >
+        {copied ? <Check className="w-4 h-4 text-[var(--color-success-green)]" /> : <Copy className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
+
 export default function StudentInvoicesPage() {
   const router = useRouter();
   const supabase = createClient();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [studentId, setStudentId] = useState<string | null>(null);
+
+  // Payment instructions, loaded once from site_settings (admin-managed —
+  // see /admin/settings).
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [ewalletDetails, setEwalletDetails] = useState<EwalletDetails | null>(null);
 
   // Upload modal state
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -61,8 +104,21 @@ export default function StudentInvoicesPage() {
     setLoading(false);
   };
 
+  const fetchPaymentInstructions = async () => {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['bank_details', 'ewallet_details']);
+
+    data?.forEach((row) => {
+      if (row.key === 'bank_details') setBankDetails(row.value as BankDetails);
+      if (row.key === 'ewallet_details') setEwalletDetails(row.value as EwalletDetails);
+    });
+  };
+
   useEffect(() => {
     fetchInvoices();
+    fetchPaymentInstructions();
   }, [router]);
 
   const handleSubmitProof = async () => {
@@ -126,6 +182,8 @@ export default function StudentInvoicesPage() {
     return format(date, 'MMMM', { locale: id });
   };
 
+  const hasPaymentInstructions = !!(bankDetails?.account_number || ewalletDetails?.number);
+
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
@@ -143,11 +201,35 @@ export default function StudentInvoicesPage() {
         </div>
 
         {uploadingId && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md space-y-6">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <Card className="w-full max-w-md space-y-6 my-8">
               <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
                 Upload Bukti Pembayaran
               </h3>
+
+              {hasPaymentInstructions && (
+                <div className="bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-[var(--radius-card)] p-4 divide-y divide-[var(--color-line)] font-[var(--font-inter)]">
+                  {bankDetails?.account_number && (
+                    <div className="pb-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
+                        <Landmark className="w-3.5 h-3.5" /> Transfer Bank
+                      </div>
+                      <CopyableRow label={bankDetails.bank_name} value={bankDetails.account_number} />
+                      <p className="text-xs text-[var(--color-ink-soft)]">a.n. {bankDetails.account_name}</p>
+                    </div>
+                  )}
+                  {ewalletDetails?.number && (
+                    <div className="pt-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
+                        <Wallet className="w-3.5 h-3.5" /> E-Wallet
+                      </div>
+                      <CopyableRow label={ewalletDetails.provider} value={ewalletDetails.number} />
+                      <p className="text-xs text-[var(--color-ink-soft)]">a.n. {ewalletDetails.account_name}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
                 Silakan transfer sesuai nominal tagihan, lalu unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF).
               </p>
@@ -225,7 +307,7 @@ export default function StudentInvoicesPage() {
 
                   {['proof_uploaded', 'confirmed'].includes(invoice.status) && invoice.proof_url && (
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => handleViewProof(invoice)}
                       isLoading={viewingId === invoice.id}

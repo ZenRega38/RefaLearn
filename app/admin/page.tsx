@@ -4,17 +4,18 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
-import { 
-  Users, 
-  Video, 
-  Receipt, 
-  BookOpen, 
-  MessageCircle, 
-  Settings, 
-  Calendar, 
+import {
+  Users,
+  Video,
+  Receipt,
+  BookOpen,
+  MessageCircle,
+  Settings,
+  Calendar,
   ShoppingBag,
   Newspaper,
-  GraduationCap
+  GraduationCap,
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/pricing";
@@ -67,7 +68,7 @@ export default function AdminOverviewDashboard() {
       // Total Revenue (Confirmed invoices + confirmed orders)
       const { data: invData } = await supabase.from('invoices').select('total_amount').eq('status', 'confirmed');
       const { data: ordData } = await supabase.from('material_orders').select('total_amount').eq('status', 'confirmed');
-      
+
       let revenue = 0;
       invData?.forEach(i => revenue += i.total_amount);
       ordData?.forEach(o => revenue += o.total_amount);
@@ -95,12 +96,13 @@ export default function AdminOverviewDashboard() {
     { href: "/admin/news", label: "Manajemen Berita", icon: <Newspaper className="w-6 h-6" />, color: "text-indigo-500", bg: "bg-indigo-100" },
     { href: "/admin/alumni", label: "Kisah Alumni", icon: <GraduationCap className="w-6 h-6" />, color: "text-orange-500", bg: "bg-orange-100" },
     { href: "/admin/settings", label: "Pengaturan Website", icon: <Settings className="w-6 h-6" />, color: "text-slate-500", bg: "bg-slate-100" },
+    { href: "/admin/contracts", label: "Kontrak Sesi", icon: <ShieldCheck className="w-6 h-6" />, color: "text-[var(--color-success-green)]", bg: "bg-[var(--color-success-green)]/10" },
   ];
 
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
-        
+
         <div className="flex items-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-full bg-[var(--color-brand-blue)] text-white flex items-center justify-center font-[var(--font-kalam)] text-2xl">
             A
@@ -128,7 +130,7 @@ export default function AdminOverviewDashboard() {
               </div>
             </div>
           </Card>
-          
+
           <Card className="p-5 flex items-center gap-4 bg-white border-b-4 border-b-[var(--color-success-green)]">
             <div className="w-12 h-12 rounded-lg bg-[var(--color-success-green)]/10 flex items-center justify-center text-[var(--color-success-green)]">
               <Receipt className="w-6 h-6" />
@@ -170,7 +172,7 @@ export default function AdminOverviewDashboard() {
         <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block mt-8">
           Menu Utama
         </h2>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {adminLinks.map((link, idx) => (
             <Link href={link.href} key={idx} className="group">

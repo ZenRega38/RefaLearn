@@ -7,9 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock } from "lucide-react";
+import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock, ExternalLink, Landmark, Wallet, Copy, Check } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
-import { uploadPaymentProof, getSignedMaterialUrl } from "@/lib/storage";
+import { uploadPaymentProof, getSignedProofUrl } from "@/lib/storage";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
@@ -19,7 +19,7 @@ type Order = {
   material_ids: string[];
   total_amount: number;
   status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected';
-  proof_url: string | null; // storage PATH — see lib/storage.ts
+  proof_url: string | null; // storage PATH, not a public URL — see lib/storage.ts
   created_at: string;
 };
 
@@ -28,8 +28,44 @@ type Material = {
   title: string;
   category: string;
   cover_image_url: string;
-  file_url: string | null; // storage PATH within the material-files bucket
+  file_url: string;
 };
+
+type BankDetails = { bank_name: string; account_number: string; account_name: string };
+type EwalletDetails = { provider: string; number: string; account_name: string };
+
+function CopyableRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Non-fatal — number is still visible to copy by hand.
+    }
+  };
+
+  if (!value) return null;
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <div>
+        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{label}</p>
+        <p className="font-bold font-[var(--font-inter)] text-[var(--color-ink)]">{value}</p>
+      </div>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="p-2 text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] hover:bg-white rounded-md transition-colors shrink-0"
+        title="Salin"
+      >
+        {copied ? <Check className="w-4 h-4 text-[var(--color-success-green)]" /> : <Copy className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
 
 export default function StudentMaterialsDashboard() {
   const router = useRouter();
@@ -38,13 +74,14 @@ export default function StudentMaterialsDashboard() {
   const [loading, setLoading] = useState(true);
   const [studentId, setStudentId] = useState<string | null>(null);
 
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [ewalletDetails, setEwalletDetails] = useState<EwalletDetails | null>(null);
+
   // Upload modal state
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // Tracks which material's signed download URL is currently being fetched.
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -90,8 +127,21 @@ export default function StudentMaterialsDashboard() {
     setLoading(false);
   };
 
+  const fetchPaymentInstructions = async () => {
+    const { data } = await supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['bank_details', 'ewallet_details']);
+
+    data?.forEach((row) => {
+      if (row.key === 'bank_details') setBankDetails(row.value as BankDetails);
+      if (row.key === 'ewallet_details') setEwalletDetails(row.value as EwalletDetails);
+    });
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchPaymentInstructions();
   }, [router]);
 
   const handleSubmitProof = async () => {
@@ -124,21 +174,16 @@ export default function StudentMaterialsDashboard() {
     }
   };
 
-  // Storage RLS only allows this to succeed if the caller genuinely has a
-  // confirmed order containing this material — see the storage migration.
-  const handleDownload = async (material: Material) => {
-    if (!material.file_url) {
-      alert("File materi belum diunggah oleh admin. Silakan hubungi admin.");
-      return;
-    }
-    setDownloadingId(material.id);
+  const handleViewProof = async (order: Order) => {
+    if (!order.proof_url) return;
+    setViewingId(order.id);
     try {
-      const url = await getSignedMaterialUrl(material.file_url);
+      const url = await getSignedProofUrl(order.proof_url);
       window.open(url, '_blank');
     } catch (err: any) {
-      alert(`Gagal mengunduh materi: ${err.message}`);
+      alert(`Gagal membuka bukti: ${err.message}`);
     } finally {
-      setDownloadingId(null);
+      setViewingId(null);
     }
   };
 
@@ -152,6 +197,8 @@ export default function StudentMaterialsDashboard() {
     }
   };
 
+  const hasPaymentInstructions = !!(bankDetails?.account_number || ewalletDetails?.number);
+
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
@@ -164,7 +211,7 @@ export default function StudentMaterialsDashboard() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" href="/materials" size="sm">Cari Materi Lain</Button>
+            <Button variant="secondary" href="/materials" size="sm">Cari Materi Lain</Button>
             <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -172,13 +219,37 @@ export default function StudentMaterialsDashboard() {
         </div>
 
         {uploadingId && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md space-y-6">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <Card className="w-full max-w-md space-y-6 my-8">
               <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
                 Upload Bukti Pembayaran
               </h3>
+
+              {hasPaymentInstructions && (
+                <div className="bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-[var(--radius-card)] p-4 divide-y divide-[var(--color-line)] font-[var(--font-inter)]">
+                  {bankDetails?.account_number && (
+                    <div className="pb-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
+                        <Landmark className="w-3.5 h-3.5" /> Transfer Bank
+                      </div>
+                      <CopyableRow label={bankDetails.bank_name} value={bankDetails.account_number} />
+                      <p className="text-xs text-[var(--color-ink-soft)]">a.n. {bankDetails.account_name}</p>
+                    </div>
+                  )}
+                  {ewalletDetails?.number && (
+                    <div className="pt-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
+                        <Wallet className="w-3.5 h-3.5" /> E-Wallet
+                      </div>
+                      <CopyableRow label={ewalletDetails.provider} value={ewalletDetails.number} />
+                      <p className="text-xs text-[var(--color-ink-soft)]">a.n. {ewalletDetails.account_name}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                Silakan unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF).
+                Silakan transfer sesuai nominal pesanan, lalu unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF).
               </p>
               <Input
                 type="file"
@@ -236,6 +307,18 @@ export default function StudentMaterialsDashboard() {
                         <Upload className="w-4 h-4 mr-2" /> Upload Bukti
                       </Button>
                     )}
+
+                    {['proof_uploaded', 'confirmed'].includes(order.status) && order.proof_url && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleViewProof(order)}
+                        isLoading={viewingId === order.id}
+                        className="text-xs"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-2" /> Lihat Bukti
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -264,16 +347,15 @@ export default function StudentMaterialsDashboard() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <Badge variant="yellow" className="mb-2 text-[10px] px-1.5 py-0">{material.category}</Badge>
+                        <Badge variant="amber" className="mb-2 text-[10px] px-1.5 py-0">{material.category}</Badge>
                         <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)] line-clamp-1">{material.title}</h4>
                       </div>
 
                       <div className="mt-2 sm:mt-0 w-full sm:w-auto flex justify-end">
                         {order.status === 'confirmed' ? (
                           <Button
-                            variant="outline"
-                            onClick={() => handleDownload(material)}
-                            isLoading={downloadingId === material.id}
+                            variant="secondary"
+                            onClick={() => window.open(material.file_url, '_blank')}
                             className="w-full sm:w-auto"
                           >
                             <Download className="w-4 h-4 mr-2" /> Akses Materi
