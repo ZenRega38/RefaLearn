@@ -1,7 +1,9 @@
+// Replaces: components/sketch/SketchUnderline.tsx
+
 "use client";
 
 import { ReactNode } from "react";
-import { RoughNotation } from "react-rough-notation";
+import { RoughAnnotation } from "./RoughAnnotation";
 
 interface SketchUnderlineProps {
   children: ReactNode;
@@ -23,17 +25,19 @@ export function SketchUnderline({
   className = "",
 }: SketchUnderlineProps) {
   return (
-    <span className={`inline-block ${className}`}>
-      <RoughNotation
-        type="underline"
-        show={show}
-        color={color}
-        animate={animate}
-        animationDuration={animationDuration}
-        strokeWidth={strokeWidth}
-      >
-        {children}
-      </RoughNotation>
-    </span>
+    <RoughAnnotation
+      type="underline"
+      color={color}
+      show={show}
+      animate={animate}
+      animationDuration={animationDuration}
+      strokeWidth={strokeWidth}
+      // Headings wrap on mobile; without this the underline only draws
+      // under the first line.
+      multiline
+      className={className}
+    >
+      {children}
+    </RoughAnnotation>
   );
 }

@@ -1,7 +1,9 @@
+// Replaces: components/sketch/SketchBox.tsx
+
 "use client";
 
 import { ReactNode } from "react";
-import { RoughNotation } from "react-rough-notation";
+import { RoughAnnotation } from "./RoughAnnotation";
 
 interface SketchBoxProps {
   children: ReactNode;
@@ -23,17 +25,16 @@ export function SketchBox({
   className = "",
 }: SketchBoxProps) {
   return (
-    <span className={`inline-block ${className}`}>
-      <RoughNotation
-        type="box"
-        show={show}
-        color={color}
-        animate={animate}
-        animationDuration={animationDuration}
-        strokeWidth={strokeWidth}
-      >
-        {children}
-      </RoughNotation>
-    </span>
+    <RoughAnnotation
+      type="box"
+      color={color}
+      show={show}
+      animate={animate}
+      animationDuration={animationDuration}
+      strokeWidth={strokeWidth}
+      className={className}
+    >
+      {children}
+    </RoughAnnotation>
   );
 }

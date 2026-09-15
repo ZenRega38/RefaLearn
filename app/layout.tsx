@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Kalam, Caveat } from "next/font/google";
 import "./globals.css";
 import { SiteChrome } from "@/components/ui/SiteChrome";
-import { Navbar } from "@/components/ui/Navbar";
-import { Footer } from "@/components/ui/Footer";
-import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const inter = Inter({
   subsets: ["latin"],

@@ -37,10 +37,10 @@ export default function MaterialsCatalogPage() {
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
-        
+
       if (data) {
         setMaterials(data as Material[]);
-        
+
         // Extract unique categories
         const cats = new Set(data.map(m => m.category).filter(Boolean));
         setCategories(["Semua", ...Array.from(cats)]);
@@ -52,8 +52,8 @@ export default function MaterialsCatalogPage() {
   }, []);
 
   const filteredMaterials = materials.filter(m => {
-    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (m.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.description || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "Semua" || m.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -61,7 +61,7 @@ export default function MaterialsCatalogPage() {
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-6xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="text-center space-y-4 mb-12">
           <Badge variant="blue" className="mx-auto">Materi Belajar</Badge>
@@ -80,17 +80,16 @@ export default function MaterialsCatalogPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                  selectedCategory === cat 
-                    ? 'bg-[var(--color-brand-blue)] text-white' 
-                    : 'bg-white border border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]'
-                }`}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${selectedCategory === cat
+                  ? 'bg-[var(--color-brand-blue)] text-white'
+                  : 'bg-white border border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]'
+                  }`}
               >
                 {cat}
               </button>
             ))}
           </div>
-          
+
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-soft)]" />
             <input
@@ -117,7 +116,7 @@ export default function MaterialsCatalogPage() {
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
               Coba gunakan kata kunci pencarian yang lain atau ubah filter kategori.
             </p>
-            <Button variant="outline" className="mt-6" onClick={() => {setSearchQuery(""); setSelectedCategory("Semua");}}>
+            <Button variant="secondary" className="mt-6" onClick={() => { setSearchQuery(""); setSelectedCategory("Semua"); }}>
               Reset Filter
             </Button>
           </Card>
@@ -128,8 +127,8 @@ export default function MaterialsCatalogPage() {
                 <Card variant="sketch" className="p-0 h-full flex flex-col hover:-translate-y-1 transition-transform duration-300">
                   <div className="aspect-[4/3] bg-[var(--color-paper-bg-alt)] border-b-2 border-[var(--color-line)] relative overflow-hidden">
                     {material.cover_image_url ? (
-                      <img 
-                        src={material.cover_image_url} 
+                      <img
+                        src={material.cover_image_url}
                         alt={material.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
@@ -139,15 +138,15 @@ export default function MaterialsCatalogPage() {
                       </div>
                     )}
                     <div className="absolute top-3 left-3">
-                      <Badge variant="yellow" className="shadow-sm">{material.category}</Badge>
+                      <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
                     </div>
                   </div>
-                  
+
                   <div className="p-5 flex-1 flex flex-col">
                     <h3 className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors mb-2 line-clamp-2">
                       {material.title}
                     </h3>
-                    
+
                     <div className="mt-auto pt-4 flex items-center justify-between">
                       <span className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
                         {material.price === 0 ? "Gratis" : formatPrice(material.price)}

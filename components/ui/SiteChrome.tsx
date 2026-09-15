@@ -10,18 +10,15 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
     const isAdminRoute = pathname?.startsWith("/admin");
 
     if (isAdminRoute) {
-        // /admin/* pages get their own sidebar shell (app/admin/layout.tsx) —
-        // the public marketing Navbar/Footer would be redundant there, and
-        // the floating ChatWidget already hides itself for admins anyway
-        // (they use the dedicated inbox at /admin/chat instead).
-        return <>{children} </>;
+        // /admin/* pages get their own sidebar shell (app/admin/layout.tsx).
+        return <>{children}</>;
     }
 
     return (
         <>
             <Navbar />
-            < main className="flex-1" > {children} </main>
-            < Footer />
+            <main className="flex-1">{children}</main>
+            <Footer />
             <ChatWidget />
         </>
     );

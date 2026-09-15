@@ -35,7 +35,7 @@ export default function StudentMaterialsDashboard() {
   const supabase = createClient();
   const [orders, setOrders] = useState<(Order & { materials: Material[] })[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Upload modal state
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState("");
@@ -44,7 +44,7 @@ export default function StudentMaterialsDashboard() {
   const fetchOrders = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       router.push('/login');
       return;
@@ -60,7 +60,7 @@ export default function StudentMaterialsDashboard() {
       // Collect all unique material IDs
       const allMaterialIds = new Set<string>();
       ordersData.forEach(o => o.material_ids.forEach((id: string) => allMaterialIds.add(id)));
-      
+
       // Fetch materials
       const { data: materialsData } = await supabase
         .from('materials')
@@ -80,7 +80,7 @@ export default function StudentMaterialsDashboard() {
     } else {
       setOrders([]);
     }
-    
+
     setLoading(false);
   };
 
@@ -97,9 +97,9 @@ export default function StudentMaterialsDashboard() {
     setSubmitting(true);
     const { error } = await supabase
       .from('material_orders')
-      .update({ 
-        proof_url: proofUrl, 
-        status: 'proof_uploaded' 
+      .update({
+        proof_url: proofUrl,
+        status: 'proof_uploaded'
       })
       .eq('id', uploadingId);
 
@@ -127,7 +127,7 @@ export default function StudentMaterialsDashboard() {
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
-        
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" href="/dashboard" className="px-2">← Kembali</Button>
@@ -136,7 +136,7 @@ export default function StudentMaterialsDashboard() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" href="/materials" size="sm">Cari Materi Lain</Button>
+            <Button variant="secondary" href="/materials" size="sm">Cari Materi Lain</Button>
             <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -193,13 +193,13 @@ export default function StudentMaterialsDashboard() {
                       {formatPrice(order.total_amount)}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     {getStatusBadge(order.status)}
-                    
+
                     {['pending', 'rejected'].includes(order.status) && (
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={() => {
                           setUploadingId(order.id);
                           setProofUrl(order.proof_url || "");
@@ -217,7 +217,7 @@ export default function StudentMaterialsDashboard() {
                     <p>Bukti pembayaran ditolak. Silakan upload ulang bukti yang valid.</p>
                   </div>
                 )}
-                
+
                 {order.status === 'proof_uploaded' && (
                   <div className="px-6 py-3 bg-blue-50 text-blue-700 text-sm flex gap-2 border-b border-[var(--color-line)]">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -236,23 +236,23 @@ export default function StudentMaterialsDashboard() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <Badge variant="yellow" className="mb-2 text-[10px] px-1.5 py-0">{material.category}</Badge>
+                        <Badge variant="amber" className="mb-2 text-[10px] px-1.5 py-0">{material.category}</Badge>
                         <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)] line-clamp-1">{material.title}</h4>
                       </div>
-                      
+
                       <div className="mt-2 sm:mt-0 w-full sm:w-auto flex justify-end">
                         {order.status === 'confirmed' ? (
-                          <Button 
-                            variant="outline"
+                          <Button
+                            variant="secondary"
                             onClick={() => window.open(material.file_url, '_blank')}
                             className="w-full sm:w-auto"
                           >
                             <Download className="w-4 h-4 mr-2" /> Akses Materi
                           </Button>
                         ) : (
-                          <Button 
-                            variant="ghost" 
-                            disabled 
+                          <Button
+                            variant="ghost"
+                            disabled
                             className="w-full sm:w-auto text-[var(--color-ink-soft)] border-dashed border-[var(--color-line)]"
                           >
                             <Lock className="w-4 h-4 mr-2" /> Terkunci

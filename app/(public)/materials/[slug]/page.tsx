@@ -29,7 +29,7 @@ export default function MaterialDetailPage() {
   const router = useRouter();
   const slug = params.slug as string;
   const supabase = createClient();
-  
+
   const [material, setMaterial] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
@@ -39,7 +39,7 @@ export default function MaterialDetailPage() {
   useEffect(() => {
     const fetchMaterialAndUser = async () => {
       setLoading(true);
-      
+
       // Get user
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -51,10 +51,10 @@ export default function MaterialDetailPage() {
         .eq('slug', slug)
         .eq('is_active', true)
         .single();
-        
+
       if (matData) {
         setMaterial(matData as Material);
-        
+
         // Check if already bought
         if (user) {
           const { data: orders } = await supabase
@@ -63,7 +63,7 @@ export default function MaterialDetailPage() {
             .eq('student_id', user.id)
             .contains('material_ids', [matData.id])
             .neq('status', 'rejected');
-            
+
           if (orders && orders.length > 0) {
             setHasBought(true);
           }
@@ -84,9 +84,9 @@ export default function MaterialDetailPage() {
     if (!material) return;
 
     setBuying(true);
-    
+
     const status = material.price === 0 ? 'confirmed' : 'pending';
-    
+
     const { data, error } = await supabase
       .from('material_orders')
       .insert([{
@@ -134,21 +134,21 @@ export default function MaterialDetailPage() {
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-5xl mx-auto space-y-8">
-        
+
         <Link href="/materials" className="inline-flex items-center text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] font-[var(--font-inter)] text-sm transition-colors group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
           Kembali ke Katalog
         </Link>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
+
           {/* Left Column - Image & Action */}
           <div className="md:col-span-1 space-y-6">
             <Card variant="sketch" className="p-0 overflow-hidden">
               <div className="aspect-[3/4] bg-[var(--color-paper-bg-alt)] relative flex items-center justify-center">
                 {material.cover_image_url ? (
-                  <img 
-                    src={material.cover_image_url} 
+                  <img
+                    src={material.cover_image_url}
                     alt={material.title}
                     className="w-full h-full object-cover"
                   />
@@ -156,7 +156,7 @@ export default function MaterialDetailPage() {
                   <BookOpen className="w-24 h-24 text-[var(--color-ink-soft)]/20" />
                 )}
                 <div className="absolute top-4 left-4">
-                  <Badge variant="yellow" className="shadow-sm">{material.category}</Badge>
+                  <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
                 </div>
               </div>
             </Card>
@@ -175,10 +175,10 @@ export default function MaterialDetailPage() {
                   <div>
                     <p className="font-semibold font-[var(--font-inter)] text-sm">Sudah Dibeli</p>
                     <p className="text-xs mt-1">Anda sudah memiliki akses ke materi ini.</p>
-                    <Button 
-                      href="/dashboard/materials" 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      href="/dashboard/materials"
+                      variant="secondary"
+                      size="sm"
                       className="mt-3 w-full bg-white border-[var(--color-success-green)] text-[var(--color-success-green)] hover:bg-[var(--color-success-green)] hover:text-white"
                     >
                       Buka di Dashboard
@@ -186,9 +186,9 @@ export default function MaterialDetailPage() {
                   </div>
                 </div>
               ) : (
-                <Button 
-                  onClick={handleBuy} 
-                  isLoading={buying} 
+                <Button
+                  onClick={handleBuy}
+                  isLoading={buying}
                   className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
                 >
                   <ShoppingBag className="w-5 h-5 mr-2" /> Beli Sekarang
@@ -207,7 +207,7 @@ export default function MaterialDetailPage() {
               </ul>
             </Card>
           </div>
-          
+
           {/* Right Column - Details */}
           <div className="md:col-span-2 space-y-8">
             <div>
@@ -225,7 +225,7 @@ export default function MaterialDetailPage() {
               <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-6 border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
                 Deskripsi Materi
               </h2>
-              <div 
+              <div
                 className="prose prose-slate max-w-none font-[var(--font-inter)] prose-p:text-[var(--color-ink-soft)] prose-headings:text-[var(--color-ink)]"
                 dangerouslySetInnerHTML={{ __html: material.description }}
               />

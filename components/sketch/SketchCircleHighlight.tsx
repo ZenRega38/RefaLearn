@@ -1,7 +1,9 @@
+// Replaces: components/sketch/SketchCircleHighlight.tsx
+
 "use client";
 
 import { ReactNode } from "react";
-import { RoughNotation } from "react-rough-notation";
+import { RoughAnnotation } from "./RoughAnnotation";
 
 interface SketchCircleHighlightProps {
   children: ReactNode;
@@ -25,18 +27,17 @@ export function SketchCircleHighlight({
   className = "",
 }: SketchCircleHighlightProps) {
   return (
-    <span className={`inline-block ${className}`}>
-      <RoughNotation
-        type="circle"
-        show={show}
-        color={color}
-        animate={animate}
-        animationDuration={animationDuration}
-        strokeWidth={strokeWidth}
-        padding={padding}
-      >
-        {children}
-      </RoughNotation>
-    </span>
+    <RoughAnnotation
+      type="circle"
+      color={color}
+      show={show}
+      animate={animate}
+      animationDuration={animationDuration}
+      strokeWidth={strokeWidth}
+      padding={padding}
+      className={className}
+    >
+      {children}
+    </RoughAnnotation>
   );
 }

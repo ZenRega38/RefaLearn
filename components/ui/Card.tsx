@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 
 interface CardProps {
-  children: ReactNode;
+  children?: ReactNode;
   variant?: "default" | "sketch" | "interactive";
   className?: string;
   onClick?: () => void;
@@ -14,7 +14,7 @@ export function Card({
   onClick,
 }: CardProps) {
   const baseClass = "bg-white rounded-[var(--radius-card)] p-6 transition-all duration-300";
-  
+
   const variantClasses = {
     default: "border border-[var(--color-line)] shadow-sm",
     sketch: "sketch-card", // Uses the global CSS utility for the hand-drawn border look
@@ -25,8 +25,8 @@ export function Card({
 
   if (onClick || variant === "interactive") {
     return (
-      <div 
-        className={combinedClasses} 
+      <div
+        className={combinedClasses}
         onClick={onClick}
         role="button"
         tabIndex={0}
