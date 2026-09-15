@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Kalam, Caveat } from "next/font/google";
 import "./globals.css";
+import { SiteChrome } from "@/components/ui/SiteChrome";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/ui/Footer";
 import { ChatWidget } from "@/components/chat/ChatWidget";
@@ -62,10 +63,7 @@ export default function RootLayout({
       className={`${inter.variable} ${kalam.variable} ${caveat.variable}`}
     >
       <body className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <ChatWidget />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

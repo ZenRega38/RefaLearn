@@ -12,6 +12,14 @@ import { FileText, Check, X, RefreshCw, Eye, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { getSignedProofUrl } from "@/lib/storage";
 
+// Small client-safe mirror of lib/invoicing.ts's getPreviousPeriod — kept
+// separate because that file imports the server-only Supabase client
+// (next/headers) and can't be pulled into a "use client" component.
+function getPreviousPeriodLocal(reference: Date = new Date()): { month: number; year: number } {
+  const prevMonthDate = new Date(reference.getFullYear(), reference.getMonth() - 1, 1);
+  return { month: prevMonthDate.getMonth() + 1, year: prevMonthDate.getFullYear() };
+}
+
 type Invoice = {
   id: string;
   student_id: string;
@@ -30,6 +38,37 @@ export default function AdminInvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending_proof' | 'review' | 'confirmed'>('review');
   const [viewingId, setViewingId] = useState<string | null>(null);
+
+  // "Generate Now" — manual trigger for the monthly invoice run (agent.md
+  // 6.6). Defaults to last calendar month, which is the normal case; the
+  // month/year selects exist for the edge case of generating an older or
+  // catch-up period (e.g. a session marked completed late).
+  const defaultPeriod = getPreviousPeriodLocal();
+  const [genMonth, setGenMonth] = useState(defaultPeriod.month);
+  const [genYear, setGenYear] = useState(defaultPeriod.year);
+  const [generating, setGenerating] = useState(false);
+  const [genResult, setGenResult] = useState<{ created: number; skipped: number } | null>(null);
+
+  const handleGenerateInvoices = async () => {
+    setGenerating(true);
+    setGenResult(null);
+    try {
+      const res = await fetch('/api/admin/invoices/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodMonth: genMonth, periodYear: genYear }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal generate tagihan');
+
+      setGenResult({ created: data.created?.length || 0, skipped: data.skipped?.length || 0 });
+      await fetchInvoices();
+    } catch (err: any) {
+      alert(`Gagal generate tagihan: ${err.message}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleViewProof = async (invoice: Invoice) => {
     if (!invoice.proof_url) return;
@@ -75,6 +114,16 @@ export default function AdminInvoicesPage() {
       .eq('id', id);
 
     if (!error) {
+      // Fire-and-forget the email notification — the status change itself
+      // already succeeded, so we don't block the UI refresh on this, and we
+      // don't want a flaky email send to make a successful confirm/reject
+      // look like it failed.
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'invoice_status', recordId: id }),
+      }).catch((err) => console.error('[admin/invoices] notify failed:', err));
+
       fetchInvoices();
     } else {
       alert(`Gagal update status: ${error.message}`);
@@ -123,6 +172,50 @@ export default function AdminInvoicesPage() {
             </Button>
           </div>
         </div>
+
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-[var(--color-ink)] font-[var(--font-inter)] mb-1">
+            Generate Tagihan Bulanan
+          </h2>
+          <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-4">
+            Otomatis berjalan tiap tanggal 1. Gunakan tombol ini untuk generate ulang secara manual
+            (misalnya ada sesi yang baru ditandai selesai setelah tanggal 1, atau untuk periode lama).
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-ink-soft)] mb-1 font-[var(--font-inter)]">Bulan</label>
+              <select
+                className="input-field py-2"
+                value={genMonth}
+                onChange={(e) => setGenMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM', { locale: id })}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-ink-soft)] mb-1 font-[var(--font-inter)]">Tahun</label>
+              <select
+                className="input-field py-2"
+                value={genYear}
+                onChange={(e) => setGenYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <Button onClick={handleGenerateInvoices} isLoading={generating}>
+              Generate Sekarang
+            </Button>
+            {genResult && (
+              <span className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
+                {genResult.created} tagihan dibuat, {genResult.skipped} dilewati (sudah ada).
+              </span>
+            )}
+          </div>
+        </Card>
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">

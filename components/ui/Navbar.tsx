@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -15,8 +17,17 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { profile, loading: authLoading, signOut } = useAuthProfile();
+
+  const handleLogout = async () => {
+    await signOut();
+    setMobileOpen(false);
+    router.push("/");
+    router.refresh();
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -36,11 +47,10 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
             ? "bg-[var(--color-paper-bg)]/95 backdrop-blur-md shadow-[var(--shadow-card)]"
             : "bg-transparent"
-        }`}
+          }`}
       >
         <nav className="container-main flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
@@ -105,11 +115,10 @@ export function Navbar() {
                   <Link
                     href={link.href}
                     id={`nav-${link.label.toLowerCase()}`}
-                    className={`relative px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
-                      isActive
+                    className={`relative px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${isActive
                         ? "text-[var(--color-brand-blue)]"
                         : "text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
-                    }`}
+                      }`}
                     style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                   >
                     {link.label}
@@ -124,17 +133,45 @@ export function Navbar() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/login"
-              id="nav-login"
-              className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
-              style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
-            >
-              Masuk
-            </Link>
-            <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
-              Book Session
-            </Link>
+            {authLoading ? null : profile ? (
+              <>
+                <Link
+                  href={profile.role === "admin" ? "/admin" : "/dashboard"}
+                  id="nav-dashboard-link"
+                  className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
+                  style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
+                >
+                  {profile.role === "admin" ? "Admin Panel" : "Dashboard Saya"}
+                </Link>
+                {profile.role === "student" && (
+                  <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
+                    Book Session
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  id="nav-logout"
+                  className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-danger-red)] transition-colors"
+                  style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
+                >
+                  <LogOut className="w-4 h-4" /> Keluar
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  id="nav-login"
+                  className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
+                  style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
+                >
+                  Masuk
+                </Link>
+                <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
+                  Book Session
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Hamburger */}
@@ -145,19 +182,16 @@ export function Navbar() {
             id="nav-hamburger"
           >
             <span
-              className={`block w-5 h-[2px] bg-[var(--color-ink)] transition-all duration-300 ${
-                mobileOpen ? "translate-y-[7px] rotate-45" : ""
-              }`}
+              className={`block w-5 h-[2px] bg-[var(--color-ink)] transition-all duration-300 ${mobileOpen ? "translate-y-[7px] rotate-45" : ""
+                }`}
             />
             <span
-              className={`block w-5 h-[2px] bg-[var(--color-ink)] transition-all duration-300 ${
-                mobileOpen ? "opacity-0" : ""
-              }`}
+              className={`block w-5 h-[2px] bg-[var(--color-ink)] transition-all duration-300 ${mobileOpen ? "opacity-0" : ""
+                }`}
             />
             <span
-              className={`block w-5 h-[2px] bg-[var(--color-ink)] transition-all duration-300 ${
-                mobileOpen ? "-translate-y-[7px] -rotate-45" : ""
-              }`}
+              className={`block w-5 h-[2px] bg-[var(--color-ink)] transition-all duration-300 ${mobileOpen ? "-translate-y-[7px] -rotate-45" : ""
+                }`}
             />
           </button>
         </nav>
@@ -171,9 +205,8 @@ export function Navbar() {
 
       {/* Mobile Nav Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-[280px] bg-[var(--color-paper-bg)] z-50 shadow-[var(--shadow-float)] transition-transform duration-300 ease-out ${
-          mobileOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-[280px] bg-[var(--color-paper-bg)] z-50 shadow-[var(--shadow-float)] transition-transform duration-300 ease-out ${mobileOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="flex flex-col h-full pt-20 px-6 pb-8">
           <ul className="flex flex-col gap-1 flex-1">
@@ -190,11 +223,10 @@ export function Navbar() {
                 >
                   <Link
                     href={link.href}
-                    className={`block px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
-                      isActive
+                    className={`block px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${isActive
                         ? "bg-[var(--color-brand-blue)]/10 text-[var(--color-brand-blue)]"
                         : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
-                    }`}
+                      }`}
                     style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                   >
                     {link.label}
@@ -205,18 +237,36 @@ export function Navbar() {
           </ul>
 
           <div className="flex flex-col gap-3 pt-6 border-t-2 border-dashed border-[var(--color-line)]">
-            <Link
-              href="/login"
-              className="btn-secondary text-center text-sm"
-            >
-              Masuk
-            </Link>
-            <Link
-              href="/schedule"
-              className="btn-primary text-center text-sm"
-            >
-              Book Session
-            </Link>
+            {authLoading ? null : profile ? (
+              <>
+                <Link
+                  href={profile.role === "admin" ? "/admin" : "/dashboard"}
+                  className="btn-secondary text-center text-sm"
+                >
+                  {profile.role === "admin" ? "Admin Panel" : "Dashboard Saya"}
+                </Link>
+                {profile.role === "student" && (
+                  <Link href="/schedule" className="btn-primary text-center text-sm">
+                    Book Session
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center gap-2 text-sm font-medium text-[var(--color-danger-red)] py-2"
+                >
+                  <LogOut className="w-4 h-4" /> Keluar
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="btn-secondary text-center text-sm">
+                  Masuk
+                </Link>
+                <Link href="/schedule" className="btn-primary text-center text-sm">
+                  Book Session
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
