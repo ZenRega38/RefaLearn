@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
 import { ShoppingBag, Check, X, RefreshCw, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
+import { getSignedProofUrl } from "@/lib/storage";
 
 type Order = {
   id: string;
@@ -27,6 +28,20 @@ export default function AdminMaterialOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'review' | 'confirmed'>('review');
+  const [viewingId, setViewingId] = useState<string | null>(null);
+
+  const handleViewProof = async (order: Order) => {
+    if (!order.proof_url) return;
+    setViewingId(order.id);
+    try {
+      const url = await getSignedProofUrl(order.proof_url);
+      window.open(url, '_blank');
+    } catch (err: any) {
+      alert(`Gagal membuka bukti: ${err.message}`);
+    } finally {
+      setViewingId(null);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -55,7 +70,7 @@ export default function AdminMaterialOrdersPage() {
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
       .from('material_orders')
-      .update({ 
+      .update({
         status: newStatus,
         confirmed_at: newStatus === 'confirmed' ? new Date().toISOString() : null
       })
@@ -81,13 +96,13 @@ export default function AdminMaterialOrdersPage() {
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
-        
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] flex items-center gap-2">
             <ShoppingBag className="w-8 h-8" /> Pembelian Materi
           </h1>
           <div className="flex gap-2">
-            <select 
+            <select
               className="input-field py-2"
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
@@ -142,48 +157,48 @@ export default function AdminMaterialOrdersPage() {
                         {getStatusBadge(order.status)}
                       </td>
                       <td className="p-4 text-right">
-                        
+
                         {order.status === 'proof_uploaded' && (
                           <div className="flex justify-end gap-2 items-center">
                             {order.proof_url && (
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => window.open(order.proof_url!, '_blank')} 
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => window.open(order.proof_url!, '_blank')}
                                 className="px-2"
                                 title="Lihat Bukti"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </Button>
                             )}
-                            <Button 
-                              size="sm" 
-                              onClick={() => updateStatus(order.id, 'confirmed')} 
+                            <Button
+                              size="sm"
+                              onClick={() => updateStatus(order.id, 'confirmed')}
                               className="bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] text-white px-3"
                             >
                               <Check className="w-4 h-4 mr-1" /> Konfirmasi
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => {
                                 if (window.confirm("Tolak bukti pembayaran ini?")) {
                                   updateStatus(order.id, 'rejected');
                                 }
-                              }} 
+                              }}
                               className="text-[var(--color-danger-red)] px-2"
                             >
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
                         )}
-                        
+
                         {order.status === 'pending' && (
                           <Button size="sm" variant="ghost" onClick={() => updateStatus(order.id, 'confirmed')} className="text-xs">
                             Set Lunas Manual
                           </Button>
                         )}
-                        
+
                       </td>
                     </tr>
                   ))

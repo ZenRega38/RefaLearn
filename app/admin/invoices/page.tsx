@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
 import { FileText, Check, X, RefreshCw, Eye, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
+import { getSignedProofUrl } from "@/lib/storage";
 
 type Invoice = {
   id: string;
@@ -18,7 +19,7 @@ type Invoice = {
   period_year: number;
   total_amount: number;
   status: 'draft' | 'sent' | 'proof_uploaded' | 'confirmed' | 'overdue' | 'rejected';
-  proof_url: string | null;
+  proof_url: string | null; // storage PATH — see lib/storage.ts
   generated_at: string;
   profiles: { full_name: string; phone: string };
 };
@@ -28,6 +29,20 @@ export default function AdminInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending_proof' | 'review' | 'confirmed'>('review');
+  const [viewingId, setViewingId] = useState<string | null>(null);
+
+  const handleViewProof = async (invoice: Invoice) => {
+    if (!invoice.proof_url) return;
+    setViewingId(invoice.id);
+    try {
+      const url = await getSignedProofUrl(invoice.proof_url);
+      window.open(url, '_blank');
+    } catch (err: any) {
+      alert(`Gagal membuka bukti: ${err.message}`);
+    } finally {
+      setViewingId(null);
+    }
+  };
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -87,13 +102,13 @@ export default function AdminInvoicesPage() {
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
-        
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] flex items-center gap-2">
             <FileText className="w-8 h-8" /> Manajemen Tagihan
           </h1>
           <div className="flex gap-2">
-            <select 
+            <select
               className="input-field py-2"
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
@@ -148,48 +163,49 @@ export default function AdminInvoicesPage() {
                         {getStatusBadge(invoice.status)}
                       </td>
                       <td className="p-4 text-right">
-                        
+
                         {invoice.status === 'proof_uploaded' && (
                           <div className="flex justify-end gap-2 items-center">
                             {invoice.proof_url && (
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                onClick={() => window.open(invoice.proof_url!, '_blank')} 
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleViewProof(invoice)}
+                                isLoading={viewingId === invoice.id}
                                 className="px-2"
                                 title="Lihat Bukti"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </Button>
                             )}
-                            <Button 
-                              size="sm" 
-                              onClick={() => updateStatus(invoice.id, 'confirmed')} 
+                            <Button
+                              size="sm"
+                              onClick={() => updateStatus(invoice.id, 'confirmed')}
                               className="bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] text-white px-3"
                             >
                               <Check className="w-4 h-4 mr-1" /> Konfirmasi
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => {
                                 if (window.confirm("Tolak bukti pembayaran ini?")) {
                                   updateStatus(invoice.id, 'rejected');
                                 }
-                              }} 
+                              }}
                               className="text-[var(--color-danger-red)] px-2"
                             >
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
                         )}
-                        
+
                         {invoice.status === 'sent' && (
                           <Button size="sm" variant="ghost" onClick={() => updateStatus(invoice.id, 'confirmed')} className="text-xs">
                             Set Lunas Manual
                           </Button>
                         )}
-                        
+
                       </td>
                     </tr>
                   ))

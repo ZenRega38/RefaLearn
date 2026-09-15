@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
-import { Receipt, Upload, Check, RefreshCw, AlertCircle, ExternalLink } from "lucide-react";
+import { Receipt, Upload, RefreshCw, AlertCircle, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
+import { uploadPaymentProof, getSignedProofUrl } from "@/lib/storage";
 import { useRouter } from "next/navigation";
 
 type Invoice = {
@@ -19,7 +20,7 @@ type Invoice = {
   period_year: number;
   total_amount: number;
   status: 'draft' | 'sent' | 'proof_uploaded' | 'confirmed' | 'overdue' | 'rejected';
-  proof_url: string | null;
+  proof_url: string | null; // storage PATH, not a public URL — see lib/storage.ts
   generated_at: string;
 };
 
@@ -28,20 +29,26 @@ export default function StudentInvoicesPage() {
   const supabase = createClient();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [studentId, setStudentId] = useState<string | null>(null);
+
   // Upload modal state
   const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [proofUrl, setProofUrl] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Tracks which invoice's "view proof" signed URL is currently being fetched,
+  // so we can show a small loading state on that specific button.
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   const fetchInvoices = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       router.push('/login');
       return;
     }
+    setStudentId(user.id);
 
     const { data, error } = await supabase
       .from('invoices')
@@ -59,28 +66,46 @@ export default function StudentInvoicesPage() {
   }, [router]);
 
   const handleSubmitProof = async () => {
-    if (!proofUrl.trim() || !uploadingId) {
-      alert("Masukkan link bukti pembayaran!");
+    if (!proofFile || !uploadingId || !studentId) {
+      alert("Silakan pilih file bukti transfer terlebih dahulu!");
       return;
     }
 
     setSubmitting(true);
-    const { error } = await supabase
-      .from('invoices')
-      .update({ 
-        proof_url: proofUrl, 
-        status: 'proof_uploaded' 
-      })
-      .eq('id', uploadingId);
+    try {
+      // Upload the actual image to the private payment-proofs bucket.
+      const path = await uploadPaymentProof("invoices", studentId, uploadingId, proofFile);
 
-    setSubmitting(false);
+      const { error } = await supabase
+        .from('invoices')
+        .update({
+          proof_url: path,
+          status: 'proof_uploaded'
+        })
+        .eq('id', uploadingId);
 
-    if (!error) {
+      if (error) throw error;
+
       setUploadingId(null);
-      setProofUrl("");
+      setProofFile(null);
       fetchInvoices();
-    } else {
-      alert(`Gagal mengirim bukti: ${error.message}`);
+    } catch (err: any) {
+      alert(`Gagal mengirim bukti: ${err.message}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleViewProof = async (invoice: Invoice) => {
+    if (!invoice.proof_url) return;
+    setViewingId(invoice.id);
+    try {
+      const url = await getSignedProofUrl(invoice.proof_url);
+      window.open(url, '_blank');
+    } catch (err: any) {
+      alert(`Gagal membuka bukti: ${err.message}`);
+    } finally {
+      setViewingId(null);
     }
   };
 
@@ -104,7 +129,7 @@ export default function StudentInvoicesPage() {
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
-        
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" href="/dashboard" className="px-2">← Kembali</Button>
@@ -124,17 +149,17 @@ export default function StudentInvoicesPage() {
                 Upload Bukti Pembayaran
               </h3>
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                Silakan transfer sesuai nominal tagihan dan masukkan link/URL gambar bukti transfer (misal: Google Drive, Imgur, dsb).
+                Silakan transfer sesuai nominal tagihan, lalu unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF).
               </p>
               <Input
-                label="URL Bukti Transfer"
-                placeholder="https://..."
-                value={proofUrl}
-                onChange={(e) => setProofUrl(e.target.value)}
+                type="file"
+                label="File Bukti Transfer"
+                accept="image/*,application/pdf"
+                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
               />
               <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-line)]">
-                <Button variant="ghost" onClick={() => { setUploadingId(null); setProofUrl(""); }}>Batal</Button>
-                <Button onClick={handleSubmitProof} isLoading={submitting}>Kirim Bukti</Button>
+                <Button variant="ghost" onClick={() => { setUploadingId(null); setProofFile(null); }}>Batal</Button>
+                <Button onClick={handleSubmitProof} isLoading={submitting} disabled={!proofFile}>Kirim Bukti</Button>
               </div>
             </Card>
           </div>
@@ -167,7 +192,7 @@ export default function StudentInvoicesPage() {
                   <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                     Diterbitkan pada: {format(parseISO(invoice.generated_at), 'dd MMMM yyyy', { locale: id })}
                   </p>
-                  
+
                   {invoice.status === 'rejected' && (
                     <div className="flex items-start gap-2 mt-2 text-sm text-[var(--color-danger-red)] bg-[var(--color-danger-red)]/10 p-2 rounded">
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -185,13 +210,13 @@ export default function StudentInvoicesPage() {
                   <div className="text-2xl font-bold text-[var(--color-brand-blue)] font-[var(--font-inter)]">
                     {formatPrice(invoice.total_amount)}
                   </div>
-                  
+
                   {['sent', 'rejected'].includes(invoice.status) && (
-                    <Button 
+                    <Button
                       className="w-full md:w-auto gap-2"
                       onClick={() => {
                         setUploadingId(invoice.id);
-                        setProofUrl(invoice.proof_url || "");
+                        setProofFile(null);
                       }}
                     >
                       <Upload className="w-4 h-4" /> Upload Bukti
@@ -199,10 +224,11 @@ export default function StudentInvoicesPage() {
                   )}
 
                   {['proof_uploaded', 'confirmed'].includes(invoice.status) && invoice.proof_url && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => window.open(invoice.proof_url!, '_blank')}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewProof(invoice)}
+                      isLoading={viewingId === invoice.id}
                       className="w-full md:w-auto text-xs"
                     >
                       <ExternalLink className="w-3 h-3 mr-2" /> Lihat Bukti Terkirim

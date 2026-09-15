@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { MessageCircle, Send, Search, User } from "lucide-react";
 import { format, parseISO, isToday, isYesterday } from "date-fns";
 import { id } from "date-fns/locale";
@@ -64,7 +65,7 @@ export default function AdminChatInbox() {
 
   useEffect(() => {
     if (!selectedConvId) return;
-    
+
     const fetchMessages = async () => {
       const { data } = await supabase
         .from('chat_messages')
@@ -121,7 +122,7 @@ export default function AdminChatInbox() {
     return format(d, 'dd/MM/yyyy');
   };
 
-  const filteredConvs = conversations.filter(c => 
+  const filteredConvs = conversations.filter(c =>
     c.profiles?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -130,7 +131,7 @@ export default function AdminChatInbox() {
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-6 h-[calc(100vh-8rem)] flex flex-col">
-        
+
         <div className="flex items-center gap-2">
           <MessageCircle className="w-8 h-8 text-[var(--color-brand-blue)]" />
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
@@ -139,7 +140,7 @@ export default function AdminChatInbox() {
         </div>
 
         <Card className="flex-1 p-0 overflow-hidden flex flex-col md:flex-row h-full">
-          
+
           {/* Sidebar */}
           <div className="w-full md:w-80 border-r border-[var(--color-line)] flex flex-col bg-white">
             <div className="p-4 border-b border-[var(--color-line)]">
@@ -154,7 +155,7 @@ export default function AdminChatInbox() {
                 />
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto">
               {filteredConvs.length === 0 ? (
                 <div className="p-8 text-center text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
@@ -208,12 +209,11 @@ export default function AdminChatInbox() {
                       const isMe = msg.sender_id === adminUser?.id;
                       return (
                         <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div 
-                            className={`max-w-[70%] p-3 rounded-2xl text-sm font-[var(--font-inter)] ${
-                              isMe 
-                                ? 'bg-[var(--color-brand-blue)] text-white rounded-tr-none shadow-sm' 
+                          <div
+                            className={`max-w-[70%] p-3 rounded-2xl text-sm font-[var(--font-inter)] ${isMe
+                                ? 'bg-[var(--color-brand-blue)] text-white rounded-tr-none shadow-sm'
                                 : 'bg-white border border-[var(--color-line)] text-[var(--color-ink)] rounded-tl-none shadow-sm'
-                            }`}
+                              }`}
                           >
                             {msg.content}
                           </div>

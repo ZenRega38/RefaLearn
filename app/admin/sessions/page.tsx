@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/Textarea";
 import { format, parseISO } from "date-fns";
 import { id } from "date-fns/locale";
-import { Check, X, Eye, Edit3, MessageSquare, Clock, RefreshCw } from "lucide-react";
+import { Check, X, Eye, Edit3, MessageSquare, Clock, RefreshCw, Calendar } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 
 type Profile = {
@@ -95,14 +95,14 @@ export default function AdminSessionsPage() {
   const saveNotes = async () => {
     if (!currentSessionId) return;
     setSavingNotes(true);
-    
+
     const { error } = await supabase
       .from('sessions')
       .update({ notes })
       .eq('id', currentSessionId);
-      
+
     setSavingNotes(false);
-    
+
     if (!error) {
       setIsNotesModalOpen(false);
       fetchSessions();
@@ -128,13 +128,13 @@ export default function AdminSessionsPage() {
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen relative">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
             Manajemen Kelas & Sesi
           </h1>
           <div className="flex gap-2">
-            <select 
+            <select
               className="input-field py-2"
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
@@ -183,7 +183,7 @@ export default function AdminSessionsPage() {
                       <td className="p-4">
                         <div className="font-semibold text-[var(--color-ink)]">{session.profiles?.full_name || 'Unknown'}</div>
                         <div className="text-xs text-[var(--color-ink-soft)] flex items-center gap-1 mt-1">
-                          <a href={`https://wa.me/${session.profiles?.phone?.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
+                          <a href={`https://wa.me/${session.profiles?.phone?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
                             {session.profiles?.phone || '-'}
                           </a>
                         </div>
@@ -196,7 +196,7 @@ export default function AdminSessionsPage() {
                         {getStatusBadge(session.status)}
                       </td>
                       <td className="p-4 text-right">
-                        
+
                         {/* Pending Actions */}
                         {session.status === 'pending' && (
                           <div className="flex justify-end gap-2">
@@ -208,7 +208,7 @@ export default function AdminSessionsPage() {
                             </Button>
                           </div>
                         )}
-                        
+
                         {/* Accepted/Upcoming Actions */}
                         {session.status === 'accepted' && (
                           <div className="flex justify-end gap-2">
@@ -218,7 +218,7 @@ export default function AdminSessionsPage() {
                             <Button size="sm" onClick={() => updateStatus(session.id, 'completed')} className="px-3">
                               Selesai
                             </Button>
-                            <select 
+                            <select
                               className="input-field py-1 px-2 text-xs w-28 bg-transparent"
                               onChange={(e) => {
                                 if (e.target.value) updateStatus(session.id, e.target.value);
@@ -232,7 +232,7 @@ export default function AdminSessionsPage() {
                             </select>
                           </div>
                         )}
-                        
+
                         {/* Completed/Past Actions */}
                         {['completed', 'cancelled', 'no_show', 'declined'].includes(session.status) && (
                           <div className="flex justify-end gap-2">
@@ -264,7 +264,7 @@ export default function AdminSessionsPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6">
               <Textarea
                 label="Catatan Progress Siswa (Internal)"
@@ -274,7 +274,7 @@ export default function AdminSessionsPage() {
                 rows={6}
               />
             </div>
-            
+
             <div className="p-4 border-t border-[var(--color-line)] bg-[var(--color-paper-bg-alt)] flex justify-end gap-3">
               <Button variant="ghost" onClick={() => setIsNotesModalOpen(false)}>Tutup</Button>
               <Button onClick={saveNotes} isLoading={savingNotes}>Simpan Catatan</Button>
@@ -282,7 +282,7 @@ export default function AdminSessionsPage() {
           </div>
         </div>
       )}
-      
+
     </PaperBackground>
   );
 }

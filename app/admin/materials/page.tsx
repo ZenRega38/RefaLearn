@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen, FileUp, FileCheck } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
+import { uploadMaterialFile } from "@/lib/storage";
 
 type Material = {
   id: string;
@@ -25,7 +26,7 @@ export default function AdminMaterialsPage() {
   const supabase = createClient();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Editor state
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -33,7 +34,8 @@ export default function AdminMaterialsPage() {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(100000);
-  const [fileUrl, setFileUrl] = useState("");
+  const [fileUrl, setFileUrl] = useState<string | null>(null); // existing stored path, if any
+  const [newFile, setNewFile] = useState<File | null>(null);   // a freshly picked file, not yet uploaded
   const [coverUrl, setCoverUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +46,7 @@ export default function AdminMaterialsPage() {
       .from('materials')
       .select('id, title, slug, category, price, is_active, cover_image_url')
       .order('created_at', { ascending: false });
-      
+
     if (!error && data) {
       setMaterials(data as Material[]);
     }
@@ -61,14 +63,15 @@ export default function AdminMaterialsPage() {
       .select('*')
       .eq('id', id)
       .single();
-      
+
     if (data && !error) {
       setCurrentId(data.id);
       setTitle(data.title);
       setCategory(data.category || "");
       setDescription(data.description || "");
       setPrice(data.price);
-      setFileUrl(data.file_url || "");
+      setFileUrl(data.file_url || null);
+      setNewFile(null);
       setCoverUrl(data.cover_image_url || "");
       setIsActive(data.is_active);
       setIsEditing(true);
@@ -81,7 +84,8 @@ export default function AdminMaterialsPage() {
     setCategory("");
     setDescription("");
     setPrice(100000);
-    setFileUrl("");
+    setFileUrl(null);
+    setNewFile(null);
     setCoverUrl("");
     setIsActive(true);
     setIsEditing(true);
@@ -98,47 +102,61 @@ export default function AdminMaterialsPage() {
     }
 
     setSaving(true);
-    
-    // Create slug from title
-    const slug = title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
 
-    const materialData = {
-      title,
-      slug,
-      category,
-      description,
-      price,
-      file_url: fileUrl,
-      cover_image_url: coverUrl,
-      is_active: isActive,
-    };
+    try {
+      // A brand-new material needs its id decided before we can upload the
+      // file (the upload path is prefixed with the material id so storage
+      // RLS can match it against confirmed orders) — generate it client-side
+      // and insert explicitly with that id rather than letting Postgres
+      // default it.
+      const id = currentId || crypto.randomUUID();
 
-    let error;
-    if (currentId) {
-      const { error: updateError } = await supabase
-        .from('materials')
-        .update(materialData)
-        .eq('id', currentId);
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('materials')
-        .insert([materialData]);
-      error = insertError;
-    }
+      let finalFileUrl = fileUrl;
+      if (newFile) {
+        finalFileUrl = await uploadMaterialFile(id, newFile);
+      }
 
-    setSaving(false);
+      // Create slug from title
+      const slug = title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
 
-    if (error) {
-      console.error(error);
-      alert(`Gagal menyimpan: ${error.message}`);
-    } else {
+      const materialData = {
+        title,
+        slug,
+        category,
+        description,
+        price,
+        file_url: finalFileUrl,
+        cover_image_url: coverUrl,
+        is_active: isActive,
+      };
+
+      let error;
+      if (currentId) {
+        const { error: updateError } = await supabase
+          .from('materials')
+          .update(materialData)
+          .eq('id', currentId);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('materials')
+          .insert([{ id, ...materialData }]);
+        error = insertError;
+      }
+
+      if (error) throw error;
+
       setIsEditing(false);
       fetchMaterials();
+    } catch (err: any) {
+      console.error(err);
+      alert(`Gagal menyimpan: ${err.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -166,7 +184,7 @@ export default function AdminMaterialsPage() {
               <Button onClick={handleSave} isLoading={saving}>Simpan</Button>
             </div>
           </div>
-          
+
           <Card variant="sketch" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
@@ -184,7 +202,7 @@ export default function AdminMaterialsPage() {
                 required
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Harga (Rp)"
@@ -195,9 +213,9 @@ export default function AdminMaterialsPage() {
               />
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">Status</label>
-                <select 
-                  className="input-field" 
-                  value={isActive ? "active" : "inactive"} 
+                <select
+                  className="input-field"
+                  value={isActive ? "active" : "inactive"}
                   onChange={(e) => setIsActive(e.target.value === "active")}
                 >
                   <option value="active">Aktif (Tersedia)</option>
@@ -213,12 +231,29 @@ export default function AdminMaterialsPage() {
                 onChange={(e) => setCoverUrl(e.target.value)}
                 placeholder="https://..."
               />
-              <Input
-                label="URL File / Akses (Misal: Google Drive)"
-                value={fileUrl}
-                onChange={(e) => setFileUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+                  File Materi (PDF)
+                </label>
+                <Input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setNewFile(e.target.files?.[0] || null)}
+                />
+                {newFile ? (
+                  <p className="text-xs text-[var(--color-success-green)] font-[var(--font-inter)] flex items-center gap-1">
+                    <FileCheck className="w-3.5 h-3.5" /> Akan diunggah: {newFile.name}
+                  </p>
+                ) : fileUrl ? (
+                  <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1">
+                    <FileUp className="w-3.5 h-3.5" /> Sudah ada file tersimpan. Pilih file baru untuk menggantinya.
+                  </p>
+                ) : (
+                  <p className="text-xs text-[var(--color-danger-red)] font-[var(--font-inter)]">
+                    Belum ada file — siswa tidak akan bisa mengunduh sampai file diunggah.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div>
