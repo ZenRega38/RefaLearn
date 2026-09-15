@@ -1,77 +1,20 @@
 -- ============================================================================
 -- Seed Data for Refa Learn (local/dev only — do not run against production)
+--
+-- Auth users are NOT created here. `insert into auth.users` with a hand-built
+-- crypt() password works against Supabase's local/Docker stack, but is not
+-- reliable against a hosted Cloud project — GoTrue there does not always
+-- accept a hand-crafted password hash, so logins fail with "Invalid login
+-- credentials" even though the row looks correct.
+--
+-- Run scripts/seed-users.mjs first (node scripts/seed-users.mjs). It creates
+-- the same 3 accounts — same fixed UUIDs, same password (Password123!) —
+-- through Supabase's Admin API, which lets GoTrue hash the password itself.
+-- The on_auth_user_created trigger still fires and still creates the
+-- matching public.profiles row exactly as before.
+--
+-- THEN run this file.
 -- ============================================================================
-
--- pgcrypto is required for crypt()/gen_salt() below. Supabase-hosted projects
--- already have this; the guard is only for local/self-hosted Postgres.
-create extension if not exists pgcrypto;
-
--- ----------------------------------------------------------------------------
--- 1. Auth users (admin + 2 students)
--- Inserting directly into auth.users triggers `handle_new_user()`, which
--- creates the matching `profiles` row automatically (see initial migration).
--- Default password for all seeded accounts: Password123!
--- ----------------------------------------------------------------------------
-
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password,
-  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at, confirmation_token, recovery_token
-) values
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '11111111-1111-1111-1111-111111111111',
-    'authenticated', 'authenticated',
-    'admin@refalearn.com',
-    crypt('Password123!', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Admin Refa","phone":"081234567890","role":"admin"}',
-    now(), now(), '', ''
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '22222222-2222-2222-2222-222222222222',
-    'authenticated', 'authenticated',
-    'siswa1@refalearn.com',
-    crypt('Password123!', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Dewi Lestari","phone":"081298765432","role":"student"}',
-    now(), now(), '', ''
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    '33333333-3333-3333-3333-333333333333',
-    'authenticated', 'authenticated',
-    'siswa2@refalearn.com',
-    crypt('Password123!', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"full_name":"Rian Hidayat","phone":"081211223344","role":"student"}',
-    now(), now(), '', ''
-  )
-on conflict (id) do nothing;
-
-insert into auth.identities (
-  id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
-) values
-  (
-    gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111',
-    json_build_object('sub', '11111111-1111-1111-1111-111111111111', 'email', 'admin@refalearn.com'),
-    'email', now(), now(), now()
-  ),
-  (
-    gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222',
-    json_build_object('sub', '22222222-2222-2222-2222-222222222222', 'email', 'siswa1@refalearn.com'),
-    'email', now(), now(), now()
-  ),
-  (
-    gen_random_uuid(), '33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333',
-    json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'email', 'siswa2@refalearn.com'),
-    'email', now(), now(), now()
-  )
-on conflict (id) do nothing;
 
 -- ----------------------------------------------------------------------------
 -- 2. Site settings
