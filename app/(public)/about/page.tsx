@@ -135,28 +135,40 @@ export default async function AboutPage() {
       {/* Founder Section */}
       <section className="section-padding">
         <div className="container-main">
-          <div className="flex flex-col md:flex-row gap-12 items-center">
+          <div className="flex flex-col md:flex-row gap-6 items-center md:items-stretch">
             <div className="w-full md:w-1/3 flex justify-center md:block">
-              <div className="relative w-[230px] sm:w-[260px]">
-                {/* The frame is deliberately smaller than the photo itself —
-                    kak-rega.png has a transparent background, so letting it
-                    spill past the frame's top/sides (instead of clipping it
-                    with overflow-hidden) reads as an intentional, playful
-                    cutout rather than a stiff bordered portrait. */}
-                <div className="aspect-[4/5] bg-[var(--color-paper-bg-alt)] border-2 border-[var(--color-line)] rounded-[var(--radius-card)]" />
-                <div className="absolute -bottom-4 -right-4 w-full aspect-[4/5] border-2 border-dashed border-[var(--color-brand-blue)] rounded-[var(--radius-card)] -z-10" />
+              {/* This outer box is sized for the PHOTO only (back to the
+                  "perfect" size — md:h-full, same as before) and is not
+                  touched by the frame size below it anymore. */}
+              <div className="relative w-[230px] sm:w-[260px] md:w-auto md:h-full md:max-w-[300px] aspect-[4/5]">
+                {/* The decorative frame is now its own smaller box, pinned
+                    to the bottom of the photo box above (bottom-0 + mx-auto)
+                    so its base still lines up with the photo's base, but its
+                    own width/height (and therefore its size on screen) is
+                    independent of the photo — shrink the w-[78%] below to
+                    resize just the frame without touching the photo. */}
+                <div className="absolute inset-x-0 bottom-0 mx-auto w-[90%] aspect-[4/6]">
+                  <div className="w-full h-full bg-[var(--color-paper-bg-alt)] border-2 border-[var(--color-line)] rounded-[var(--radius-card)]" />
+                  <div className="absolute -bottom-4 -right-4 w-full h-full border-2 border-dashed border-[var(--color-brand-blue)] rounded-[var(--radius-card)] -z-10" />
+                </div>
 
-                <div className="absolute -top-3 -left-6 font-[var(--font-caveat)] text-2xl text-[var(--color-accent-coral)] rotate-[-10deg] z-20">
+                <div className="absolute -top-0 -left-6 font-[var(--font-caveat)] text-2xl text-[var(--color-accent-coral)] rotate-[-10deg] z-20">
                   "Halo!"
                 </div>
 
-                <div className="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none">
+                {/* Height is pinned to a % of the PHOTO box (not the frame)
+                    so the photo's bottom edge always lands exactly on the
+                    frame's bottom edge, since both are bottom-anchored to
+                    this same outer box. The declared width/height below
+                    match the real file's ~2:3 ratio (kak-rega.png is
+                    2921×4382px) so the auto width isn't skewed. */}
+                <div className="absolute inset-x-0 bottom-0 h-[120%] flex justify-center pointer-events-none">
                   <Image
                     src="/images/kak-rega.png"
                     alt={founder.name}
-                    width={340}
-                    height={420}
-                    className="w-[128%] max-w-none h-auto object-contain drop-shadow-xl"
+                    width={293}
+                    height={440}
+                    className="h-full w-auto max-w-none object-contain drop-shadow-xl"
                     priority
                   />
                 </div>
@@ -173,7 +185,7 @@ export default async function AboutPage() {
                 <div className="flex flex-wrap gap-4 mt-6">
                   <div className="flex items-center gap-2 text-sm font-[var(--font-inter)] bg-white px-3 py-1.5 rounded-full border border-[var(--color-line)] shadow-sm">
                     <GraduationCap className="w-4 h-4 text-[var(--color-brand-blue)]" />
-                    <span>English Education</span>
+                    <span>IISMA 2024, University of Sussex</span>
                   </div>
                   <CredentialBadge
                     label="IELTS 7.0"

@@ -87,11 +87,22 @@ export function RoughAnnotation({
             multiline,
         });
 
-        if (show) annotation.show();
+        let cancelled = false;
+        const draw = () => { if (!cancelled && show) annotation.show(); };
+        draw();
 
-        // Removes the injected SVG. Without this, toggling props or
-        // unmounting leaves orphaned annotation layers stacked on the page.
-        return () => annotation.remove();
+        document.fonts?.ready.then(() => {
+            if (cancelled) return;
+            annotation.hide();
+            draw();
+        });
+        window.addEventListener("resize", draw);
+
+        return () => {
+            cancelled = true;
+            window.removeEventListener("resize", draw);
+            annotation.remove();
+        };
     }, [type, color, show, animate, animationDuration, strokeWidth, multiline, paddingKey]);
 
     return (
