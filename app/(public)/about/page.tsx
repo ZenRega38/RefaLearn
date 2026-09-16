@@ -3,7 +3,10 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { SketchDivider } from "@/components/sketch/SketchDivider";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { Card } from "@/components/ui/Card";
-import { Mail, MessageCircle, GraduationCap, Award } from "lucide-react";
+import { CredentialBadge } from "@/components/ui/CredentialBadge";
+import { FeaturedNewsCard } from "@/components/ui/FeaturedNewsCard";
+import { Mail, MessageCircle, GraduationCap, Award, ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 export const metadata = {
   title: "Tentang Kami",
@@ -18,9 +21,9 @@ type Bio = { name: string; title: string; text: string };
 const FALLBACK_ABOUT =
   "Berawal dari passion untuk menjembatani pelajar Indonesia dengan dunia melalui penguasaan Bahasa Inggris yang percaya diri.";
 const FALLBACK_FOUNDER: Bio = {
-  name: "Refa",
+  name: "Rega R. Azizan, S.T.",
   title: "Founder & Lead Tutor",
-  text: "Sebagai tutor berpengalaman yang juga aktif mengajar di platform EduTech ternama seperti Ruangguru, saya menyadari satu kendala besar yang sering dihadapi pelajar: kurangnya personalisasi dan kepercayaan. Banyak kursus yang mengharuskan komitmen biaya besar di depan tanpa menjamin kecocokan metode belajar. Itulah sebabnya Refa Learn lahir dengan konsep Bayar Setelah Kelas. Kami percaya bahwa kepercayaan harus dibangun dari dua arah.",
+  text: "Sebagai tutor berpengalaman yang juga aktif mengajar di Brain Academy by Ruangguru, dan pernah menjadi Field Education Consultant di English Academy Center by Ruangguru, saya menyadari satu kendala besar yang sering dihadapi pelajar: kurangnya personalisasi, kepercayaan, hingga kondisi ekonomi yang membatasi. Banyak kursus yang mengharuskan komitmen biaya besar di depan tanpa menjamin kecocokan metode belajar. Refa Learn lahir dengan konsep Bayar Setelah Kelas. Kami percaya bahwa kepercayaan harus dibangun dari dua arah.",
 };
 const FALLBACK_VISION =
   "Menjadi katalis pembelajaran Bahasa Inggris yang adaptif dan terpercaya bagi generasi muda Indonesia, mempersiapkan mereka untuk kompetisi akademik global tanpa batas.";
@@ -29,6 +32,26 @@ const FALLBACK_MISSION = [
   "Membangun sistem pembayaran yang adil, transparan, dan berbasis kepercayaan penuh.",
   "Menyediakan materi pembelajaran mandiri berkualitas (modul & latihan soal) yang mudah diakses.",
 ];
+
+// Original, generic lines — not attributed to anyone — used to fill any
+// "Sorotan" slot the admin hasn't picked a featured article for yet.
+const MOTIVATIONAL_QUOTES = [
+  "Bahasa asing bukan soal bakat, tapi soal konsistensi latihan setiap hari.",
+  "Setiap kesalahan saat berbicara adalah langkah menuju kefasihan.",
+  "Target skor tinggi dimulai dari satu sesi latihan yang jujur pada diri sendiri.",
+  "Percaya diri berbahasa Inggris tumbuh dari keberanian untuk terus mencoba.",
+  "Progres kecil yang konsisten selalu mengalahkan usaha besar yang sesaat.",
+  "Kemampuan berbahasa terbaik lahir dari latihan, bukan dari rasa takut salah.",
+];
+
+// Changes once a day (this page revalidates every 60s regardless), so the
+// placeholder art doesn't look identical forever but also doesn't reshuffle
+// on every single request.
+const DAY_SEED = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+
+function placeholderImage(slotIndex: number) {
+  return `https://picsum.photos/seed/refalearn-about-${DAY_SEED}-${slotIndex}/600/800`;
+}
 
 export default async function AboutPage() {
   const supabase = await createClient();
@@ -43,6 +66,7 @@ export default async function AboutPage() {
       "vision",
       "contact_phone",
       "contact_email",
+      "about_featured_news",
     ]);
 
   const settingsByKey = new Map((data ?? []).map((row) => [row.key, row.value]));
@@ -66,6 +90,34 @@ export default async function AboutPage() {
   const contactPhone = settingsByKey.get("contact_phone")?.text || "6280000000000";
   const contactEmail = settingsByKey.get("contact_email")?.text || "hello@refalearn.com";
 
+  // --- "Sorotan" section: up to 3 admin-picked articles, in the order the
+  // admin chose them in. Anything the admin hasn't picked yet (or a picked
+  // post that's since been unpublished/deleted) is backfilled with a quote
+  // placeholder so the section always shows exactly 3 cards.
+  const featuredIds: string[] = (settingsByKey.get("about_featured_news") as { post_ids?: string[] } | undefined)?.post_ids ?? [];
+
+  type FeaturedPost = { id: string; title: string; slug: string; category: string | null; cover_image_url: string | null };
+  let featuredPosts: FeaturedPost[] = [];
+
+  if (featuredIds.length > 0) {
+    const { data: postsData } = await supabase
+      .from("news_posts")
+      .select("id, title, slug, category, cover_image_url")
+      .in("id", featuredIds)
+      .eq("status", "published");
+
+    const byId = new Map((postsData ?? []).map((p) => [p.id, p as FeaturedPost]));
+    // Preserve the admin's chosen order; silently drop any id that's no
+    // longer published rather than showing a broken card.
+    featuredPosts = featuredIds.map((id) => byId.get(id)).filter((p): p is FeaturedPost => !!p);
+  }
+
+  const placeholderSlots = Math.max(0, 3 - featuredPosts.length);
+  const quotePlaceholders = Array.from({ length: placeholderSlots }).map((_, i) => ({
+    quote: MOTIVATIONAL_QUOTES[(DAY_SEED + featuredPosts.length + i) % MOTIVATIONAL_QUOTES.length],
+    imageUrl: placeholderImage(featuredPosts.length + i),
+  }));
+
   return (
     <PaperBackground>
       {/* Header */}
@@ -84,16 +136,29 @@ export default async function AboutPage() {
       <section className="section-padding">
         <div className="container-main">
           <div className="flex flex-col md:flex-row gap-12 items-center">
-            <div className="w-full md:w-1/3">
-              <div className="relative">
-                {/* Image Placeholder */}
-                <div className="aspect-square bg-[var(--color-paper-bg-alt)] border-2 border-[var(--color-line)] rounded-[var(--radius-card)] overflow-hidden flex items-center justify-center">
-                  <span className="text-[var(--color-ink-soft)] font-medium font-[var(--font-inter)]">Foto Founder</span>
-                </div>
-                {/* Sketch elements */}
-                <div className="absolute -bottom-4 -right-4 w-full h-full border-2 border-dashed border-[var(--color-brand-blue)] rounded-[var(--radius-card)] -z-10" />
-                <div className="absolute top-4 -left-4 font-[var(--font-caveat)] text-2xl text-[var(--color-accent-coral)] rotate-[-10deg]">
+            <div className="w-full md:w-1/3 flex justify-center md:block">
+              <div className="relative w-[230px] sm:w-[260px]">
+                {/* The frame is deliberately smaller than the photo itself —
+                    kak-rega.png has a transparent background, so letting it
+                    spill past the frame's top/sides (instead of clipping it
+                    with overflow-hidden) reads as an intentional, playful
+                    cutout rather than a stiff bordered portrait. */}
+                <div className="aspect-[4/5] bg-[var(--color-paper-bg-alt)] border-2 border-[var(--color-line)] rounded-[var(--radius-card)]" />
+                <div className="absolute -bottom-4 -right-4 w-full aspect-[4/5] border-2 border-dashed border-[var(--color-brand-blue)] rounded-[var(--radius-card)] -z-10" />
+
+                <div className="absolute -top-3 -left-6 font-[var(--font-caveat)] text-2xl text-[var(--color-accent-coral)] rotate-[-10deg] z-20">
                   "Halo!"
+                </div>
+
+                <div className="absolute inset-x-0 bottom-0 flex justify-center pointer-events-none">
+                  <Image
+                    src="/images/kak-rega.png"
+                    alt={founder.name}
+                    width={340}
+                    height={420}
+                    className="w-[128%] max-w-none h-auto object-contain drop-shadow-xl"
+                    priority
+                  />
                 </div>
               </div>
             </div>
@@ -110,15 +175,41 @@ export default async function AboutPage() {
                     <GraduationCap className="w-4 h-4 text-[var(--color-brand-blue)]" />
                     <span>English Education</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm font-[var(--font-inter)] bg-white px-3 py-1.5 rounded-full border border-[var(--color-line)] shadow-sm">
-                    <Award className="w-4 h-4 text-[var(--color-accent-coral)]" />
-                    <span>IELTS/TOEFL Expert</span>
-                  </div>
+                  <CredentialBadge
+                    label="IELTS 7.0"
+                    imageSrc="/certificates/IELTS-rega.webp"
+                    imageAlt="Sertifikat IELTS Academic, Overall Band Score 7.0, CEFR Level C1"
+                    icon={<Award className="w-4 h-4 text-[var(--color-accent-coral)]" />}
+                  />
+                  <CredentialBadge
+                    label="Duolingo English Test 130"
+                    imageSrc="/certificates/DET-rega.webp"
+                    imageAlt="Sertifikat Duolingo English Test, skor 130, CEFR C1 Advanced"
+                    icon={<Award className="w-4 h-4 text-[var(--color-success-green)]" />}
+                  />
+                  <CredentialBadge
+                    label="EPT Telkom University 530"
+                    imageSrc="/certificates/TelUEPrT-rega.webp"
+                    imageAlt="Sertifikat English Proficiency Test Language Center Telkom University, skor 530"
+                    icon={<Award className="w-4 h-4 text-[var(--color-brand-blue)]" />}
+                  />
                   <div className="flex items-center gap-2 text-sm font-[var(--font-inter)] bg-white px-3 py-1.5 rounded-full border border-[var(--color-line)] shadow-sm">
                     <Award className="w-4 h-4 text-[var(--color-success-green)]" />
                     <span>Ruangguru Tutor</span>
                   </div>
                 </div>
+
+                {/* Text + arrow together form one link — deliberately not
+                    styled as a button, per the request. */}
+                <a
+                  href="https://zenrega.my.id/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-6 text-[var(--color-brand-blue)] font-semibold font-[var(--font-inter)] hover:gap-2.5 transition-all group"
+                >
+                  Kenal lebih jauh
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </a>
               </div>
             </div>
           </div>
@@ -145,6 +236,32 @@ export default async function AboutPage() {
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Sorotan — up to 3 admin-picked articles about the founder, backfilled
+          with a rotating quote card for any slot that hasn't been assigned
+          yet. Managed from /admin/news (the star toggle on each row). */}
+      <section className="section-padding pt-0">
+        <div className="container-main">
+          <h2 className="text-3xl mb-8 text-center">
+            Sorotan <SketchBox color="var(--color-accent-coral)">kak Rega</SketchBox>
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-3xl mx-auto">
+            {featuredPosts.map((post) => (
+              <FeaturedNewsCard
+                key={post.id}
+                type="post"
+                title={post.title}
+                slug={post.slug}
+                category={post.category}
+                imageUrl={post.cover_image_url || placeholderImage(0)}
+              />
+            ))}
+            {quotePlaceholders.map((p, idx) => (
+              <FeaturedNewsCard key={`ph-${idx}`} type="quote" quote={p.quote} imageUrl={p.imageUrl} />
+            ))}
+          </div>
         </div>
       </section>
 
