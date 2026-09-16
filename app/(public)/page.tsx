@@ -18,15 +18,15 @@ export default function Home() {
         <div className="absolute bottom-10 left-[5%] w-72 h-72 bg-[var(--color-accent-coral)] rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float delay-300" />
 
         <div className="container-main relative z-10 text-center max-w-4xl mx-auto">
-          <Badge variant="blue" className="mb-6 animate-fade-in-up">Refa Learn English Course</Badge>
+          <Badge variant="blue" className="mb-6 animate-fade-in-up">Les Private Bahasa Inggris di Tarakan</Badge>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl mb-6 animate-fade-in-up delay-100">
-            Bridging Borders, <br className="hidden md:block" />
-            <span className="text-[var(--color-accent-coral)]">Embracing The World!</span>
+            Les Bahasa Inggris Private Tarakan, <br className="hidden md:block" />
+            <span className="text-[var(--color-accent-coral)]">Murah & Berkualitas!</span>
           </h1>
 
           <p className="text-lg md:text-xl text-[var(--color-ink-soft)] mb-10 max-w-2xl mx-auto font-[var(--font-inter)] animate-fade-in-up delay-200">
-            Tingkatkan kemampuan Bahasa Inggris Anda dengan tutor privat yang berpengalaman. Spesialis persiapan IELTS, TOEFL, dan materi akademik.
+            Bridging Borders, Embracing The World! Tingkatkan kemampuan Bahasa Inggris Anda bersama tutor private berpengalaman di Tarakan, tersedia kelas online maupun tatap muka. Spesialis persiapan IELTS, TOEFL, dan materi akademik dengan harga terjangkau.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up delay-300">

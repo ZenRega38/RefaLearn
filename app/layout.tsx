@@ -31,12 +31,17 @@ export const metadata: Metadata = {
   description:
     "Les privat Bahasa Inggris terbaik dengan sistem bayar setelah kelas. IELTS, TOEFL, dan persiapan ujian untuk siswa SMA hingga mahasiswa.",
   keywords: [
+    "les bahasa inggris Tarakan",
     "les privat bahasa inggris",
-    "tutor bahasa inggris",
+    "kursus bahasa inggris Tarakan murah",
+    "les private online",
+    "les bahasa inggris berkualitas",
+    "tutor bahasa inggris Tarakan",
     "IELTS preparation",
     "TOEFL preparation",
-    "les online",
+    "les online bahasa inggris",
     "bayar setelah kelas",
+    "les bahasa inggris terjamin",
   ],
   authors: [{ name: "Refa Learn" }],
   openGraph: {

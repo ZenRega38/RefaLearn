@@ -5,15 +5,15 @@ export function Footer() {
     <footer className="bg-[var(--color-paper-bg-alt)] border-t-2 border-dashed border-[var(--color-line)] relative overflow-hidden">
       {/* Decorative notebook line */}
       <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-[rgba(194,75,75,0.15)] hidden sm:block pointer-events-none" />
-      
+
       <div className="container-main py-12 md:py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          
+
           {/* Brand Col */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 group inline-flex">
               <svg width="28" height="28" viewBox="0 0 36 36" fill="none" className="transition-transform duration-300 group-hover:rotate-[-5deg]">
-                <rect x="2" y="2" width="32" height="32" rx="6" stroke="var(--color-brand-blue)" strokeWidth="2.5" fill="var(--color-accent-yellow)" fillOpacity="0.2"/>
+                <rect x="2" y="2" width="32" height="32" rx="6" stroke="var(--color-brand-blue)" strokeWidth="2.5" fill="var(--color-accent-yellow)" fillOpacity="0.2" />
                 <text x="18" y="24" textAnchor="middle" fontFamily="Kalam, cursive" fontWeight="700" fontSize="18" fill="var(--color-brand-blue)">R</text>
               </svg>
               <div className="flex flex-col leading-none">
@@ -21,7 +21,7 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-sm text-[var(--color-ink-soft)] mb-6 font-[var(--font-inter)] leading-relaxed">
-              Bridging Borders, Embracing The World! Les privat Bahasa Inggris dengan sistem bayar setelah kelas.
+              Bridging Borders, Embracing The World! Les private Bahasa Inggris di Tarakan, online maupun tatap muka, murah dan berkualitas, dengan sistem bayar setelah kelas.
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          
+
         </div>
 
         <div className="mt-12 pt-6 border-t border-[var(--color-line)]/50 flex flex-col md:flex-row items-center justify-between gap-4">
