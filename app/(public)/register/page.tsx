@@ -14,12 +14,17 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { Mail, Lock, User, Phone } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const registerSchema = z.object({
   fullName: z.string().min(2, { message: "Nama lengkap wajib diisi" }),
   phone: z.string().min(9, { message: "Nomor telepon/WA tidak valid" }),
   email: z.string().email({ message: "Format email tidak valid" }),
   password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+  confirmPassword: z.string().min(6, { message: "Konfirmasi password wajib diisi" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Password dan konfirmasi password tidak sama",
+  path: ["confirmPassword"],
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -28,6 +33,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const supabase = createClient();
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const {
     register,
@@ -39,8 +45,12 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     setError(null);
-    
+
     try {
+      if (!captchaToken) {
+        throw new Error("Mohon selesaikan verifikasi captcha terlebih dahulu.");
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -49,7 +59,8 @@ export default function RegisterPage() {
             full_name: data.fullName,
             phone: data.phone,
             role: 'student', // Default role
-          }
+          },
+          captchaToken,
         }
       });
 
@@ -59,7 +70,7 @@ export default function RegisterPage() {
 
       // Automatically logged in after sign up
       window.location.href = '/dashboard';
-      
+
     } catch (err: any) {
       setError(err.message || "Gagal mendaftar. Silakan coba lagi.");
     }
@@ -69,7 +80,7 @@ export default function RegisterPage() {
     <PaperBackground variant="dots">
       <div className="min-h-[calc(100vh-144px)] flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md animate-fade-in-up">
-          
+
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
               Mulai Perjalananmu
@@ -95,7 +106,7 @@ export default function RegisterPage() {
                 {...register("fullName")}
                 error={errors.fullName?.message}
               />
-              
+
               <Input
                 label="Nomor WhatsApp"
                 type="tel"
@@ -104,7 +115,7 @@ export default function RegisterPage() {
                 {...register("phone")}
                 error={errors.phone?.message}
               />
-              
+
               <Input
                 label="Email"
                 type="email"
@@ -113,7 +124,7 @@ export default function RegisterPage() {
                 {...register("email")}
                 error={errors.email?.message}
               />
-              
+
               <Input
                 label="Password"
                 type="password"
@@ -122,12 +133,29 @@ export default function RegisterPage() {
                 {...register("password")}
                 error={errors.password?.message}
               />
-              
+
+              <Input
+                label="Konfirmasi Password"
+                type="password"
+                placeholder="••••••••"
+                icon={<Lock className="w-4 h-4" />}
+                {...register("confirmPassword")}
+                error={errors.confirmPassword?.message}
+              />
+
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken(null)}
+                className="flex justify-center"
+              />
+
               <div className="pt-4">
-                <Button 
-                  type="submit" 
-                  className="w-full text-base" 
+                <Button
+                  type="submit"
+                  className="w-full text-base"
                   isLoading={isSubmitting}
+                  disabled={!captchaToken}
                 >
                   Daftar
                 </Button>
@@ -141,7 +169,7 @@ export default function RegisterPage() {
               </Link>
             </div>
           </Card>
-          
+
         </div>
       </div>
     </PaperBackground>

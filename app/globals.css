@@ -434,27 +434,29 @@ body {
 }
 
 /* Input styles */
-.input-field {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-family: var(--font-inter), 'Inter', sans-serif;
-  font-size: 0.95rem;
-  color: var(--color-ink);
-  background: white;
-  border: 2px solid var(--color-line);
-  border-radius: var(--radius-sketch);
-  transition: all 0.2s ease;
-  outline: none;
-}
+@layer components {
+  .input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-family: var(--font-inter), 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    background: white;
+    border: 2px solid var(--color-line);
+    border-radius: var(--radius-sketch);
+    transition: all 0.2s ease;
+    outline: none;
+  }
 
-.input-field:focus {
-  border-color: var(--color-brand-blue);
-  box-shadow: 0 0 0 3px rgba(43, 76, 126, 0.1);
-}
+  .input-field:focus {
+    border-color: var(--color-brand-blue);
+    box-shadow: 0 0 0 3px rgba(43, 76, 126, 0.1);
+  }
 
-.input-field::placeholder {
-  color: var(--color-ink-soft);
-  opacity: 0.6;
+  .input-field::placeholder {
+    color: var(--color-ink-soft);
+    opacity: 0.6;
+  }
 }
 
 /* Section utilities */

@@ -1,10 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
 
-// Server-only. This is the single source of truth for turning completed
-// sessions into invoices (agent.md Section 6.6) — both the admin "Generate
-// Now" button and the monthly cron job call this same function so the
-// aggregation logic never has to be duplicated or drift between the two.
+// Server-only. Single source of truth untuk mengubah sesi `completed` +
+// denda pembatalan yang belum lunas jadi invoice bulanan.
 
 export type GenerateInvoicesResult = {
     periodMonth: number;
@@ -14,38 +12,16 @@ export type GenerateInvoicesResult = {
         invoiceId: string;
         totalAmount: number;
         sessionCount: number;
+        feeAmount: number;
     }[];
     skipped: { studentId: string; reason: string }[];
 };
 
-/**
- * Returns the calendar month/year immediately before `reference` (defaults
- * to now). This is "last month" from the point of view of whoever/whatever
- * is calling generateInvoicesForPeriod — used as the default period both by
- * the cron job (which always bills the month that just ended) and by the
- * admin UI's default selection.
- */
 export function getPreviousPeriod(reference: Date = new Date()): { month: number; year: number } {
     const prevMonthDate = new Date(reference.getFullYear(), reference.getMonth() - 1, 1);
     return { month: prevMonthDate.getMonth() + 1, year: prevMonthDate.getFullYear() };
 }
 
-/**
- * Aggregates every `completed` session dated within the given calendar
- * month into one invoice per student.
- *
- * Idempotent by design (safe to re-run, e.g. if the cron job double-fires,
- * or an admin clicks "Generate Now" twice, or runs it again after a late
- * session gets marked completed):
- *  - If a student already has an invoice for this exact period, they're
- *    skipped entirely on subsequent runs (see Do-Not-List: never double-bill).
- *  - Independently, any session that is already attached to ANY invoice
- *    (via `invoices.session_ids`) is excluded from aggregation, so a session
- *    manually invoiced out-of-band can never be pulled into a second invoice.
- *
- * Uses the service-role client because the cron variant of this call has no
- * logged-in admin session to rely on for RLS.
- */
 export async function generateInvoicesForPeriod(
     periodMonth: number,
     periodYear: number
@@ -53,14 +29,12 @@ export async function generateInvoicesForPeriod(
     const supabase = await createClient(true);
 
     const startDate = new Date(periodYear, periodMonth - 1, 1);
-    const endDate = new Date(periodYear, periodMonth, 0); // last day of the month
+    const endDate = new Date(periodYear, periodMonth, 0);
     const startStr = format(startDate, "yyyy-MM-dd");
     const endStr = format(endDate, "yyyy-MM-dd");
 
     const result: GenerateInvoicesResult = { periodMonth, periodYear, created: [], skipped: [] };
 
-    // 1. All completed sessions in the period — only `completed` sessions are
-    // ever billable (Do-Not-List: never bill cancelled/no_show by default).
     const { data: sessions, error: sessionsError } = await supabase
         .from("sessions")
         .select("id, student_id, price")
@@ -69,11 +43,7 @@ export async function generateInvoicesForPeriod(
         .lte("date", endStr);
 
     if (sessionsError) throw sessionsError;
-    if (!sessions || sessions.length === 0) return result;
 
-    // 2. Look at every existing invoice (any period) so we can exclude
-    // sessions already billed, and detect students already invoiced for
-    // this exact period.
     const { data: existingInvoices, error: invoicesError } = await supabase
         .from("invoices")
         .select("student_id, session_ids, period_month, period_year");
@@ -89,24 +59,47 @@ export async function generateInvoicesForPeriod(
         }
     }
 
-    // 3. Group remaining billable sessions by student.
     const byStudent = new Map<string, { id: string; price: number }[]>();
-    for (const s of sessions) {
+    for (const s of sessions || []) {
         if (alreadyInvoicedSessionIds.has(s.id)) continue;
         if (!byStudent.has(s.student_id)) byStudent.set(s.student_id, []);
         byStudent.get(s.student_id)!.push({ id: s.id, price: s.price });
     }
 
-    // 4. One insert per student.
-    for (const [studentId, studentSessions] of byStudent) {
-        if (studentSessions.length === 0) continue;
+    // Denda pembatalan yang belum lunas — diakumulasikan ke invoice
+    // berikutnya, per Do-Not-List: jangan pernah ilang begitu aja.
+    const { data: unpaidFees, error: feesError } = await supabase
+        .from("cancellation_fees")
+        .select("id, student_id, amount")
+        .eq("status", "unpaid");
 
+    if (feesError) throw feesError;
+
+    const feesByStudent = new Map<string, { id: string; amount: number }[]>();
+    for (const f of unpaidFees || []) {
+        if (!feesByStudent.has(f.student_id)) feesByStudent.set(f.student_id, []);
+        feesByStudent.get(f.student_id)!.push({ id: f.id, amount: f.amount });
+    }
+
+    // Kumpulan semua student yang perlu di-invoice: yang punya sesi selesai,
+    // ATAU yang cuma punya denda nyangkut (tanpa sesi selesai bulan ini).
+    const allStudentIds = new Set<string>([...byStudent.keys(), ...feesByStudent.keys()]);
+
+    for (const studentId of allStudentIds) {
         if (studentsInvoicedThisPeriod.has(studentId)) {
             result.skipped.push({ studentId, reason: "Invoice already exists for this period" });
             continue;
         }
 
-        const totalAmount = studentSessions.reduce((sum, s) => sum + s.price, 0);
+        const studentSessions = byStudent.get(studentId) || [];
+        const studentFees = feesByStudent.get(studentId) || [];
+
+        const sessionAmount = studentSessions.reduce((sum, s) => sum + s.price, 0);
+        const feeAmount = studentFees.reduce((sum, f) => sum + f.amount, 0);
+        const totalAmount = sessionAmount + feeAmount;
+
+        if (totalAmount <= 0) continue;
+
         const sessionIds = studentSessions.map((s) => s.id);
 
         const { data: invoice, error: insertError } = await supabase
@@ -129,11 +122,25 @@ export async function generateInvoicesForPeriod(
             continue;
         }
 
+        // Tandai denda-denda yang baru saja dimasukkan ke invoice ini biar
+        // gak ke-double-hitung di generate berikutnya.
+        if (studentFees.length > 0) {
+            const { error: feeUpdateError } = await supabase
+                .from("cancellation_fees")
+                .update({ status: "invoiced", invoice_id: invoice.id, resolved_at: new Date().toISOString() })
+                .in("id", studentFees.map((f) => f.id));
+
+            if (feeUpdateError) {
+                console.error("[generateInvoicesForPeriod] failed to mark fees invoiced:", feeUpdateError);
+            }
+        }
+
         result.created.push({
             studentId,
             invoiceId: invoice.id,
             totalAmount,
             sessionCount: sessionIds.length,
+            feeAmount,
         });
     }
 
