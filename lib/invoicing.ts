@@ -59,6 +59,19 @@ export async function generateInvoicesForPeriod(
         }
     }
 
+    // Sesi yang sudah dilunasi lewat jalur "bayar di muka" (prepayments) juga
+    // tidak boleh ditagih lagi lewat invoice bulanan biasa.
+    const { data: confirmedPrepayments, error: prepaymentsError } = await supabase
+        .from("prepayments")
+        .select("session_ids")
+        .eq("status", "confirmed");
+
+    if (prepaymentsError) throw prepaymentsError;
+
+    for (const p of confirmedPrepayments || []) {
+        (p.session_ids || []).forEach((id: string) => alreadyInvoicedSessionIds.add(id));
+    }
+
     const byStudent = new Map<string, { id: string; price: number }[]>();
     for (const s of sessions || []) {
         if (alreadyInvoicedSessionIds.has(s.id)) continue;

@@ -18,6 +18,7 @@ import {
     LogOut,
     Menu,
     X,
+    Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +29,7 @@ const navItems = [
     { href: "/admin/invoices", label: "Tagihan", icon: Receipt },
     { href: "/admin/materials", label: "Materi", icon: BookOpen },
     { href: "/admin/material-orders", label: "Pesanan Materi", icon: ShoppingBag },
+    { href: "/admin/prepayments", label: "Bayar di Muka", icon: Wallet },
     { href: "/admin/news", label: "News", icon: Newspaper },
     { href: "/admin/alumni", label: "Alumni", icon: GraduationCap },
     { href: "/admin/chat", label: "Chat", icon: MessageCircle },
@@ -62,8 +64,8 @@ export function AdminSidebar() {
                                 href={item.href}
                                 onClick={() => setMobileOpen(false)}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium font-[var(--font-inter)] transition-colors ${active
-                                        ? "bg-[var(--color-brand-blue)] text-white"
-                                        : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
+                                    ? "bg-[var(--color-brand-blue)] text-white"
+                                    : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
                                     }`}
                             >
                                 <Icon className="w-4 h-4 shrink-0" />

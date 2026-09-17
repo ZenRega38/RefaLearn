@@ -1,384 +1,408 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
-import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock, ExternalLink, Landmark, Wallet, Copy, Check } from "lucide-react";
+import { Textarea } from "@/components/ui/Textarea";
+import { DatePicker } from "@/components/booking/DatePicker";
+import { TimeSlotGrid } from "@/components/booking/TimeSlotGrid";
+import { generateAvailableSlots, Slot, AvailabilityRule, BlackoutDate } from "@/lib/rrule-helpers";
 import { formatPrice } from "@/lib/pricing";
-import { uploadPaymentProof, getSignedProofUrl } from "@/lib/storage";
-import { useRouter } from "next/navigation";
-import { format, parseISO } from "date-fns";
+import { cancelSessionsAsStudent, CANCELLATION_FEE_AMOUNT } from "@/lib/cancellation";
+import { format, parseISO, startOfToday, addMonths, isSameDay } from "date-fns";
 import { id } from "date-fns/locale";
+import { CalendarCheck, Clock, RefreshCw, AlertTriangle, Repeat, X, Info } from "lucide-react";
 
-type Order = {
+type SessionRow = {
   id: string;
-  material_ids: string[];
-  total_amount: number;
-  status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected';
-  proof_url: string | null; // storage PATH, not a public URL — see lib/storage.ts
-  created_at: string;
+  series_id: string | null;
+  date: string;
+  start_time: string;
+  end_time: string;
+  day_type: string;
+  price: number;
+  status: 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled' | 'no_show';
 };
 
-type Material = {
+type RescheduleRequest = {
   id: string;
-  title: string;
-  category: string;
-  cover_image_url: string;
-  file_url: string;
+  session_id: string;
+  requested_date: string;
+  requested_start_time: string;
+  status: 'pending' | 'approved' | 'rejected';
 };
 
-type BankDetails = { bank_name: string; account_number: string; account_name: string };
-type EwalletDetails = { provider: string; number: string; account_name: string };
+type CancellationFee = {
+  id: string;
+  amount: number;
+  status: 'unpaid' | 'waived' | 'invoiced';
+};
 
-function CopyableRow({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Non-fatal — number is still visible to copy by hand.
-    }
-  };
-
-  if (!value) return null;
-
-  return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
-      <div>
-        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{label}</p>
-        <p className="font-bold font-[var(--font-inter)] text-[var(--color-ink)]">{value}</p>
-      </div>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className="p-2 text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] hover:bg-white rounded-md transition-colors shrink-0"
-        title="Salin"
-      >
-        {copied ? <Check className="w-4 h-4 text-[var(--color-success-green)]" /> : <Copy className="w-4 h-4" />}
-      </button>
-    </div>
-  );
-}
-
-export default function StudentMaterialsDashboard() {
+export default function StudentSessionsDashboard() {
   const router = useRouter();
   const supabase = createClient();
-  const [orders, setOrders] = useState<(Order & { materials: Material[] })[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [rescheduleRequests, setRescheduleRequests] = useState<RescheduleRequest[]>([]);
+  const [unpaidFees, setUnpaidFees] = useState<CancellationFee[]>([]);
 
-  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
-  const [ewalletDetails, setEwalletDetails] = useState<EwalletDetails | null>(null);
+  // Cancel modal
+  const [cancelTarget, setCancelTarget] = useState<SessionRow[] | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
-  // Upload modal state
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  // Reschedule modal
+  const [rescheduleTarget, setRescheduleTarget] = useState<SessionRow | null>(null);
+  const [rules, setRules] = useState<AvailabilityRule[]>([]);
+  const [blackouts, setBlackouts] = useState<BlackoutDate[]>([]);
+  const [allSlots, setAllSlots] = useState<Slot[]>([]);
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
+  const [rescheduleSlot, setRescheduleSlot] = useState<Slot | null>(null);
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const [submittingReschedule, setSubmittingReschedule] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchData = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) {
       router.push('/login');
       return;
     }
     setStudentId(user.id);
 
-    const { data: ordersData, error: ordersError } = await supabase
-      .from('material_orders')
-      .select('*')
+    const { data: sessionsData } = await supabase
+      .from('sessions')
+      .select('id, series_id, date, start_time, end_time, day_type, price, status')
       .eq('student_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: true })
+      .order('start_time', { ascending: true });
 
-    if (ordersData && ordersData.length > 0) {
-      // Collect all unique material IDs
-      const allMaterialIds = new Set<string>();
-      ordersData.forEach(o => o.material_ids.forEach((id: string) => allMaterialIds.add(id)));
+    if (sessionsData) setSessions(sessionsData as SessionRow[]);
 
-      // Fetch materials
-      const { data: materialsData } = await supabase
-        .from('materials')
-        .select('id, title, category, cover_image_url, file_url')
-        .in('id', Array.from(allMaterialIds));
+    const { data: rescheduleData } = await supabase
+      .from('reschedule_requests')
+      .select('id, session_id, requested_date, requested_start_time, status')
+      .eq('student_id', user.id)
+      .eq('status', 'pending');
 
-      const materialsMap = new Map<string, Material>();
-      materialsData?.forEach(m => materialsMap.set(m.id, m as Material));
+    if (rescheduleData) setRescheduleRequests(rescheduleData as RescheduleRequest[]);
 
-      // Combine
-      const combined = ordersData.map(order => ({
-        ...order,
-        materials: order.material_ids.map((id: string) => materialsMap.get(id)).filter(Boolean) as Material[]
-      }));
+    const { data: feesData } = await supabase
+      .from('cancellation_fees')
+      .select('id, amount, status')
+      .eq('student_id', user.id)
+      .eq('status', 'unpaid');
 
-      setOrders(combined);
-    } else {
-      setOrders([]);
-    }
+    if (feesData) setUnpaidFees(feesData as CancellationFee[]);
 
     setLoading(false);
   };
 
-  const fetchPaymentInstructions = async () => {
-    const { data } = await supabase
-      .from('site_settings')
-      .select('key, value')
-      .in('key', ['bank_details', 'ewallet_details']);
-
-    data?.forEach((row) => {
-      if (row.key === 'bank_details') setBankDetails(row.value as BankDetails);
-      if (row.key === 'ewallet_details') setEwalletDetails(row.value as EwalletDetails);
-    });
-  };
-
   useEffect(() => {
-    fetchOrders();
-    fetchPaymentInstructions();
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
-  const handleSubmitProof = async () => {
-    if (!proofFile || !uploadingId || !studentId) {
-      alert("Silakan pilih file bukti transfer terlebih dahulu!");
-      return;
-    }
+  const openRescheduleModal = async (session: SessionRow) => {
+    setRescheduleTarget(session);
+    setRescheduleDate(undefined);
+    setRescheduleSlot(null);
+    setRescheduleReason("");
 
-    setSubmitting(true);
-    try {
-      const path = await uploadPaymentProof("orders", studentId, uploadingId, proofFile);
+    const { data: rulesData } = await supabase.from('availability_rules').select('*').eq('is_active', true);
+    const { data: blackoutsData } = await supabase.from('blackout_dates').select('*');
+    const { data: bookedData } = await supabase
+      .from('sessions')
+      .select('date, start_time')
+      .in('status', ['pending', 'accepted'])
+      .gte('date', format(startOfToday(), 'yyyy-MM-dd'));
 
-      const { error } = await supabase
-        .from('material_orders')
-        .update({
-          proof_url: path,
-          status: 'proof_uploaded'
-        })
-        .eq('id', uploadingId);
-
-      if (error) throw error;
-
-      setUploadingId(null);
-      setProofFile(null);
-      fetchOrders();
-    } catch (err: any) {
-      alert(`Gagal mengirim bukti: ${err.message}`);
-    } finally {
-      setSubmitting(false);
+    if (rulesData) {
+      setRules(rulesData);
+      setBlackouts(blackoutsData || []);
+      const slots = generateAvailableSlots(
+        rulesData as AvailabilityRule[],
+        (blackoutsData || []) as BlackoutDate[],
+        startOfToday(),
+        addMonths(startOfToday(), 2)
+      );
+      const booked = bookedData || [];
+      const openSlots = slots.filter(slot => {
+        const slotDateStr = format(slot.date, 'yyyy-MM-dd');
+        return !booked.some(b => b.date === slotDateStr && b.start_time === slot.start_time);
+      });
+      setAllSlots(openSlots);
     }
   };
 
-  const handleViewProof = async (order: Order) => {
-    if (!order.proof_url) return;
-    setViewingId(order.id);
+  const submitReschedule = async () => {
+    if (!rescheduleTarget || !rescheduleSlot || !studentId) return;
+    setSubmittingReschedule(true);
     try {
-      const url = await getSignedProofUrl(order.proof_url);
-      window.open(url, '_blank');
+      const { error } = await supabase.from('reschedule_requests').insert([{
+        session_id: rescheduleTarget.id,
+        student_id: studentId,
+        original_date: rescheduleTarget.date,
+        original_start_time: rescheduleTarget.start_time,
+        requested_date: format(rescheduleSlot.date, 'yyyy-MM-dd'),
+        requested_start_time: rescheduleSlot.start_time,
+        requested_end_time: rescheduleSlot.end_time,
+        reason: rescheduleReason || null,
+      }]);
+      if (error) throw error;
+
+      alert("Permintaan reschedule terkirim, menunggu persetujuan admin.");
+      setRescheduleTarget(null);
+      fetchData();
     } catch (err: any) {
-      alert(`Gagal membuka bukti: ${err.message}`);
+      alert(`Gagal mengirim permintaan: ${err.message}`);
     } finally {
-      setViewingId(null);
+      setSubmittingReschedule(false);
+    }
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget || !studentId) return;
+    setCancelling(true);
+    try {
+      await cancelSessionsAsStudent(supabase, studentId, cancelTarget.map(s => s.id));
+      alert(`${cancelTarget.length} sesi dibatalkan. Denda satu kali Rp50.000 akan otomatis masuk ke tagihan bulan depan.`);
+      setCancelTarget(null);
+      fetchData();
+    } catch (err: any) {
+      alert(`Gagal membatalkan: ${err.message}`);
+    } finally {
+      setCancelling(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <Badge variant="amber">Menunggu Pembayaran</Badge>;
-      case 'proof_uploaded': return <Badge variant="blue">Sedang Direview</Badge>;
-      case 'confirmed': return <Badge variant="green">Lunas & Aktif</Badge>;
-      case 'rejected': return <Badge variant="red">Bukti Ditolak</Badge>;
+      case 'pending': return <Badge variant="amber">Menunggu Konfirmasi</Badge>;
+      case 'accepted': return <Badge variant="blue">Terjadwal</Badge>;
+      case 'declined': return <Badge variant="red">Ditolak</Badge>;
+      case 'completed': return <Badge variant="green">Selesai</Badge>;
+      case 'cancelled': return <Badge variant="outline">Dibatalkan</Badge>;
+      case 'no_show': return <Badge variant="red">Tidak Hadir</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const hasPaymentInstructions = !!(bankDetails?.account_number || ewalletDetails?.number);
+  const hasPendingReschedule = (sessionId: string) =>
+    rescheduleRequests.some(r => r.session_id === sessionId);
+
+  // Kelompokkan per series_id; sesi tanpa series_id (booking sekali) masing-masing jadi grupnya sendiri.
+  const groups: { key: string; series: boolean; sessions: SessionRow[] }[] = [];
+  const seriesMap = new Map<string, SessionRow[]>();
+  for (const s of sessions) {
+    if (s.series_id) {
+      if (!seriesMap.has(s.series_id)) seriesMap.set(s.series_id, []);
+      seriesMap.get(s.series_id)!.push(s);
+    } else {
+      groups.push({ key: s.id, series: false, sessions: [s] });
+    }
+  }
+  for (const [seriesId, seriesSessions] of seriesMap) {
+    groups.push({ key: seriesId, series: true, sessions: seriesSessions });
+  }
+  groups.sort((a, b) => a.sessions[0].date.localeCompare(b.sessions[0].date));
+
+  const totalUnpaidFee = unpaidFees.reduce((sum, f) => sum + f.amount, 0);
 
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" href="/dashboard" className="px-2">← Kembali</Button>
-            <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
-              <BookOpen className="w-8 h-8 text-[var(--color-brand-blue)]" /> Materi Saya
-            </h1>
-          </div>
+          <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
+            <CalendarCheck className="w-8 h-8 text-[var(--color-brand-blue)]" /> Sesi Saya
+          </h1>
           <div className="flex gap-2">
-            <Button variant="secondary" href="/materials" size="sm">Cari Materi Lain</Button>
-            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3">
+            <Button variant="secondary" href="/schedule" size="sm">Booking Sesi Baru</Button>
+            <Button variant="ghost" onClick={fetchData} size="sm" className="px-3">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {uploadingId && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <Card className="w-full max-w-md space-y-6 my-8">
-              <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
-                Upload Bukti Pembayaran
-              </h3>
-
-              {hasPaymentInstructions && (
-                <div className="bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-[var(--radius-card)] p-4 divide-y divide-[var(--color-line)] font-[var(--font-inter)]">
-                  {bankDetails?.account_number && (
-                    <div className="pb-2">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
-                        <Landmark className="w-3.5 h-3.5" /> Transfer Bank
-                      </div>
-                      <CopyableRow label={bankDetails.bank_name} value={bankDetails.account_number} />
-                      <p className="text-xs text-[var(--color-ink-soft)]">a.n. {bankDetails.account_name}</p>
-                    </div>
-                  )}
-                  {ewalletDetails?.number && (
-                    <div className="pt-2">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
-                        <Wallet className="w-3.5 h-3.5" /> E-Wallet
-                      </div>
-                      <CopyableRow label={ewalletDetails.provider} value={ewalletDetails.number} />
-                      <p className="text-xs text-[var(--color-ink-soft)]">a.n. {ewalletDetails.account_name}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                Silakan transfer sesuai nominal pesanan, lalu unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF).
-              </p>
-              <Input
-                type="file"
-                label="File Bukti Transfer"
-                accept="image/*,application/pdf"
-                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-              />
-              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-line)]">
-                <Button variant="ghost" onClick={() => { setUploadingId(null); setProofFile(null); }}>Batal</Button>
-                <Button onClick={handleSubmitProof} isLoading={submitting} disabled={!proofFile}>Kirim Bukti</Button>
-              </div>
-            </Card>
+        {totalUnpaidFee > 0 && (
+          <div className="flex items-start gap-3 p-4 rounded-[var(--radius-card)] bg-amber-50 border border-amber-300 text-amber-800 font-[var(--font-inter)] text-sm">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+            <p>
+              Anda punya denda pembatalan yang belum lunas sebesar <strong>{formatPrice(totalUnpaidFee)}</strong>.
+              Ini akan otomatis ditambahkan ke tagihan bulan depan.
+            </p>
           </div>
         )}
 
         {loading ? (
           <div className="text-center py-12 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-            Memuat materi...
+            Memuat sesi...
           </div>
-        ) : orders.length === 0 ? (
+        ) : groups.length === 0 ? (
           <Card className="text-center py-16 bg-white/50 border-dashed border-[var(--color-line)]">
-            <BookOpen className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
-            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">Belum ada materi</h3>
-            <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-6">
-              Anda belum membeli materi belajar apapun.
-            </p>
-            <Button href="/materials">Lihat Katalog Materi</Button>
+            <CalendarCheck className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
+            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">Belum ada sesi</h3>
+            <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-6">Anda belum melakukan booking kelas.</p>
+            <Button href="/schedule">Booking Sekarang</Button>
           </Card>
         ) : (
           <div className="space-y-6">
-            {orders.map((order) => (
-              <Card key={order.id} variant="sketch" className="p-0 overflow-hidden">
-                <div className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <div className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] uppercase tracking-wider font-bold mb-1">
-                      Pesanan {format(parseISO(order.created_at), 'dd MMM yyyy', { locale: id })}
+            {groups.map((group) => {
+              const cancellableInGroup = group.sessions.filter(s => ['pending', 'accepted'].includes(s.status));
+
+              return (
+                <Card key={group.key} variant="sketch" className="p-0 overflow-hidden">
+                  {group.series && (
+                    <div className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] px-4 py-2.5 flex items-center justify-between gap-3">
+                      <span className="text-xs font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)] flex items-center gap-1.5 uppercase tracking-wide">
+                        <Repeat className="w-3.5 h-3.5" /> Rangkaian Mingguan ({group.sessions.length} sesi)
+                      </span>
+                      {cancellableInGroup.length > 1 && (
+                        <button
+                          onClick={() => setCancelTarget(cancellableInGroup)}
+                          className="text-xs font-[var(--font-inter)] text-[var(--color-danger-red)] hover:underline flex items-center gap-1"
+                        >
+                          <X className="w-3.5 h-3.5" /> Batalkan Sisa Rangkaian ({cancellableInGroup.length})
+                        </button>
+                      )}
                     </div>
-                    <div className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                      {formatPrice(order.total_amount)}
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    {getStatusBadge(order.status)}
+                  <div className="divide-y divide-[var(--color-line)]">
+                    {group.sessions.map((session) => (
+                      <div key={session.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-[var(--color-ink)] font-[var(--font-inter)] flex items-center gap-2">
+                            {format(parseISO(session.date), 'EEEE, dd MMM yyyy', { locale: id })}
+                          </div>
+                          <div className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5 mt-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {session.start_time.substring(0, 5)} - {session.end_time.substring(0, 5)} · {formatPrice(session.price)}
+                          </div>
+                          {hasPendingReschedule(session.id) && (
+                            <div className="text-xs text-[var(--color-brand-blue)] font-[var(--font-inter)] flex items-center gap-1 mt-1">
+                              <Info className="w-3.5 h-3.5" /> Menunggu persetujuan reschedule
+                            </div>
+                          )}
+                        </div>
 
-                    {['pending', 'rejected'].includes(order.status) && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setUploadingId(order.id);
-                          setProofFile(null);
-                        }}
-                      >
-                        <Upload className="w-4 h-4 mr-2" /> Upload Bukti
-                      </Button>
-                    )}
-
-                    {['proof_uploaded', 'confirmed'].includes(order.status) && order.proof_url && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleViewProof(order)}
-                        isLoading={viewingId === order.id}
-                        className="text-xs"
-                      >
-                        <ExternalLink className="w-3 h-3 mr-2" /> Lihat Bukti
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {order.status === 'rejected' && (
-                  <div className="px-6 py-3 bg-[var(--color-danger-red)]/10 text-[var(--color-danger-red)] text-sm flex gap-2 border-b border-[var(--color-line)]">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <p>Bukti pembayaran ditolak. Silakan upload ulang bukti yang valid.</p>
-                  </div>
-                )}
-
-                {order.status === 'proof_uploaded' && (
-                  <div className="px-6 py-3 bg-blue-50 text-blue-700 text-sm flex gap-2 border-b border-[var(--color-line)]">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <p>Admin sedang mereview pembayaran Anda. Akses materi akan terbuka setelah lunas.</p>
-                  </div>
-                )}
-
-                <div className="p-6 divide-y divide-[var(--color-line)]">
-                  {order.materials.map(material => (
-                    <div key={material.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                      <div className="w-20 h-20 rounded bg-[var(--color-paper-bg-alt)] shrink-0 border border-[var(--color-line)] flex justify-center items-center overflow-hidden">
-                        {material.cover_image_url ? (
-                          <img src={material.cover_image_url} alt={material.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <BookOpen className="w-8 h-8 text-[var(--color-ink-soft)]/50" />
-                        )}
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(session.status)}
+                          {['pending', 'accepted'].includes(session.status) && !hasPendingReschedule(session.id) && (
+                            <>
+                              <Button size="sm" variant="secondary" onClick={() => openRescheduleModal(session)} className="text-xs">
+                                Reschedule
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setCancelTarget([session])}
+                                className="text-xs text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10"
+                              >
+                                Batalkan
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <Badge variant="amber" className="mb-2 text-[10px] px-1.5 py-0">{material.category}</Badge>
-                        <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)] line-clamp-1">{material.title}</h4>
-                      </div>
-
-                      <div className="mt-2 sm:mt-0 w-full sm:w-auto flex justify-end">
-                        {order.status === 'confirmed' ? (
-                          <Button
-                            variant="secondary"
-                            onClick={() => window.open(material.file_url, '_blank')}
-                            className="w-full sm:w-auto"
-                          >
-                            <Download className="w-4 h-4 mr-2" /> Akses Materi
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            disabled
-                            className="w-full sm:w-auto text-[var(--color-ink-soft)] border-dashed border-[var(--color-line)]"
-                          >
-                            <Lock className="w-4 h-4 mr-2" /> Terkunci
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            ))}
+                    ))}
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
-
       </div>
+
+      {/* Modal: Konfirmasi Batalkan */}
+      {cancelTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md space-y-4">
+            <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-danger-red)] flex items-center gap-2">
+              <AlertTriangle className="w-6 h-6" /> Batalkan {cancelTarget.length > 1 ? `${cancelTarget.length} Sesi` : "Sesi"}?
+            </h3>
+            <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
+              Pembatalan ini akan dikenakan denda <strong>satu kali {formatPrice(CANCELLATION_FEE_AMOUNT)}</strong>
+              {" "}(bukan per sesi, meski Anda membatalkan {cancelTarget.length} sesi sekaligus). Denda akan otomatis
+              masuk ke tagihan bulan depan.
+            </p>
+            <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
+              Pertimbangkan <strong>Reschedule</strong> sebagai gantinya kalau Anda cuma perlu pindah jadwal — itu tidak kena denda.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="ghost" onClick={() => setCancelTarget(null)}>Batal</Button>
+              <Button
+                onClick={confirmCancel}
+                isLoading={cancelling}
+                className="bg-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)] border-transparent text-white"
+              >
+                Ya, Batalkan
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal: Reschedule */}
+      {rescheduleTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="w-full max-w-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between">
+              <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">Reschedule Sesi</h3>
+              <button onClick={() => setRescheduleTarget(null)} className="p-2 text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
+              Jadwal semula: {format(parseISO(rescheduleTarget.date), 'EEEE, dd MMM yyyy', { locale: id })}, {rescheduleTarget.start_time.substring(0, 5)}
+            </p>
+
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="md:w-1/2">
+                <DatePicker
+                  selected={rescheduleDate}
+                  onSelect={(date) => { setRescheduleDate(date); setRescheduleSlot(null); }}
+                  availableDates={allSlots.map(s => s.date).reduce((acc, cur) => acc.some(d => isSameDay(d, cur)) ? acc : [...acc, cur], [] as Date[])}
+                />
+              </div>
+              <div className="md:w-1/2">
+                {rescheduleDate ? (
+                  <TimeSlotGrid
+                    slots={allSlots.filter(s => isSameDay(s.date, rescheduleDate))}
+                    selectedSlot={rescheduleSlot}
+                    onSelect={setRescheduleSlot}
+                    isLoading={false}
+                  />
+                ) : (
+                  <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] italic">Pilih tanggal dulu di sebelah kiri.</p>
+                )}
+              </div>
+            </div>
+
+            <Textarea
+              label="Alasan (opsional)"
+              value={rescheduleReason}
+              onChange={(e) => setRescheduleReason(e.target.value)}
+              placeholder="Misal: ada acara keluarga mendadak"
+              rows={2}
+            />
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-[var(--color-line)]">
+              <Button variant="ghost" onClick={() => setRescheduleTarget(null)}>Batal</Button>
+              <Button onClick={submitReschedule} isLoading={submittingReschedule} disabled={!rescheduleSlot}>
+                Kirim Permintaan
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </PaperBackground>
   );
 }

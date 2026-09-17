@@ -30,9 +30,20 @@ type Session = {
   profiles: Profile;
 };
 
+type RescheduleRequest = {
+  id: string;
+  session_id: string;
+  requested_date: string;
+  requested_start_time: string;
+  requested_end_time: string;
+  reason: string | null;
+  sessions: { date: string; start_time: string; student_id: string; profiles: Profile };
+};
+
 export default function AdminSessionsPage() {
   const supabase = createClient();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [rescheduleRequests, setRescheduleRequests] = useState<RescheduleRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'upcoming' | 'past'>('pending');
 
@@ -69,8 +80,55 @@ export default function AdminSessionsPage() {
     setLoading(false);
   };
 
+  const fetchRescheduleRequests = async () => {
+    const { data } = await supabase
+      .from('reschedule_requests')
+      .select('id, session_id, requested_date, requested_start_time, requested_end_time, reason, sessions(date, start_time, student_id, profiles(full_name, phone))')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+
+    if (data) setRescheduleRequests(data as any);
+  };
+
+  const handleRescheduleDecision = async (req: RescheduleRequest, approve: boolean) => {
+    if (approve) {
+      const { getDayType, getSessionPrice } = await import("@/lib/pricing");
+      const newDate = new Date(`${req.requested_date}T00:00:00`);
+
+      const { error: sessionUpdateError } = await supabase
+        .from('sessions')
+        .update({
+          date: req.requested_date,
+          start_time: req.requested_start_time,
+          end_time: req.requested_end_time,
+          day_type: getDayType(newDate),
+          price: getSessionPrice(newDate),
+        })
+        .eq('id', req.session_id);
+
+      if (sessionUpdateError) {
+        alert(`Gagal approve — kemungkinan slot itu sudah terisi: ${sessionUpdateError.message}`);
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from('reschedule_requests')
+      .update({ status: approve ? 'approved' : 'rejected', resolved_at: new Date().toISOString() })
+      .eq('id', req.id);
+
+    if (error) {
+      alert(`Gagal update status request: ${error.message}`);
+      return;
+    }
+
+    fetchRescheduleRequests();
+    fetchSessions();
+  };
+
   useEffect(() => {
     fetchSessions();
+    fetchRescheduleRequests();
   }, [filter]);
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -149,6 +207,35 @@ export default function AdminSessionsPage() {
             </Button>
           </div>
         </div>
+
+        {rescheduleRequests.length > 0 && (
+          <Card className="p-4 border-2 border-[var(--color-brand-blue)]/40 bg-blue-50/50 space-y-3">
+            <h2 className="font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
+              Permintaan Reschedule ({rescheduleRequests.length})
+            </h2>
+            {rescheduleRequests.map((req) => (
+              <div key={req.id} className="bg-white rounded-[var(--radius-card)] border border-[var(--color-line)] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm font-[var(--font-inter)]">
+                <div>
+                  <div className="font-semibold">{req.sessions?.profiles?.full_name}</div>
+                  <div className="text-[var(--color-ink-soft)]">
+                    {format(parseISO(req.sessions.date), 'dd MMM yyyy', { locale: id })} {req.sessions.start_time.substring(0, 5)}
+                    {" → "}
+                    {format(parseISO(req.requested_date), 'dd MMM yyyy', { locale: id })} {req.requested_start_time.substring(0, 5)}
+                  </div>
+                  {req.reason && <div className="text-xs text-[var(--color-ink-soft)] italic mt-1">"{req.reason}"</div>}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" onClick={() => handleRescheduleDecision(req, true)} className="bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
+                    <Check className="w-4 h-4 mr-1" /> Approve
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleRescheduleDecision(req, false)} className="text-[var(--color-danger-red)]">
+                    <X className="w-4 h-4 mr-1" /> Tolak
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </Card>
+        )}
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">

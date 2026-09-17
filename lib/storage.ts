@@ -18,7 +18,7 @@ function extensionOf(file: File): string {
  * with the student's own id so the storage RLS policy can check ownership.
  */
 export async function uploadPaymentProof(
-    kind: "invoices" | "orders",
+    kind: "invoices" | "orders" | "prepayments",
     studentId: string,
     recordId: string,
     file: File

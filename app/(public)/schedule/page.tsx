@@ -11,10 +11,12 @@ import { DatePicker } from "@/components/booking/DatePicker";
 import { TimeSlotGrid } from "@/components/booking/TimeSlotGrid";
 import { ContractModal } from "@/components/booking/ContractModal";
 import { generateAvailableSlots, Slot, AvailabilityRule, BlackoutDate } from "@/lib/rrule-helpers";
-import { getDayType, getSessionPrice } from "@/lib/pricing";
+import { getDayType, getSessionPrice, formatPrice } from "@/lib/pricing";
+import { uploadPaymentProof } from "@/lib/storage";
+import { Input } from "@/components/ui/Input";
 import { isSameDay, format, startOfToday, addMonths, addWeeks } from "date-fns";
 import { id } from "date-fns/locale";
-import { AlertCircle, Repeat } from "lucide-react";
+import { AlertCircle, Repeat, Wallet, Landmark } from "lucide-react";
 
 type ActiveContract = {
   id: string;
@@ -51,6 +53,15 @@ export default function SchedulePage() {
   const [sessionCount, setSessionCount] = useState(1);
   const [recurringPreview, setRecurringPreview] = useState<{ date: Date; conflict: boolean }[] | null>(null);
   const [checkingRecurring, setCheckingRecurring] = useState(false);
+
+  // Denda nyangkut & bayar-di-muka
+  const [unpaidFees, setUnpaidFees] = useState<{ id: string; amount: number }[]>([]);
+  const [payUpfront, setPayUpfront] = useState(false);
+  const [bankDetails, setBankDetails] = useState<any>(null);
+  const [ewalletDetails, setEwalletDetails] = useState<any>(null);
+  const [prepaymentToPay, setPrepaymentToPay] = useState<{ id: string; amount: number } | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [submittingProof, setSubmittingProof] = useState(false);
 
   const [activeContract, setActiveContract] = useState<ActiveContract | null>(null);
   const [contractError, setContractError] = useState(false);
@@ -95,6 +106,22 @@ export default function SchedulePage() {
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setUserProfile(profile);
+
+        const { data: feesData } = await supabase
+          .from('cancellation_fees')
+          .select('id, amount')
+          .eq('student_id', user.id)
+          .eq('status', 'unpaid');
+        if (feesData) setUnpaidFees(feesData);
+
+        const { data: settingsData } = await supabase
+          .from('site_settings')
+          .select('key, value')
+          .in('key', ['bank_details', 'ewallet_details']);
+        settingsData?.forEach((row) => {
+          if (row.key === 'bank_details') setBankDetails(row.value);
+          if (row.key === 'ewallet_details') setEwalletDetails(row.value);
+        });
       }
 
       const todayStr = format(startOfToday(), 'yyyy-MM-dd');
@@ -154,9 +181,6 @@ export default function SchedulePage() {
       const dates = buildRecurringDates(selectedSlot.date, sessionCount);
       const dateStrs = dates.map(d => format(d, 'yyyy-MM-dd'));
 
-      // Cek fresh ke database, bukan cuma dari allSlots — soalnya allSlots cuma
-      // meng-cover 2 bulan ke depan, sedangkan rangkaian panjang (24 sesi) bisa
-      // lewat dari itu.
       const { data: clashSessions } = await supabase
         .from('sessions')
         .select('date')
@@ -199,10 +223,10 @@ export default function SchedulePage() {
     if (sessionCount > 1) {
       if (!recurringPreview) {
         await handleCheckRecurring();
-        return; // munculkan preview dulu, user klik "Lanjut Booking" lagi setelah cek
+        return;
       }
       if (recurringPreview.some(p => p.conflict)) {
-        return; // tombol seharusnya sudah disabled, ini jaga-jaga
+        return;
       }
     }
 
@@ -219,8 +243,6 @@ export default function SchedulePage() {
       const dates = sessionCount > 1 ? buildRecurringDates(selectedSlot.date, sessionCount) : [selectedSlot.date];
       const dateStrs = dates.map(d => format(d, 'yyyy-MM-dd'));
 
-      // Cek ulang tepat sebelum nulis — guard yang sama seperti booking tunggal,
-      // sekarang mencakup semua tanggal di rangkaian.
       const { data: clashing, error: clashError } = await supabase
         .from('sessions')
         .select('id')
@@ -251,8 +273,6 @@ export default function SchedulePage() {
 
       if (acceptanceError) throw acceptanceError;
 
-      // Untuk rangkaian mingguan, bikin baris induk recurring_series dulu,
-      // supaya tiap sesi di bawah bisa nyambung lewat series_id.
       let seriesId: string | null = null;
       if (sessionCount > 1) {
         const { data: series, error: seriesError } = await supabase
@@ -284,12 +304,37 @@ export default function SchedulePage() {
         contract_acceptance_id: acceptance.id,
       }));
 
-      // Satu statement buat semua sesi — kalau ada satu tanggal yang bentrok
-      // (constraint unique di DB), semuanya gagal bareng, gak ada yang
-      // "setengah ke-booking".
-      const { error: sessionError } = await supabase.from('sessions').insert(sessionsToInsert);
+      const { data: insertedSessions, error: sessionError } = await supabase
+        .from('sessions')
+        .insert(sessionsToInsert)
+        .select('id');
 
       if (sessionError) throw sessionError;
+
+      if (payUpfront && unpaidFees.length > 0) {
+        const totalAmount = sessionsToInsert.reduce((sum, s) => sum + s.price, 0);
+
+        const { data: prepayment, error: prepaymentError } = await supabase
+          .from('prepayments')
+          .insert([{
+            student_id: userProfile.id,
+            series_id: seriesId,
+            session_ids: (insertedSessions || []).map((s: any) => s.id),
+            total_amount: totalAmount,
+            waived_fee_ids: unpaidFees.map(f => f.id),
+          }])
+          .select('id')
+          .single();
+
+        if (prepaymentError) {
+          alert(`Booking berhasil, tapi gagal mencatat pembayaran di muka: ${prepaymentError.message}. Silakan hubungi admin.`);
+          router.push('/dashboard');
+          return;
+        }
+
+        setPrepaymentToPay({ id: prepayment.id, amount: totalAmount });
+        return;
+      }
 
       alert(
         sessionCount > 1
@@ -302,6 +347,26 @@ export default function SchedulePage() {
       alert(`Gagal melakukan booking: ${err.message}`);
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  const handleSubmitPrepaymentProof = async () => {
+    if (!proofFile || !prepaymentToPay || !userProfile) return;
+    setSubmittingProof(true);
+    try {
+      const path = await uploadPaymentProof("prepayments", userProfile.id, prepaymentToPay.id, proofFile);
+      const { error } = await supabase
+        .from('prepayments')
+        .update({ proof_url: path, status: 'proof_uploaded' })
+        .eq('id', prepaymentToPay.id);
+      if (error) throw error;
+
+      alert("Bukti transfer terkirim. Setelah admin konfirmasi, denda lama Anda otomatis terhapus.");
+      router.push('/dashboard');
+    } catch (err: any) {
+      alert(`Gagal mengirim bukti: ${err.message}`);
+    } finally {
+      setSubmittingProof(false);
     }
   };
 
@@ -418,6 +483,26 @@ export default function SchedulePage() {
                 </div>
               )}
 
+              {/* Bayar di muka — cuma muncul kalau ada denda nyangkut */}
+              {selectedSlot && unpaidFees.length > 0 && (
+                <div className="mt-4 p-4 rounded-[var(--radius-card)] bg-amber-50 border border-amber-300">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={payUpfront}
+                      onChange={(e) => setPayUpfront(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span className="text-sm font-[var(--font-inter)] text-amber-900">
+                      <strong>Bayar paket ini di muka</strong> (transfer sebelum kelas dimulai, bukan sistem bayar-setelah-kelas seperti biasa) —
+                      dengan ini, denda pembatalan Anda yang belum lunas sebesar{" "}
+                      <strong>{formatPrice(unpaidFees.reduce((s, f) => s + f.amount, 0))}</strong> akan{" "}
+                      <strong>dihapus gratis</strong>.
+                    </span>
+                  </label>
+                </div>
+              )}
+
               {/* Preview rangkaian tanggal + status konflik */}
               {sessionCount > 1 && recurringPreview && (
                 <div className="mt-4 p-4 rounded-[var(--radius-card)] bg-[var(--color-paper-bg-alt)] border border-dashed border-[var(--color-line)]">
@@ -476,6 +561,41 @@ export default function SchedulePage() {
         contractHtml={activeContract?.content || ""}
         expectedName={userProfile?.full_name || ""}
       />
+
+      {prepaymentToPay && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[var(--radius-card)] p-6 space-y-4">
+            <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">
+              Bayar di Muka — {formatPrice(prepaymentToPay.amount)}
+            </h3>
+            <div className="bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-[var(--radius-card)] p-4 font-[var(--font-inter)] text-sm space-y-2">
+              {bankDetails?.account_number && (
+                <p className="flex items-center gap-2"><Landmark className="w-4 h-4" /> {bankDetails.bank_name}: <strong>{bankDetails.account_number}</strong> a.n. {bankDetails.account_name}</p>
+              )}
+              {ewalletDetails?.number && (
+                <p className="flex items-center gap-2"><Wallet className="w-4 h-4" /> {ewalletDetails.provider}: <strong>{ewalletDetails.number}</strong> a.n. {ewalletDetails.account_name}</p>
+              )}
+            </div>
+            <Input
+              type="file"
+              label="Upload Bukti Transfer"
+              accept="image/*,application/pdf"
+              onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => { setPrepaymentToPay(null); router.push('/dashboard'); }}
+              >
+                Nanti Saja
+              </Button>
+              <Button onClick={handleSubmitPrepaymentProof} isLoading={submittingProof} disabled={!proofFile}>
+                Kirim Bukti
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </PaperBackground>
   );
 }
