@@ -124,6 +124,7 @@ export async function generateInvoicesForPeriod(
                     period_year: periodYear,
                     session_ids: sessionIds,
                     total_amount: totalAmount,
+                    fee_amount: feeAmount,
                     status: "sent",
                 },
             ])

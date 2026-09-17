@@ -20,6 +20,7 @@ type Profile = {
 type Session = {
   id: string;
   student_id: string;
+  series_id: string | null;
   date: string;
   start_time: string;
   end_time: string;
@@ -255,83 +256,99 @@ export default function AdminSessionsPage() {
                 ) : sessions.length === 0 ? (
                   <tr><td colSpan={5} className="p-8 text-center text-[var(--color-ink-soft)]">Tidak ada data sesi untuk filter ini.</td></tr>
                 ) : (
-                  sessions.map((session) => (
-                    <tr key={session.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4">
-                        <div className="font-semibold text-[var(--color-ink)] flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-[var(--color-brand-blue)]" />
-                          {format(parseISO(session.date), 'dd MMM yyyy', { locale: id })}
-                        </div>
-                        <div className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5" />
-                          {formatTimeStr(session.start_time)} - {formatTimeStr(session.end_time)}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-semibold text-[var(--color-ink)]">{session.profiles?.full_name || 'Unknown'}</div>
-                        <div className="text-xs text-[var(--color-ink-soft)] flex items-center gap-1 mt-1">
-                          <a href={`https://wa.me/${session.profiles?.phone?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
-                            {session.profiles?.phone || '-'}
-                          </a>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-[var(--color-ink)]">{formatPrice(session.price)}</div>
-                        <div className="text-xs text-[var(--color-ink-soft)] capitalize">{session.day_type}</div>
-                      </td>
-                      <td className="p-4 text-center">
-                        {getStatusBadge(session.status)}
-                      </td>
-                      <td className="p-4 text-right">
+                  sessions.map((session, idx) => {
+                    const prevSeriesId = sessions[idx - 1]?.series_id;
+                    const isNewSeriesGroup = !!session.series_id && session.series_id !== prevSeriesId;
+                    const seriesCount = session.series_id
+                      ? sessions.filter(s => s.series_id === session.series_id).length
+                      : 0;
 
-                        {/* Pending Actions */}
-                        {session.status === 'pending' && (
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" onClick={() => updateStatus(session.id, 'accepted')} className="px-3 bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
-                              <Check className="w-4 h-4 mr-1" /> Terima
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => updateStatus(session.id, 'declined')} className="px-3 text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10">
-                              <X className="w-4 h-4 mr-1" /> Tolak
-                            </Button>
-                          </div>
+                    return (
+                      <>
+                        {isNewSeriesGroup && (
+                          <tr key={`${session.series_id}-header`} className="bg-blue-50/60">
+                            <td colSpan={5} className="px-4 py-1.5 text-xs font-bold text-[var(--color-brand-blue)] font-[var(--font-inter)] uppercase tracking-wide">
+                              ↻ Rangkaian Mingguan — {session.profiles?.full_name} ({seriesCount} sesi)
+                            </td>
+                          </tr>
                         )}
+                        <tr key={session.id} className={`border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors ${session.series_id ? 'bg-blue-50/20' : ''}`}>
+                          <td className="p-4">
+                            <div className="font-semibold text-[var(--color-ink)] flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-[var(--color-brand-blue)]" />
+                              {format(parseISO(session.date), 'dd MMM yyyy', { locale: id })}
+                            </div>
+                            <div className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              {formatTimeStr(session.start_time)} - {formatTimeStr(session.end_time)}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="font-semibold text-[var(--color-ink)]">{session.profiles?.full_name || 'Unknown'}</div>
+                            <div className="text-xs text-[var(--color-ink-soft)] flex items-center gap-1 mt-1">
+                              <a href={`https://wa.me/${session.profiles?.phone?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
+                                {session.profiles?.phone || '-'}
+                              </a>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="font-bold text-[var(--color-ink)]">{formatPrice(session.price)}</div>
+                            <div className="text-xs text-[var(--color-ink-soft)] capitalize">{session.day_type}</div>
+                          </td>
+                          <td className="p-4 text-center">
+                            {getStatusBadge(session.status)}
+                          </td>
+                          <td className="p-4 text-right">
 
-                        {/* Accepted/Upcoming Actions */}
-                        {session.status === 'accepted' && (
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="sketch" onClick={() => openNotesModal(session)} className="px-2" title="Catatan Kelas">
-                              <Edit3 className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" onClick={() => updateStatus(session.id, 'completed')} className="px-3">
-                              Selesai
-                            </Button>
-                            <select
-                              className="input-field py-1 px-2 text-xs w-28 bg-transparent"
-                              onChange={(e) => {
-                                if (e.target.value) updateStatus(session.id, e.target.value);
-                                e.target.value = "";
-                              }}
-                              value=""
-                            >
-                              <option value="" disabled>Lainnya...</option>
-                              <option value="cancelled">Batal</option>
-                              <option value="no_show">No Show</option>
-                            </select>
-                          </div>
-                        )}
+                            {/* Pending Actions */}
+                            {session.status === 'pending' && (
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" onClick={() => updateStatus(session.id, 'accepted')} className="px-3 bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
+                                  <Check className="w-4 h-4 mr-1" /> Terima
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => updateStatus(session.id, 'declined')} className="px-3 text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10">
+                                  <X className="w-4 h-4 mr-1" /> Tolak
+                                </Button>
+                              </div>
+                            )}
 
-                        {/* Completed/Past Actions */}
-                        {['completed', 'cancelled', 'no_show', 'declined'].includes(session.status) && (
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => openNotesModal(session)} className="px-3">
-                              <Eye className="w-4 h-4 mr-1" /> Catatan
-                            </Button>
-                          </div>
-                        )}
+                            {/* Accepted/Upcoming Actions */}
+                            {session.status === 'accepted' && (
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="sketch" onClick={() => openNotesModal(session)} className="px-2" title="Catatan Kelas">
+                                  <Edit3 className="w-4 h-4" />
+                                </Button>
+                                <Button size="sm" onClick={() => updateStatus(session.id, 'completed')} className="px-3">
+                                  Selesai
+                                </Button>
+                                <select
+                                  className="input-field py-1 px-2 text-xs w-28 bg-transparent"
+                                  onChange={(e) => {
+                                    if (e.target.value) updateStatus(session.id, e.target.value);
+                                    e.target.value = "";
+                                  }}
+                                  value=""
+                                >
+                                  <option value="" disabled>Lainnya...</option>
+                                  <option value="cancelled">Batal</option>
+                                  <option value="no_show">No Show</option>
+                                </select>
+                              </div>
+                            )}
 
-                      </td>
-                    </tr>
-                  ))
+                            {/* Completed/Past Actions */}
+                            {['completed', 'cancelled', 'no_show', 'declined'].includes(session.status) && (
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="ghost" onClick={() => openNotesModal(session)} className="px-3">
+                                  <Eye className="w-4 h-4 mr-1" /> Catatan
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      </>
+                    );
+                  })
                 )}
               </tbody>
             </table>

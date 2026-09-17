@@ -26,6 +26,7 @@ type Invoice = {
   period_month: number;
   period_year: number;
   total_amount: number;
+  fee_amount: number;
   status: 'draft' | 'sent' | 'proof_uploaded' | 'confirmed' | 'overdue' | 'rejected';
   proof_url: string | null; // storage PATH — see lib/storage.ts
   generated_at: string;
@@ -251,6 +252,11 @@ export default function AdminInvoicesPage() {
                       </td>
                       <td className="p-4 font-bold text-[var(--color-ink)]">
                         {formatPrice(invoice.total_amount)}
+                        {invoice.fee_amount > 0 && (
+                          <div className="text-xs font-normal text-amber-700 mt-0.5">
+                            termasuk denda {formatPrice(invoice.fee_amount)}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-center">
                         {getStatusBadge(invoice.status)}

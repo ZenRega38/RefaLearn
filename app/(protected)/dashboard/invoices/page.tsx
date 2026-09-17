@@ -19,6 +19,7 @@ type Invoice = {
   period_month: number;
   period_year: number;
   total_amount: number;
+  fee_amount: number;
   status: 'draft' | 'sent' | 'proof_uploaded' | 'confirmed' | 'overdue' | 'rejected';
   proof_url: string | null; // storage PATH, not a public URL — see lib/storage.ts
   generated_at: string;
@@ -292,6 +293,12 @@ export default function StudentInvoicesPage() {
                   <div className="text-2xl font-bold text-[var(--color-brand-blue)] font-[var(--font-inter)]">
                     {formatPrice(invoice.total_amount)}
                   </div>
+                  {invoice.fee_amount > 0 && (
+                    <p className="text-xs text-amber-700 font-[var(--font-inter)] text-right">
+                      Termasuk denda pembatalan {formatPrice(invoice.fee_amount)} dari bulan sebelumnya
+                      (kelas: {formatPrice(invoice.total_amount - invoice.fee_amount)})
+                    </p>
+                  )}
 
                   {['sent', 'rejected'].includes(invoice.status) && (
                     <Button
