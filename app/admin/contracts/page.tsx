@@ -190,7 +190,7 @@ export default function AdminContractsPage() {
 
                 <Card className="p-0 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left font-[var(--font-inter)] text-sm border-collapse">
+                        <table className="responsive-table w-full text-left font-[var(--font-inter)] text-sm border-collapse">
                             <thead>
                                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                                     <th className="p-4 font-semibold text-[var(--color-ink-soft)]">
@@ -231,16 +231,16 @@ export default function AdminContractsPage() {
                                             key={c.id}
                                             className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors"
                                         >
-                                            <td className="p-4 font-semibold text-[var(--color-ink)]">
+                                            <td className="p-4 font-semibold text-[var(--color-ink)]" data-label="Versi">
                                                 v{c.version}
                                             </td>
-                                            <td className="p-4 text-[var(--color-ink-soft)]">
+                                            <td className="p-4 text-[var(--color-ink-soft)]" data-label="Berlaku Sejak">
                                                 {format(parseISO(c.effective_date), "dd MMM yyyy", { locale: id })}
                                             </td>
-                                            <td className="p-4 text-[var(--color-ink-soft)]">
+                                            <td className="p-4 text-[var(--color-ink-soft)]" data-label="Diterbitkan">
                                                 {format(parseISO(c.created_at), "dd MMM yyyy, HH:mm", { locale: id })}
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-4" data-label="Status">
                                                 {activeContract?.id === c.id ? (
                                                     <Badge variant="green">Aktif</Badge>
                                                 ) : c.effective_date > new Date().toISOString().slice(0, 10) ? (
@@ -249,7 +249,7 @@ export default function AdminContractsPage() {
                                                     <Badge variant="outline">Arsip</Badge>
                                                 )}
                                             </td>
-                                            <td className="p-4 text-right">
+                                            <td className="p-4 text-right" data-label="Aksi">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"

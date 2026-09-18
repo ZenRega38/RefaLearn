@@ -220,7 +220,7 @@ export default function AdminInvoicesPage() {
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse font-[var(--font-inter)]">
+            <table className="responsive-table w-full text-left text-sm border-collapse font-[var(--font-inter)]">
               <thead>
                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                   <th className="p-4 font-semibold text-[var(--color-ink-soft)]">Periode & Dibuat</th>
@@ -238,7 +238,7 @@ export default function AdminInvoicesPage() {
                 ) : (
                   invoices.map((invoice) => (
                     <tr key={invoice.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4">
+                      <td className="p-4" data-label="Periode & Dibuat">
                         <div className="font-bold text-[var(--color-ink)]">
                           {getMonthName(invoice.period_month)} {invoice.period_year}
                         </div>
@@ -246,11 +246,11 @@ export default function AdminInvoicesPage() {
                           Dibuat: {format(parseISO(invoice.generated_at), 'dd MMM yy', { locale: id })}
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Siswa">
                         <div className="font-semibold text-[var(--color-ink)]">{invoice.profiles?.full_name}</div>
                         <div className="text-xs text-[var(--color-ink-soft)] mt-1">{invoice.profiles?.phone}</div>
                       </td>
-                      <td className="p-4 font-bold text-[var(--color-ink)]">
+                      <td className="p-4 font-bold text-[var(--color-ink)]" data-label="Total">
                         {formatPrice(invoice.total_amount)}
                         {invoice.fee_amount > 0 && (
                           <div className="text-xs font-normal text-amber-700 mt-0.5">
@@ -258,10 +258,10 @@ export default function AdminInvoicesPage() {
                           </div>
                         )}
                       </td>
-                      <td className="p-4 text-center">
+                      <td className="p-4 text-center" data-label="Status">
                         {getStatusBadge(invoice.status)}
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="Aksi">
 
                         {invoice.status === 'proof_uploaded' && (
                           <div className="flex justify-end gap-2 items-center">

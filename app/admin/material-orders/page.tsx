@@ -120,7 +120,7 @@ export default function AdminMaterialOrdersPage() {
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse font-[var(--font-inter)]">
+            <table className="responsive-table w-full text-left text-sm border-collapse font-[var(--font-inter)]">
               <thead>
                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                   <th className="p-4 font-semibold text-[var(--color-ink-soft)]">Tanggal Order</th>
@@ -138,7 +138,7 @@ export default function AdminMaterialOrdersPage() {
                 ) : (
                   orders.map((order) => (
                     <tr key={order.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4">
+                      <td className="p-4" data-label="Tanggal Order">
                         <div className="font-bold text-[var(--color-ink)]">
                           {format(parseISO(order.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
                         </div>
@@ -146,17 +146,17 @@ export default function AdminMaterialOrdersPage() {
                           {order.material_ids.length} Item
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Siswa">
                         <div className="font-semibold text-[var(--color-ink)]">{order.profiles?.full_name}</div>
                         <div className="text-xs text-[var(--color-ink-soft)] mt-1">{order.profiles?.phone}</div>
                       </td>
-                      <td className="p-4 font-bold text-[var(--color-ink)]">
+                      <td className="p-4 font-bold text-[var(--color-ink)]" data-label="Total">
                         {formatPrice(order.total_amount)}
                       </td>
-                      <td className="p-4 text-center">
+                      <td className="p-4 text-center" data-label="Status">
                         {getStatusBadge(order.status)}
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="Aksi">
 
                         {order.status === 'proof_uploaded' && (
                           <div className="flex justify-end gap-2 items-center">

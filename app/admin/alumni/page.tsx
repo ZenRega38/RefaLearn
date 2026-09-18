@@ -26,7 +26,7 @@ export default function AdminAlumniPage() {
   const supabase = createClient();
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Form state
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export default function AdminAlumniPage() {
       .select('*')
       .order('order_index', { ascending: true })
       .order('created_at', { ascending: false });
-      
+
     if (!error && data) {
       setAlumni(data as Alumni[]);
     }
@@ -95,7 +95,7 @@ export default function AdminAlumniPage() {
     }
 
     setSaving(true);
-    
+
     const alumniData = {
       name,
       photo_url: photoUrl,
@@ -146,7 +146,7 @@ export default function AdminAlumniPage() {
       .from('alumni')
       .update({ is_featured: !currentFeatured })
       .eq('id', id);
-      
+
     if (!error) {
       fetchAlumni();
     }
@@ -165,7 +165,7 @@ export default function AdminAlumniPage() {
               <Button onClick={handleSave} isLoading={saving}>Simpan</Button>
             </div>
           </div>
-          
+
           <Card variant="sketch" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
@@ -182,7 +182,7 @@ export default function AdminAlumniPage() {
                 placeholder="IELTS, TOEFL, SMA, dll"
               />
             </div>
-            
+
             <Input
               label="URL Foto (Opsional)"
               value={photoUrl}
@@ -223,7 +223,7 @@ export default function AdminAlumniPage() {
                 />
                 Tampilkan di Halaman Utama (Featured)
               </label>
-              
+
               <div className="flex items-center gap-2">
                 <label className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">Urutan:</label>
                 <input
@@ -254,7 +254,7 @@ export default function AdminAlumniPage() {
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left font-[var(--font-inter)] text-sm border-collapse">
+            <table className="responsive-table w-full text-left font-[var(--font-inter)] text-sm border-collapse">
               <thead>
                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                   <th className="p-4 font-semibold text-[var(--color-ink-soft)]">Alumni</th>
@@ -281,7 +281,7 @@ export default function AdminAlumniPage() {
                 ) : (
                   alumni.map((item) => (
                     <tr key={item.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4 flex items-center gap-3">
+                      <td className="p-4 flex items-center gap-3 !justify-start" data-label="Alumni">
                         <div className="w-10 h-10 rounded-full bg-[var(--color-paper-bg)] border border-[var(--color-line)] flex items-center justify-center overflow-hidden shrink-0">
                           {item.photo_url ? (
                             <img src={item.photo_url} alt={item.name} className="w-full h-full object-cover" />
@@ -293,19 +293,19 @@ export default function AdminAlumniPage() {
                           <div className="font-semibold text-[var(--color-ink)]">{item.name}</div>
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Pencapaian">
                         <div className="font-medium text-[var(--color-brand-blue)]">{item.achievement_title || '-'}</div>
                         <div className="text-xs text-[var(--color-ink-soft)] truncate max-w-[200px]">{item.achievement_detail}</div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Kategori">
                         {item.category ? (
                           <Badge variant="outline">{item.category}</Badge>
                         ) : (
                           <span className="text-[var(--color-ink-soft)] italic">-</span>
                         )}
                       </td>
-                      <td className="p-4 text-center">
-                        <button 
+                      <td className="p-4 text-center" data-label="Featured">
+                        <button
                           onClick={() => toggleFeatured(item.id, item.is_featured)}
                           className="p-1.5 rounded-md hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-blue)]"
                           title={item.is_featured ? "Hapus dari halaman utama" : "Tampilkan di halaman utama"}
@@ -313,7 +313,7 @@ export default function AdminAlumniPage() {
                           <Star className={`w-5 h-5 ${item.is_featured ? "fill-[var(--color-accent-yellow)] text-[var(--color-accent-yellow)]" : "text-[var(--color-line)]"}`} />
                         </button>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="Aksi">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} className="px-2 text-[var(--color-brand-blue)]">
                             <Edit2 className="w-4 h-4" />

@@ -285,7 +285,7 @@ export default function AdminMaterialsPage() {
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left font-[var(--font-inter)] text-sm border-collapse">
+            <table className="responsive-table w-full text-left font-[var(--font-inter)] text-sm border-collapse">
               <thead>
                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                   <th className="p-4 font-semibold text-[var(--color-ink-soft)] w-[40%]">Judul</th>
@@ -312,22 +312,22 @@ export default function AdminMaterialsPage() {
                 ) : (
                   materials.map((material) => (
                     <tr key={material.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4">
+                      <td className="p-4" data-label="Judul">
                         <div className="font-semibold text-[var(--color-ink)] mb-1">{material.title}</div>
                         <div className="text-xs text-[var(--color-ink-soft)] truncate max-w-xs">{material.slug}</div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4" data-label="Kategori">
                         <span className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs">{material.category}</span>
                       </td>
-                      <td className="p-4 font-semibold">
+                      <td className="p-4 font-semibold" data-label="Harga">
                         {material.price === 0 ? "Gratis" : formatPrice(material.price)}
                       </td>
-                      <td className="p-4 text-center">
+                      <td className="p-4 text-center" data-label="Status">
                         <Badge variant={material.is_active ? 'green' : 'outline'}>
                           {material.is_active ? 'Aktif' : 'Nonaktif'}
                         </Badge>
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right" data-label="Aksi">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="sm" onClick={() => window.open(`/materials/${material.slug}`, '_blank')} className="px-2" title="Lihat di publik">
                             <ExternalLink className="w-4 h-4" />

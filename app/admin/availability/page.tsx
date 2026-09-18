@@ -50,14 +50,14 @@ export default function AdminAvailabilityPage() {
   const [specificDate, setSpecificDate] = useState("");
   const [startTime, setStartTime] = useState("16:00");
   const [endTime, setEndTime] = useState("17:30"); // Default 90 mins
-  
+
   // New blackout state
   const [blackoutDate, setBlackoutDate] = useState("");
   const [blackoutReason, setBlackoutReason] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
-    
+
     // Fetch rules
     const { data: rulesData } = await supabase
       .from('availability_rules')
@@ -65,7 +65,7 @@ export default function AdminAvailabilityPage() {
       .order('is_recurring', { ascending: false })
       .order('day_of_week', { ascending: true })
       .order('specific_date', { ascending: true });
-      
+
     if (rulesData) setRules(rulesData);
 
     // Fetch blackouts
@@ -73,9 +73,9 @@ export default function AdminAvailabilityPage() {
       .from('blackout_dates')
       .select('*')
       .order('date', { ascending: true });
-      
+
     if (blackoutsData) setBlackouts(blackoutsData);
-    
+
     setLoading(false);
   };
 
@@ -99,7 +99,7 @@ export default function AdminAvailabilityPage() {
     };
 
     const { error } = await supabase.from('availability_rules').insert([newRule]);
-    
+
     if (error) {
       alert(`Gagal menambah jadwal: ${error.message}`);
     } else {
@@ -134,7 +134,7 @@ export default function AdminAvailabilityPage() {
       date: blackoutDate,
       reason: blackoutReason || null
     }]);
-    
+
     if (error) {
       alert(`Gagal menambah tanggal libur: ${error.message}`);
     } else {
@@ -156,7 +156,7 @@ export default function AdminAvailabilityPage() {
   return (
     <PaperBackground className="p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        
+
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
             Pengaturan Jadwal & Ketersediaan
@@ -172,32 +172,32 @@ export default function AdminAvailabilityPage() {
               ========================================================= */}
           <div className="space-y-6">
             <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] flex items-center gap-2">
-              <Clock className="w-5 h-5 text-[var(--color-accent-coral)]" /> 
+              <Clock className="w-5 h-5 text-[var(--color-accent-coral)]" />
               Aturan Ketersediaan
             </h2>
-            
+
             {/* Add Rule Form */}
             <Card variant="sketch" className="p-5">
               <h3 className="text-sm font-semibold mb-4 border-b border-dashed border-[var(--color-line)] pb-2 text-[var(--color-brand-blue)]">
                 Tambah Jadwal Baru
               </h3>
-              
+
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer font-[var(--font-inter)]">
-                    <input 
-                      type="radio" 
-                      checked={isRecurring} 
-                      onChange={() => setIsRecurring(true)} 
+                    <input
+                      type="radio"
+                      checked={isRecurring}
+                      onChange={() => setIsRecurring(true)}
                       className="text-[var(--color-brand-blue)] focus:ring-[var(--color-brand-blue)]"
                     />
                     Rutin Mingguan
                   </label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer font-[var(--font-inter)]">
-                    <input 
-                      type="radio" 
-                      checked={!isRecurring} 
-                      onChange={() => setIsRecurring(false)} 
+                    <input
+                      type="radio"
+                      checked={!isRecurring}
+                      onChange={() => setIsRecurring(false)}
                       className="text-[var(--color-brand-blue)] focus:ring-[var(--color-brand-blue)]"
                     />
                     Satu Kali (Spesifik)
@@ -238,7 +238,7 @@ export default function AdminAvailabilityPage() {
                         const endH = String(date.getHours()).padStart(2, '0');
                         const endM = String(date.getMinutes()).padStart(2, '0');
                         setEndTime(`${endH}:${endM}`);
-                      } catch (e) {}
+                      } catch (e) { }
                     }}
                   />
                   <Input
@@ -248,7 +248,7 @@ export default function AdminAvailabilityPage() {
                     onChange={(e) => setEndTime(e.target.value)}
                   />
                 </div>
-                
+
                 <Button onClick={handleAddRule} className="w-full">
                   <Plus className="w-4 h-4 mr-1" /> Tambah Jadwal
                 </Button>
@@ -257,7 +257,7 @@ export default function AdminAvailabilityPage() {
 
             {/* Rules List */}
             <Card className="p-0 overflow-hidden">
-              <table className="w-full text-left text-sm border-collapse font-[var(--font-inter)]">
+              <table className="responsive-table w-full text-left text-sm border-collapse font-[var(--font-inter)]">
                 <thead>
                   <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                     <th className="p-3 font-semibold text-[var(--color-ink-soft)]">Tipe</th>
@@ -272,29 +272,28 @@ export default function AdminAvailabilityPage() {
                   ) : (
                     rules.map((rule) => (
                       <tr key={rule.id} className={`border-b border-[var(--color-line)] ${!rule.is_active ? 'opacity-50 bg-gray-50' : ''}`}>
-                        <td className="p-3">
+                        <td className="p-3" data-label="Tipe">
                           {rule.is_recurring ? (
                             <span className="font-semibold text-[var(--color-brand-blue)]">Setiap {DAYS.find(d => d.value === rule.day_of_week)?.label}</span>
                           ) : (
                             <span className="font-semibold text-[var(--color-accent-coral)]">{format(parseISO(rule.specific_date!), 'dd MMM yyyy', { locale: id })}</span>
                           )}
                         </td>
-                        <td className="p-3 font-mono text-xs">
+                        <td className="p-3 font-mono text-xs" data-label="Waktu">
                           {formatTimeStr(rule.start_time)} - {formatTimeStr(rule.end_time)}
                         </td>
-                        <td className="p-3 text-center">
-                          <button 
+                        <td className="p-3 text-center" data-label="Status">
+                          <button
                             onClick={() => handleToggleRuleActive(rule.id, rule.is_active)}
-                            className={`px-2 py-1 text-xs rounded-full border ${
-                              rule.is_active 
-                                ? 'bg-green-50 border-green-200 text-green-700' 
-                                : 'bg-gray-100 border-gray-300 text-gray-600'
-                            }`}
+                            className={`px-2 py-1 text-xs rounded-full border ${rule.is_active
+                              ? 'bg-green-50 border-green-200 text-green-700'
+                              : 'bg-gray-100 border-gray-300 text-gray-600'
+                              }`}
                           >
                             {rule.is_active ? 'Aktif' : 'Nonaktif'}
                           </button>
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right" data-label="Aksi">
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteRule(rule.id)} className="px-2 text-[var(--color-danger-red)]">
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -312,10 +311,10 @@ export default function AdminAvailabilityPage() {
               ========================================================= */}
           <div className="space-y-6">
             <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[var(--color-danger-red)]" /> 
+              <Calendar className="w-5 h-5 text-[var(--color-danger-red)]" />
               Tanggal Libur (Blackout)
             </h2>
-            
+
             {/* Add Blackout Form */}
             <Card variant="sketch" className="p-5">
               <h3 className="text-sm font-semibold mb-4 border-b border-dashed border-[var(--color-line)] pb-2 text-[var(--color-brand-blue)]">
@@ -324,7 +323,7 @@ export default function AdminAvailabilityPage() {
               <p className="text-xs text-[var(--color-ink-soft)] mb-4">
                 Pilih tanggal di mana Anda tidak bisa mengajar (misal: hari raya, cuti, sakit). Tanggal ini akan membatalkan jadwal rutin yang ada.
               </p>
-              
+
               <div className="space-y-4">
                 <Input
                   label="Tanggal Libur"
@@ -332,7 +331,7 @@ export default function AdminAvailabilityPage() {
                   value={blackoutDate}
                   onChange={(e) => setBlackoutDate(e.target.value)}
                 />
-                
+
                 <Input
                   label="Alasan / Keterangan (Opsional)"
                   type="text"
@@ -340,7 +339,7 @@ export default function AdminAvailabilityPage() {
                   onChange={(e) => setBlackoutReason(e.target.value)}
                   placeholder="Cuti, Libur Lebaran, dll."
                 />
-                
+
                 <Button onClick={handleAddBlackout} className="w-full bg-[var(--color-danger-red)] hover:bg-[var(--color-danger-red-light)] border-transparent">
                   <Plus className="w-4 h-4 mr-1" /> Blokir Tanggal
                 </Button>
@@ -349,9 +348,9 @@ export default function AdminAvailabilityPage() {
 
             {/* Blackout List */}
             <Card className="p-0 overflow-hidden border-[var(--color-danger-red)]/30">
-              <table className="w-full text-left text-sm border-collapse font-[var(--font-inter)]">
+              <table className="responsive-table w-full text-left text-sm border-collapse font-[var(--font-inter)]">
                 <thead>
-                  <tr className="bg-[var(--color-danger-red)]/5 border-b border-[var(--color-danger-red)]/20">
+                  <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                     <th className="p-3 font-semibold text-[var(--color-ink-soft)]">Tanggal Libur</th>
                     <th className="p-3 font-semibold text-[var(--color-ink-soft)]">Keterangan</th>
                     <th className="p-3 font-semibold text-[var(--color-ink-soft)] text-right">Aksi</th>
@@ -363,13 +362,13 @@ export default function AdminAvailabilityPage() {
                   ) : (
                     blackouts.map((b) => (
                       <tr key={b.id} className="border-b border-[var(--color-line)]">
-                        <td className="p-3 font-semibold text-[var(--color-ink)]">
+                        <td className="p-3 font-semibold text-[var(--color-ink)]" data-label="Tanggal Libur">
                           {format(parseISO(b.date), 'dd MMMM yyyy', { locale: id })}
                         </td>
-                        <td className="p-3 text-[var(--color-ink-soft)]">
+                        <td className="p-3 text-[var(--color-ink-soft)]" data-label="Keterangan">
                           {b.reason || '-'}
                         </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right" data-label="Aksi">
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteBlackout(b.id)} className="px-2 text-[var(--color-danger-red)]">
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -381,7 +380,7 @@ export default function AdminAvailabilityPage() {
               </table>
             </Card>
           </div>
-          
+
         </div>
       </div>
     </PaperBackground>
