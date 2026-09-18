@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const {
     register,
@@ -37,11 +39,17 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setError(null);
-    
+
+    if (!captchaToken) {
+      setError("Mohon selesaikan verifikasi captcha terlebih dahulu.");
+      return;
+    }
+
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
+        options: { captchaToken },
       });
 
       if (authError) {
@@ -54,12 +62,12 @@ export default function LoginPage() {
         .select('role')
         .eq('id', authData.user?.id)
         .single();
-        
+
       const role = profileData?.role || 'student';
-      
+
       // Force hard refresh to ensure middleware picks up the new session immediately
       window.location.href = role === 'admin' ? '/admin' : '/dashboard';
-      
+
     } catch (err: any) {
       setError(err.message || "Gagal masuk. Periksa kembali email dan password Anda.");
     }
@@ -69,7 +77,7 @@ export default function LoginPage() {
     <PaperBackground>
       <div className="min-h-[calc(100vh-144px)] flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-md animate-fade-in-up">
-          
+
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
               Selamat Datang Kembali
@@ -95,7 +103,7 @@ export default function LoginPage() {
                 {...register("email")}
                 error={errors.email?.message}
               />
-              
+
               <Input
                 label="Password"
                 type="password"
@@ -104,12 +112,20 @@ export default function LoginPage() {
                 {...register("password")}
                 error={errors.password?.message}
               />
-              
+
+              <Turnstile
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken(null)}
+                className="flex justify-center"
+              />
+
               <div className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full text-base" 
+                <Button
+                  type="submit"
+                  className="w-full text-base"
                   isLoading={isSubmitting}
+                  disabled={!captchaToken}
                 >
                   Masuk
                 </Button>
@@ -123,7 +139,7 @@ export default function LoginPage() {
               </Link>
             </div>
           </Card>
-          
+
         </div>
       </div>
     </PaperBackground>
