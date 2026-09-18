@@ -598,3 +598,70 @@ body {
   color: var(--color-ink-soft);
   margin: 1.5rem 0;
 }
+
+@layer components {
+
+  /* Tabel yang dikasih class ini otomatis jadi kartu bertumpuk di layar
+     kecil (<768px), tetap tabel normal di desktop. Tiap <td> perlu atribut
+     data-label="..." biar ada judul kolomnya waktu jadi kartu. */
+  @media (max-width: 767px) {
+    .responsive-table thead {
+      display: none;
+    }
+
+    .responsive-table,
+    .responsive-table tbody,
+    .responsive-table tr,
+    .responsive-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .responsive-table tbody tr {
+      margin-bottom: 1rem;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      background: white;
+    }
+
+    .responsive-table tbody tr:last-child {
+      margin-bottom: 0;
+    }
+
+    .responsive-table td {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.75rem 1rem !important;
+      border-bottom: 1px dashed var(--color-line);
+      text-align: right;
+    }
+
+    .responsive-table td:last-child {
+      border-bottom: none;
+    }
+
+    .responsive-table td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: var(--color-ink-soft);
+      text-align: left;
+      white-space: nowrap;
+      padding-top: 0.1rem;
+    }
+
+    /* Baris header rangkaian & baris "Memuat/Kosong" (colSpan) gak usah
+       ikut dipecah jadi kartu label. */
+    .responsive-table td[colspan] {
+      display: block;
+      text-align: center;
+    }
+
+    .responsive-table td[colspan]::before {
+      content: none;
+    }
+  }
+}

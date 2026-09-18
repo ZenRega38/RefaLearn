@@ -240,7 +240,7 @@ export default function AdminSessionsPage() {
 
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse font-[var(--font-inter)]">
+            <table className="responsive-table w-full text-left text-sm border-collapse font-[var(--font-inter)]">
               <thead>
                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                   <th className="p-4 font-semibold text-[var(--color-ink-soft)]">Tanggal & Waktu</th>
@@ -273,7 +273,7 @@ export default function AdminSessionsPage() {
                           </tr>
                         )}
                         <tr key={session.id} className={`border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors ${session.series_id ? 'bg-blue-50/20' : ''}`}>
-                          <td className="p-4">
+                          <td className="p-4" data-label="Tanggal">
                             <div className="font-semibold text-[var(--color-ink)] flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-[var(--color-brand-blue)]" />
                               {format(parseISO(session.date), 'dd MMM yyyy', { locale: id })}
@@ -283,7 +283,7 @@ export default function AdminSessionsPage() {
                               {formatTimeStr(session.start_time)} - {formatTimeStr(session.end_time)}
                             </div>
                           </td>
-                          <td className="p-4">
+                          <td className="p-4" data-label="Siswa">
                             <div className="font-semibold text-[var(--color-ink)]">{session.profiles?.full_name || 'Unknown'}</div>
                             <div className="text-xs text-[var(--color-ink-soft)] flex items-center gap-1 mt-1">
                               <a href={`https://wa.me/${session.profiles?.phone?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
@@ -291,14 +291,14 @@ export default function AdminSessionsPage() {
                               </a>
                             </div>
                           </td>
-                          <td className="p-4">
+                          <td className="p-4" data-label="Harga">
                             <div className="font-bold text-[var(--color-ink)]">{formatPrice(session.price)}</div>
                             <div className="text-xs text-[var(--color-ink-soft)] capitalize">{session.day_type}</div>
                           </td>
-                          <td className="p-4 text-center">
+                          <td className="p-4 text-center" data-label="Status">
                             {getStatusBadge(session.status)}
                           </td>
-                          <td className="p-4 text-right">
+                          <td className="p-4 text-right" data-label="Aksi">
 
                             {/* Pending Actions */}
                             {session.status === 'pending' && (
