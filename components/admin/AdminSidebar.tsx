@@ -20,6 +20,7 @@ import {
     X,
     Wallet,
 } from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
@@ -83,7 +84,10 @@ export function AdminSidebar() {
             {/* Mobile top bar — admin pages hide the public Navbar (see
           SiteChrome), so this is the only header on small screens. */}
             <div className="md:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-[var(--color-brand-blue)] text-white">
-                <span className="font-[var(--font-kalam)] text-lg font-bold">Refa Learn Admin</span>
+                <span className="flex items-center gap-2 font-[var(--font-kalam)] text-lg font-bold">
+                    <Image src="/RefaLearn-Logo.png" alt="" width={28} height={28} className="rounded-md" />
+                    Refa Learn Admin
+                </span>
                 <button onClick={() => setMobileOpen(true)} aria-label="Buka menu admin">
                     <Menu className="w-6 h-6" />
                 </button>
@@ -117,7 +121,8 @@ export function AdminSidebar() {
 
             {/* Desktop sidebar */}
             <aside className="hidden md:flex md:flex-col md:w-64 md:h-screen md:sticky md:top-0 bg-[var(--color-paper-bg)] border-r border-[var(--color-line)]">
-                <div className="h-16 flex items-center px-5 border-b border-[var(--color-line)]">
+                <div className="h-16 flex items-center gap-2 px-5 border-b border-[var(--color-line)]">
+                    <Image src="/RefaLearn-Logo.png" alt="" width={32} height={32} className="rounded-md" />
                     <span className="font-[var(--font-kalam)] text-xl font-bold text-[var(--color-brand-blue)]">
                         Refa Learn
                     </span>

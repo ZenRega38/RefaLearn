@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 
@@ -48,44 +49,22 @@ export function Navbar() {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-            ? "bg-[var(--color-paper-bg)]/95 backdrop-blur-md shadow-[var(--shadow-card)]"
-            : "bg-transparent"
+          ? "bg-[var(--color-paper-bg)]/95 backdrop-blur-md shadow-[var(--shadow-card)]"
+          : "bg-transparent"
           }`}
       >
         <nav className="container-main flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group" id="nav-logo">
-            <div className="relative">
-              <svg
-                width="36"
-                height="36"
-                viewBox="0 0 36 36"
-                fill="none"
-                className="transition-transform duration-300 group-hover:rotate-[-5deg]"
-              >
-                <rect
-                  x="2"
-                  y="2"
-                  width="32"
-                  height="32"
-                  rx="6"
-                  stroke="var(--color-brand-blue)"
-                  strokeWidth="2.5"
-                  fill="var(--color-accent-yellow)"
-                  fillOpacity="0.2"
-                />
-                <text
-                  x="18"
-                  y="24"
-                  textAnchor="middle"
-                  fontFamily="Kalam, cursive"
-                  fontWeight="700"
-                  fontSize="18"
-                  fill="var(--color-brand-blue)"
-                >
-                  R
-                </text>
-              </svg>
+            <div className="relative transition-transform duration-300 group-hover:rotate-[-5deg]">
+              <Image
+                src="/RefaLearn-Logo.png"
+                alt="Refa Learn"
+                width={36}
+                height={36}
+                className="rounded-md object-contain"
+                priority
+              />
             </div>
             <div className="flex flex-col leading-none">
               <span
@@ -116,8 +95,8 @@ export function Navbar() {
                     href={link.href}
                     id={`nav-${link.label.toLowerCase()}`}
                     className={`relative px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${isActive
-                        ? "text-[var(--color-brand-blue)]"
-                        : "text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
+                      ? "text-[var(--color-brand-blue)]"
+                      : "text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
                       }`}
                     style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                   >
@@ -224,8 +203,8 @@ export function Navbar() {
                   <Link
                     href={link.href}
                     className={`block px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 ${isActive
-                        ? "bg-[var(--color-brand-blue)]/10 text-[var(--color-brand-blue)]"
-                        : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
+                      ? "bg-[var(--color-brand-blue)]/10 text-[var(--color-brand-blue)]"
+                      : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
                       }`}
                     style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                   >

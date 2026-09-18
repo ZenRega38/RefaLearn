@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -12,10 +13,7 @@ export function Footer() {
           {/* Brand Col */}
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 group inline-flex">
-              <svg width="28" height="28" viewBox="0 0 36 36" fill="none" className="transition-transform duration-300 group-hover:rotate-[-5deg]">
-                <rect x="2" y="2" width="32" height="32" rx="6" stroke="var(--color-brand-blue)" strokeWidth="2.5" fill="var(--color-accent-yellow)" fillOpacity="0.2" />
-                <text x="18" y="24" textAnchor="middle" fontFamily="Kalam, cursive" fontWeight="700" fontSize="18" fill="var(--color-brand-blue)">R</text>
-              </svg>
+              <Image src="/RefaLearn-Logo.png" alt="Refa Learn" width={36} height={36} className="rounded-md object-contain" />
               <div className="flex flex-col leading-none">
                 <span className="font-[var(--font-kalam)] text-lg font-bold text-[var(--color-brand-blue)]">Refa Learn</span>
               </div>
