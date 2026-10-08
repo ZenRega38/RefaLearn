@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { speak, speechSupported } from "@/components/course/speech";
 import { Picture } from "@/components/course/pictures";
 import { useCourseText } from "@/components/course/lang";
+import { TaskBlock } from "@/components/course/TaskBlock";
 
 /** Inline "Coba sekarang" question inside the lesson material. */
 function TryIt({ question }: { question: Question }) {
@@ -157,6 +158,8 @@ export function LessonBlocks({ blocks }: { blocks: Block[] }) {
             return <TryIt key={i} question={b.question} />;
           case "vocab":
             return <VocabCards key={i} title={b.title} items={b.items} />;
+          case "task":
+            return <TaskBlock key={i} task={b} />;
           case "pictures":
             return (
               <figure key={i} className="rounded-[var(--radius-card)] bg-[var(--color-paper-bg-alt)]/70 border border-[var(--color-line)] p-4">

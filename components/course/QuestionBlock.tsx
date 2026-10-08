@@ -6,7 +6,8 @@ import { PassageView } from "@/components/course/PassageView";
 import { QuestionInput } from "@/components/course/QuestionInput";
 import { Md } from "@/components/course/Md";
 import { Picture } from "@/components/course/pictures";
-import { useCourseText } from "@/components/course/lang";
+import { useCourseText, useReadAloud } from "@/components/course/lang";
+import { ReadAloudButton } from "@/components/course/ReadAloudButton";
 
 /** Prompt + audio/passage + answer area for one question. */
 export function QuestionBlock({
@@ -33,6 +34,7 @@ export function QuestionBlock({
   showTranscript?: boolean;
 }) {
   const t = useCourseText();
+  const readAloud = useReadAloud();
   const passage = question.passageId ? passages.find((p) => p.id === question.passageId) : undefined;
 
   return (
@@ -64,8 +66,9 @@ export function QuestionBlock({
           </div>
         )}
         {question.prompt && (
-          <div className="text-base md:text-lg font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
-            <Md text={question.prompt} />
+          <div className="flex items-start gap-2 text-base md:text-lg font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+            {readAloud && <ReadAloudButton text={question.prompt} label={t.readAloud} />}
+            <div className="flex-1 min-w-0"><Md text={question.prompt} /></div>
           </div>
         )}
         <QuestionInput key={question.id} question={question} value={value} onChange={onChange} disabled={disabled} reveal={reveal} />

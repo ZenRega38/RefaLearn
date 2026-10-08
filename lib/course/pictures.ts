@@ -31,6 +31,17 @@ export const PICTURE_NAMES = [
   "yum", "yuck", "heart",
   // work, daily life, travel (English Day)
   "staff", "headset", "customer", "customer-angry", "technician", "meeting", "smartphone", "phone-call", "laptop", "modem", "modem-red", "wifi", "cable", "signal", "download", "upload", "video-app", "chat", "question", "bill", "money", "receipt", "calendar", "clock", "alarm", "target", "report", "office", "house", "coffee", "motorcycle", "traffic", "shower", "tv", "gamepad", "fishing", "bicycle", "beach", "mountain", "island", "plane", "suitcase", "passport", "souvenir", "crab", "soup", "chili", "lemon", "candy", "salt", "food-stall", "feel-great", "feel-tired", "feel-sleepy", "feel-hungry", "trophy", "thumbs-up", "pin",
+  // young learners: body, shapes, toys, classroom, fruit, home, clothes, weather, feelings, positions
+  "eye", "ear", "nose", "mouth", "hand", "foot", "body", "clap", "stamp",
+  "shape-circle", "shape-square", "shape-triangle", "shape-rectangle", "shape-star",
+  "doll", "kite", "teddy", "toy-car", "robot", "balloon", "blocks",
+  "desk", "door", "window", "whiteboard", "stand-up", "sit-down", "raise-hand", "open-book",
+  "grapes", "watermelon", "pineapple", "strawberry",
+  "bed", "sofa", "stove", "bathtub", "flower", "tree", "school", "toothbrush", "sleep",
+  "shirt", "t-shirt", "skirt", "trousers", "dress", "hat", "shoes", "socks", "jacket", "umbrella",
+  "rain", "windy", "hot", "cold", "rainbow",
+  "happy", "sad", "angry", "scared", "surprised",
+  "in", "on", "under", "next-to",
   // mascot
   "owl", "owl-wave", "owl-cheer", "owl-think", "owl-read",
 ] as const;

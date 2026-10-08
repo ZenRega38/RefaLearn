@@ -23,6 +23,11 @@ type QuestionBase = {
   hots?: boolean;
   /** Illustration shown above the prompt, e.g. "cat" or "apple*4" (see lib/course/pictures). */
   image?: string;
+  /**
+   * A translation item (Indonesian ↔ English). Only these may show
+   * Indonesian in the prompt or options of an all-English course.
+   */
+  translate?: boolean;
 };
 
 /** Single answer, four (or more) options. */
@@ -74,7 +79,38 @@ export type Block =
   /** Picture-word cards; tapping one speaks the English word. `pic` (an illustration name) wins over `emoji`. */
   | { type: "vocab"; title?: string; items: VocabItem[] }
   /** A row of illustrations with optional captions (scenes, story characters). */
-  | { type: "pictures"; items: { pic: string; label?: string }[]; caption?: string };
+  | { type: "pictures"; items: { pic: string; label?: string }[]; caption?: string }
+  /** Open writing or speaking practice, checked against model answers and a rubric. */
+  | TaskBlock;
+
+/**
+ * Writing / speaking practice. The learner writes (word counter) or records
+ * themselves (microphone, with preparation and speaking timers), then
+ * compares with model answers and ticks a self-check rubric. Nothing is
+ * graded automatically; drafts stay in the learner's browser.
+ */
+export type TaskBlock = {
+  type: "task";
+  /** Stable id, used to keep the learner's draft in their browser. */
+  id: string;
+  kind: "writing" | "speaking";
+  title?: string;
+  /** The task, in English (markdown). */
+  prompt: string;
+  image?: string;
+  /** Speaking: preparation time before recording starts. */
+  prepSeconds?: number;
+  /** Writing: suggested time; speaking: maximum recording length. */
+  seconds?: number;
+  minWords?: number;
+  maxWords?: number;
+  /** Short hints shown before starting (useful phrases, structure). */
+  tips?: string[];
+  /** Model answers, e.g. one per level or band. Speaking models can be played aloud. */
+  models: { label: string; text: string; note?: string }[];
+  /** Self-check criteria the learner ticks after comparing. */
+  rubric: string[];
+};
 
 export type VocabItem = { emoji: string; pic?: string; word: string; meaning: string; example?: string };
 
