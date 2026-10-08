@@ -46,8 +46,8 @@ export const PRETEST: Exam = {
       title: "Section 1: Listening Comprehension",
       minutes: 10,
       directions:
-        "Anda akan mendengar percakapan pendek, lalu sebuah pertanyaan. Audio hanya diputar SATU KALI. Pilih jawaban terbaik dari empat pilihan.",
-      parts: [{ title: "Part A", directions: "Short conversations", questionIds: ["pre-l1", "pre-l2", "pre-l3", "pre-l4", "pre-l5", "pre-l6", "pre-l7", "pre-l8", "pre-l9", "pre-l10"] }],
+        "In this section you will hear short conversations between two people. After each conversation, you will hear a question about it. The conversations and questions will be spoken only ONE time. Choose the best answer from the four choices.",
+      parts: [{ title: "Part A", directions: "Short conversations followed by one question each.", questionIds: ["pre-l1", "pre-l2", "pre-l3", "pre-l4", "pre-l5", "pre-l6", "pre-l7", "pre-l8", "pre-l9", "pre-l10"] }],
       questions: [
         partA("pre-l1", [["man", "Could you help me move these boxes?"], ["woman", "I'd be glad to, after lunch."]], "What does the woman mean?",
           ["She will help later.", "She is too busy to help.", "She already had lunch.", "The boxes are too heavy."], A, "Dia mau membantu setelah makan siang."),
@@ -76,10 +76,10 @@ export const PRETEST: Exam = {
       title: "Section 2: Structure and Written Expression",
       minutes: 12,
       directions:
-        "Soal 1–7: pilih jawaban yang melengkapi kalimat. Soal 8–15: pilih bagian bergaris bawah yang harus diperbaiki agar kalimat benar.",
+        "Questions 1–7 are incomplete sentences: choose the word or phrase that best completes each sentence. Questions 8–15 each have four underlined words or phrases: identify the ONE that must be changed for the sentence to be correct.",
       parts: [
-        { title: "Structure", directions: "Lengkapi kalimat", questionIds: ["pre-s1", "pre-s2", "pre-s3", "pre-s4", "pre-s5", "pre-s6", "pre-s7"] },
-        { title: "Written Expression", directions: "Temukan bagian yang salah", questionIds: ["pre-s8", "pre-s9", "pre-s10", "pre-s11", "pre-s12", "pre-s13", "pre-s14", "pre-s15"] },
+        { title: "Structure", directions: "Choose the word or phrase that best completes the sentence.", questionIds: ["pre-s1", "pre-s2", "pre-s3", "pre-s4", "pre-s5", "pre-s6", "pre-s7"] },
+        { title: "Written Expression", directions: "Identify the underlined part that must be changed.", questionIds: ["pre-s8", "pre-s9", "pre-s10", "pre-s11", "pre-s12", "pre-s13", "pre-s14", "pre-s15"] },
       ],
       questions: [
         completion("pre-s1", "____ grows well in tropical climates.", ["Rice", "Rice that", "Because rice", "It is rice"], A, "Kalimat butuh subjek untuk ‘grows’."),
@@ -103,7 +103,7 @@ export const PRETEST: Exam = {
       skill: "reading",
       title: "Section 3: Reading Comprehension",
       minutes: 18,
-      directions: "Baca setiap bacaan, lalu jawab pertanyaan berdasarkan apa yang dinyatakan atau tersirat di dalamnya.",
+      directions: "Read each passage and answer the questions that follow, based on what is stated or implied in the passage.",
       passages: [TIDES, SLEEP],
       parts: [
         { title: "Passage 1", directions: "Tides", questionIds: ["pre-r1", "pre-r2", "pre-r3", "pre-r4", "pre-r5", "pre-r6", "pre-r7", "pre-r8"] },

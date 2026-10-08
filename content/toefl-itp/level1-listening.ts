@@ -90,32 +90,32 @@ export const L1_LISTENING: Lesson[] = [
       {
         id: "l1-lis-1-c1",
         type: "fill",
-        prompt: "Lengkapi kalimat berikut.",
-        before: "Listening TOEFL ITP berisi",
-        after: "soal.",
-        accept: ["50", "fifty", "lima puluh"],
+        prompt: "Complete the sentence.",
+        before: "The Listening section of the TOEFL ITP has",
+        after: "questions.",
+        accept: ["50", "fifty"],
         explanation: "Total 50 soal: Part A 30, Part B 8, Part C 12.",
       },
       {
         id: "l1-lis-1-c2",
         type: "match",
-        prompt: "Pasangkan setiap bagian dengan isinya.",
+        prompt: "Match each part with what you hear in it.",
         pairs: [
-          ["Part A", "Percakapan pendek"],
-          ["Part B", "Percakapan panjang"],
-          ["Part C", "Monolog / kuliah"],
+          ["Part A", "Short conversations"],
+          ["Part B", "Longer conversations"],
+          ["Part C", "Talks and lectures"],
         ],
         explanation: "Part A: percakapan pendek; Part B: percakapan panjang; Part C: monolog atau kuliah singkat.",
       },
       {
         id: "l1-lis-1-c3",
         type: "ms",
-        prompt: "Pilih SEMUA strategi yang tepat untuk Part A.",
+        prompt: "Choose ALL the good strategies for Part A.",
         options: [
-          "Membaca pilihan jawaban sebelum audio diputar",
-          "Fokus pada ucapan orang kedua",
-          "Memilih jawaban yang mengulang kata persis dari audio",
-          "Menunggu audio diputar ulang",
+          "Read the answer choices before the audio starts",
+          "Focus on what the second speaker says",
+          "Choose the answer that repeats the exact words you heard",
+          "Wait for the audio to be played again",
         ],
         answers: [A, B],
         explanation: "Baca pilihan lebih dulu dan fokus pada pembicara kedua. Audio tidak diputar ulang, dan kata yang sama persis sering jebakan.",
@@ -166,7 +166,7 @@ export const L1_LISTENING: Lesson[] = [
             question: {
               id: "l1-lis-2-try1",
               type: "match",
-              prompt: "Pasangkan kata/frasa dengan sinonimnya.",
+              prompt: "Match each word with its synonym.",
               pairs: [
                 ["purchase", "buy"],
                 ["assist", "help"],
@@ -221,8 +221,8 @@ export const L1_LISTENING: Lesson[] = [
       {
         id: "l1-lis-2-c1",
         type: "fill",
-        prompt: "Tulis sinonim satu kata (bahasa Inggris).",
-        before: "“The meeting was postponed” artinya the meeting was",
+        prompt: "Write a one-word synonym.",
+        before: "“The meeting was postponed” means the meeting was",
         after: "until later.",
         accept: ["delayed", "put off", "rescheduled", "moved"],
         explanation: "Postponed = delayed / put off / rescheduled.",
@@ -262,7 +262,7 @@ export const L1_LISTENING: Lesson[] = [
       {
         id: "l1-lis-2-c4",
         type: "ms",
-        prompt: "Pilih SEMUA kalimat yang merupakan restatement dari “The bus was packed.”",
+        prompt: "Choose ALL the sentences that restate “The bus was packed.”",
         options: ["The bus was very crowded.", "There were many people on the bus.", "The bus carried a lot of packages.", "The bus was late."],
         answers: [A, B],
         explanation: "Packed (untuk kendaraan) = penuh sesak. ‘Packages’ hanya mirip bunyinya.",
@@ -329,7 +329,7 @@ export const L1_LISTENING: Lesson[] = [
       {
         id: "l1-lis-3-c1",
         type: "match",
-        prompt: "Pasangkan kata dengan kata yang bunyinya mirip.",
+        prompt: "Match each word with the word that sounds similar.",
         pairs: [
           ["glass", "class"],
           ["walk", "work"],
@@ -439,7 +439,7 @@ export const L1_LISTENING: Lesson[] = [
       {
         id: "l1-lis-4-c1",
         type: "match",
-        prompt: "Pasangkan ungkapan dengan maknanya.",
+        prompt: "Match each expression with its meaning.",
         pairs: [
           ["not unusual", "common"],
           ["hardly ever", "almost never"],
@@ -473,7 +473,7 @@ export const L1_LISTENING: Lesson[] = [
       {
         id: "l1-lis-4-c4",
         type: "order",
-        prompt: "Susun kata menjadi restatement dari “The room wasn't large enough.”",
+        prompt: "Put the words in order to restate “The room wasn't large enough.”",
         tiles: ["The", "room", "was", "too", "small"],
         answer: [["The", "room", "was", "too", "small"]],
         explanation: "Negatif + ‘large enough’ = too small.",

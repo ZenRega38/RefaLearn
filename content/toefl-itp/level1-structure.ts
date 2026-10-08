@@ -79,7 +79,7 @@ export const L1_STRUCTURE: Lesson[] = [
       {
         id: "l1-str-1-c3",
         type: "order",
-        prompt: "Susun menjadi kalimat yang benar.",
+        prompt: "Put the words in order to make a correct sentence.",
         tiles: ["Many", "students", "study", "English", "online"],
         answer: [["Many", "students", "study", "English", "online"]],
         explanation: "Subjek (Many students) + verb (study) + objek (English) + keterangan (online).",
@@ -87,7 +87,7 @@ export const L1_STRUCTURE: Lesson[] = [
       {
         id: "l1-str-1-c4",
         type: "fill",
-        prompt: "Isi dengan satu kata kerja yang tepat (bentuk present).",
+        prompt: "Fill in one suitable verb (present tense).",
         before: "The museum",
         after: "at nine o'clock every morning.",
         accept: ["opens", "closes"],
@@ -144,7 +144,7 @@ export const L1_STRUCTURE: Lesson[] = [
       {
         id: "l1-str-2-c2",
         type: "ms",
-        prompt: "Pilih SEMUA kata yang merupakan preposisi.",
+        prompt: "Choose ALL the words that are prepositions.",
         options: ["during", "although", "among", "beside", "because"],
         answers: [A, C, D],
         explanation: "During, among, beside = preposisi. Although dan because = konjungsi (diikuti klausa).",
@@ -214,7 +214,7 @@ export const L1_STRUCTURE: Lesson[] = [
       {
         id: "l1-str-3-c3",
         type: "mc",
-        prompt: "Bagian manakah yang merupakan appositive?\n“The orangutan, an endangered ape, lives in Borneo.”",
+        prompt: "Which part is the appositive?\n“The orangutan, an endangered ape, lives in Borneo.”",
         options: ["The orangutan", "an endangered ape", "lives", "in Borneo"],
         answer: B,
         explanation: "‘An endangered ape’ menjelaskan ‘The orangutan’ dan diapit koma.",
@@ -290,7 +290,7 @@ export const L1_STRUCTURE: Lesson[] = [
       {
         id: "l1-str-4-c3",
         type: "fill",
-        prompt: "Isi dengan bentuk yang benar dari ‘be’ (present).",
+        prompt: "Fill in the correct present form of ‘be’.",
         before: "The results of the survey",
         after: "surprising.",
         accept: ["are"],
@@ -299,7 +299,7 @@ export const L1_STRUCTURE: Lesson[] = [
       {
         id: "l1-str-4-c4",
         type: "ms",
-        prompt: "Pilih SEMUA kalimat yang BENAR.",
+        prompt: "Choose ALL the sentences that are CORRECT.",
         options: [
           "A number of tourists visit the island every month.",
           "Each of the rooms have a balcony.",

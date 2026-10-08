@@ -12,10 +12,10 @@ export const TRYOUT_STRUCTURE: ExamSection = {
   title: "Section 2: Structure and Written Expression",
   minutes: 25,
   directions:
-    "Bagian ini menguji kemampuan Anda mengenali bahasa yang sesuai untuk bahasa Inggris tertulis standar. Soal 1–15: pilih kata atau frasa yang paling tepat untuk melengkapi kalimat. Soal 16–40: setiap kalimat memiliki empat bagian bergaris bawah; pilih SATU bagian yang harus diubah agar kalimat benar.",
+    "This section is designed to measure your ability to recognize language that is appropriate for standard written English. Questions 1–15 are incomplete sentences: choose the word or phrase that best completes each sentence. In questions 16–40, each sentence has four underlined words or phrases: identify the ONE underlined word or phrase that must be changed in order for the sentence to be correct.",
   parts: [
-    { title: "Structure", directions: "Pilih jawaban yang melengkapi kalimat.", questionIds: ids("t-s", 1, 15) },
-    { title: "Written Expression", directions: "Pilih bagian bergaris bawah yang salah.", questionIds: ids("t-s", 16, 40) },
+    { title: "Structure", directions: "Choose the word or phrase that best completes the sentence.", questionIds: ids("t-s", 1, 15) },
+    { title: "Written Expression", directions: "Identify the underlined word or phrase that must be changed.", questionIds: ids("t-s", 16, 40) },
   ],
   questions: [
     completion("t-s1", "____ is the largest island in Indonesia.", ["Kalimantan", "That Kalimantan", "Kalimantan, which", "Because Kalimantan"], A, "Kalimat butuh subjek untuk ‘is’."),

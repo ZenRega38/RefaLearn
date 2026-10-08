@@ -120,7 +120,7 @@ export const TRYOUT_READING: ExamSection = {
   title: "Section 3: Reading Comprehension",
   minutes: 55,
   directions:
-    "Bagian ini berisi beberapa bacaan, masing-masing diikuti sejumlah pertanyaan. Jawab semua pertanyaan berdasarkan apa yang dinyatakan atau tersirat di dalam bacaan.",
+    "In this section you will read several passages. Each one is followed by a number of questions about it. Answer all questions based on what is stated or implied in the passage.",
   passages: [WALLACE, BEES, PRINTING, VOLCANO, MUSIC],
   parts: [
     { title: "Passage 1", directions: WALLACE.title!, questionIds: ids("t-r", 1, 10) },

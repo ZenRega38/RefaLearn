@@ -57,11 +57,11 @@ export const TRYOUT_LISTENING: ExamSection = {
   title: "Section 1: Listening Comprehension",
   minutes: 35,
   directions:
-    "Bagian ini menguji kemampuan Anda memahami bahasa Inggris lisan. Audio dan pertanyaan HANYA diputar SATU KALI dan tidak tertulis. Pilih jawaban terbaik dari empat pilihan yang tertera.",
+    "In this section of the test, you will have an opportunity to demonstrate your ability to understand conversations and talks in English. The conversations, talks, and questions will be spoken only ONE time and will not be written out. Choose the best answer from the four choices printed for each question.",
   parts: [
-    { title: "Part A", directions: "Anda akan mendengar percakapan pendek antara dua orang. Setelah setiap percakapan, narator mengajukan pertanyaan.", questionIds: ids("t-l", 1, 30) },
-    { title: "Part B", directions: "Anda akan mendengar percakapan yang lebih panjang. Setelah setiap percakapan, ada beberapa pertanyaan.", questionIds: ids("t-l", 31, 38) },
-    { title: "Part C", directions: "Anda akan mendengar beberapa ceramah atau pembicaraan. Setelah setiap pembicaraan, ada beberapa pertanyaan.", questionIds: ids("t-l", 39, 50) },
+    { title: "Part A", directions: "You will hear short conversations between two people. After each conversation, you will hear a question about the conversation.", questionIds: ids("t-l", 1, 30) },
+    { title: "Part B", directions: "You will hear longer conversations. After each conversation, you will hear several questions.", questionIds: ids("t-l", 31, 38) },
+    { title: "Part C", directions: "You will hear several talks. After each talk, you will hear some questions.", questionIds: ids("t-l", 39, 50) },
   ],
   questions: [
     // ---------------- Part A ----------------
