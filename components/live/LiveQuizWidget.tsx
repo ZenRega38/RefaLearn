@@ -81,9 +81,10 @@ export function LiveQuizWidget({ courseSlug, levelId, compact = false }: { cours
       </div>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-[var(--color-ink)]/50 flex items-stretch sm:items-center justify-center sm:p-6" role="dialog" aria-modal="true" aria-label="Live Quiz">
-          <div className="relative w-full max-w-3xl max-h-full overflow-y-auto sm:rounded-[var(--radius-card)] shadow-[var(--shadow-float)]">
-            <LivePlayer key={active.pin} pin={active.pin} onClose={() => setOpen(false)} />
+        // Full screen above the navbar and chat bubble, so only the quiz shows.
+        <div className="live-bg fixed inset-0 z-[70] overflow-y-auto flex flex-col" role="dialog" aria-modal="true" aria-label="Live Quiz">
+          <div className="flex-1 w-full max-w-3xl mx-auto flex flex-col">
+            <LivePlayer key={active.pin} pin={active.pin} onClose={() => setOpen(false)} fill />
           </div>
         </div>
       )}

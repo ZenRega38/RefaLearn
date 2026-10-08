@@ -32,9 +32,10 @@ function saveCreds(pin: string, creds: Creds | null) {
 /**
  * A player's whole live-quiz experience for one PIN: pick a name and avatar,
  * wait in the lobby, answer, see results, the scoreboard and the podium.
- * No account needed. Used on /live/[pin] and inside modules.
+ * No account needed. Used on /live/[pin] and inside modules. `fill`
+ * stretches it over the whole screen without a frame (distraction-free).
  */
-export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void }) {
+export function LivePlayer({ pin, onClose, fill = false }: { pin: string; onClose?: () => void; fill?: boolean }) {
   // Read once on mount (the first render shows a loader either way, so SSR matches).
   const [creds, setCreds] = useState<Creds | null>(() => (typeof window === "undefined" ? null : loadCreds(pin)));
   const [state, setState] = useState<PlayerState | null>(null);
@@ -126,7 +127,11 @@ export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void
     `p-2 rounded-full border-2 transition-colors ${on ? "bg-[var(--color-brand-blue)] border-[var(--color-brand-blue)] text-white" : "bg-white border-[var(--color-line)] text-[var(--color-ink-soft)] hover:border-[var(--color-brand-blue)]"}`;
 
   const shell = (children: ReactNode) => (
-    <div className="live-bg min-h-[560px] w-full rounded-none sm:rounded-[var(--radius-card)] sm:border-2 sm:border-[var(--color-line)] p-4 sm:p-6 font-[var(--font-inter)] relative overflow-hidden">
+    <div
+      className={`live-bg w-full p-4 sm:p-6 font-[var(--font-inter)] relative overflow-hidden ${
+        fill ? "flex-1 min-h-full" : "min-h-[560px] rounded-none sm:rounded-[var(--radius-card)] sm:border-2 sm:border-[var(--color-line)]"
+      }`}
+    >
       <LiveStyles />
       <div className="flex items-center justify-between gap-2 mb-4">
         <span className="text-xs font-semibold tracking-wider uppercase text-[var(--color-accent-coral)]">

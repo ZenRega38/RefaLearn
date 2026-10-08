@@ -18,7 +18,7 @@ export default function LiveJoinPage() {
   };
 
   return (
-    <div className="live-bg min-h-screen flex items-center justify-center px-4 pt-24 pb-10 font-[var(--font-inter)]">
+    <div className="live-bg min-h-screen flex items-center justify-center px-4 py-10 font-[var(--font-inter)]">
       <LiveStyles />
       <form onSubmit={go} className="sketch-card w-full max-w-sm bg-white p-6 space-y-4 text-center">
         <Picture name="owl-wave" className="w-24 h-24 mx-auto live-float" />
