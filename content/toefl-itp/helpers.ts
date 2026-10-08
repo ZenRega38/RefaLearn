@@ -98,7 +98,7 @@ export function wrong(
     last = m.index + m[0].length;
   }
   if (last < sentence.length) segments.push({ text: sentence.slice(last) });
-  return { id, type: "error", prompt: "Pilih bagian bergaris bawah yang SALAH.", segments, answer, correction, explanation };
+  return { id, type: "error", prompt: "Identify the underlined word or phrase that must be changed for the sentence to be correct.", segments, answer, correction, explanation };
 }
 
 /** Reading question tied to a passage. */

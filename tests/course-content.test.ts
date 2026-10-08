@@ -153,6 +153,33 @@ describe("TOEFL ITP format", () => {
   });
 });
 
+describe("TOEFL questions are in English", () => {
+  // Explanations and lesson teaching text stay in Indonesian on purpose;
+  // everything the student answers (prompts, options, directions) is English.
+  const ID_WORDS = /(yang|dan|atau|dengan|soal|pilih|pasangkan|lengkapi|susun|kalimat|bagian|jawaban|menit|benar|salah|semua|isi|tulis|bacaan|percakapan|anda|kata|menjadi|sinonim|strategi|membaca|mendengar|jumlah|ciri|urutkan|tersirat|diputar|pertanyaan|sesuai)/i;
+
+  const textsOf = (q: Question): string[] => {
+    const out = [q.prompt ?? ""];
+    if (q.type === "mc" || q.type === "ms") out.push(...q.options);
+    if (q.type === "fill") out.push(q.before, q.after);
+    if (q.type === "match") out.push(...q.pairs.flat());
+    if (q.type === "order") out.push(...q.tiles);
+    return out.filter(Boolean);
+  };
+
+  it("has no Indonesian in question prompts, options or exam directions", () => {
+    const hits: string[] = [];
+    for (const { q } of allQuestions(TOEFL_ITP)) for (const t of textsOf(q)) if (ID_WORDS.test(t)) hits.push(`${q.id}: ${t}`);
+    for (const exam of [TOEFL_ITP.pretest!, TOEFL_ITP.tryout!]) {
+      for (const s of exam.sections) {
+        if (ID_WORDS.test(s.directions)) hits.push(`${exam.kind}/${s.skill}: ${s.directions}`);
+        for (const p of s.parts) if (ID_WORDS.test(p.directions)) hits.push(`${exam.kind}/${s.skill}/${p.title}: ${p.directions}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+});
+
 describe("Grade 3 module (Kurikulum Merdeka)", () => {
   it("has six chapters, each with a pretest, three lessons and a posttest", () => {
     expect(ENGLISH_SD_3.levels).toHaveLength(6);

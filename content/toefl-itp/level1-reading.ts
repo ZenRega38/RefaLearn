@@ -104,17 +104,17 @@ export const L1_READING: Lesson[] = [
       {
         id: "l1-rea-1-c1",
         type: "fill",
-        prompt: "Lengkapi.",
-        before: "Reading TOEFL ITP berisi 50 soal dalam",
-        after: "menit.",
-        accept: ["55", "fifty-five", "fifty five", "lima puluh lima"],
+        prompt: "Complete the sentence.",
+        before: "The Reading section of the TOEFL ITP has 50 questions in",
+        after: "minutes.",
+        accept: ["55", "fifty-five", "fifty five"],
         explanation: "Reading: 50 soal, 55 menit.",
       },
       {
         id: "l1-rea-1-c2",
         type: "ms",
-        prompt: "Pilih SEMUA ciri jawaban main idea yang SALAH (jebakan).",
-        options: ["Hanya membahas satu detail kecil", "Lebih luas dari isi bacaan", "Merangkum seluruh bacaan", "Menyebut topik yang tidak dibahas"],
+        prompt: "Choose ALL the signs of a WRONG main-idea answer (a trap).",
+        options: ["It covers only one small detail", "It is broader than the passage", "It sums up the whole passage", "It mentions a topic the passage does not discuss"],
         answers: [A, B, D],
         explanation: "Jawaban main idea yang benar merangkum seluruh bacaan; yang terlalu sempit, terlalu luas, atau di luar topik adalah jebakan.",
       },
@@ -187,7 +187,7 @@ export const L1_READING: Lesson[] = [
       {
         id: "l1-rea-2-c3",
         type: "order",
-        prompt: "Urutkan penyebaran kopi sesuai bacaan.",
+        prompt: "Put the places in the order coffee spread to them, according to the passage.",
         tiles: ["Yemen", "Egypt, Persia, Turkey", "Europe"],
         answer: [["Yemen", "Egypt, Persia, Turkey", "Europe"]],
         explanation: "Yemen (abad ke-15) → Mesir, Persia, Turki → Eropa (abad ke-17).",
@@ -251,7 +251,7 @@ export const L1_READING: Lesson[] = [
       {
         id: "l1-rea-3-c3",
         type: "match",
-        prompt: "Pasangkan kata dengan sinonimnya.",
+        prompt: "Match each word with its synonym.",
         pairs: [
           ["steadily", "gradually"],
           ["claimed", "stated"],
