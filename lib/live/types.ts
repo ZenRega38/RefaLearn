@@ -29,6 +29,7 @@ export type LiveState = {
   playerCount: number;
   lobby: { id: string; nickname: string; avatar: string }[];
   answered: number;
+  /** `options` holds the answer texts for the host; for players each entry is "" (they answer by colour and shape). */
   question: { prompt: string; image: string | null; options: string[] } | null;
   reveal: { answer: number; counts: number[] } | null;
   board: LiveBoardRow[];

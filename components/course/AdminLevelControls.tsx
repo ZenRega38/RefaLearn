@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock, LockOpen, PlayCircle, Radio, MonitorPlay } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { enterFullscreen } from "@/components/live/ui";
 
 type Props = {
   slug: string;
@@ -50,7 +51,14 @@ export function AdminLevelControls({ slug, levelId, levelTitle, adminLocks, open
     }
   };
 
+  // The host screen goes on the projector: open it in full screen right away.
+  const openHost = (id: string) => {
+    enterFullscreen();
+    router.push(`/admin/live/${id}`);
+  };
+
   const startLive = async () => {
+    enterFullscreen(); // must happen inside the click, before the request
     setBusy("live");
     setError(null);
     try {
@@ -88,7 +96,7 @@ export function AdminLevelControls({ slug, levelId, levelTitle, adminLocks, open
           )}
           {hasLive &&
             (live ? (
-              <Button size="sm" href={`/admin/live/${live.id}`}>
+              <Button size="sm" onClick={() => openHost(live.id)}>
                 <MonitorPlay className="w-4 h-4" /> Buka Layar Host
               </Button>
             ) : (

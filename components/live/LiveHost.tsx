@@ -7,7 +7,7 @@ import { Picture } from "@/components/course/pictures";
 import { Button } from "@/components/ui/Button";
 import type { LiveState } from "@/lib/live/types";
 import { liveAudio } from "@/components/live/audio";
-import { ANSWER_STYLES, CountdownRing, GetReady, LiveStyles, PinBadge, Podium, Scoreboard, Shape, useServerClock } from "@/components/live/ui";
+import { ANSWER_STYLES, CountdownRing, enterFullscreen, GetReady, LiveStyles, PinBadge, Podium, Scoreboard, Shape, useServerClock } from "@/components/live/ui";
 
 /**
  * The admin's big screen (projector) for a live quiz: lobby with PIN and QR,
@@ -103,18 +103,21 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
     [sessionId, audio]
   );
 
-  const toggleFull = async () => {
-    try {
-      if (!document.fullscreenElement) await rootRef.current?.requestFullscreen();
-      else await document.exitFullscreen();
-    } catch {
-      /* not supported */
-    }
+  // The whole page goes full screen (the course page already asked for it
+  // when the admin clicked "Mulai Live Quiz"), and leaves it when the host
+  // screen closes.
+  const toggleFull = () => {
+    if (!document.fullscreenElement) enterFullscreen();
+    else document.exitFullscreen().catch(() => {});
   };
   useEffect(() => {
     const onChange = () => setFull(!!document.fullscreenElement);
+    onChange();
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
   }, []);
 
   if (!state) {
@@ -155,9 +158,15 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
         >
           {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} {soundOn ? "Suara on" : "Nyalakan suara"}
         </Button>
-        <button type="button" onClick={toggleFull} className={iconBtn} aria-label="Layar penuh" title="Layar penuh">
-          {full ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-        </button>
+        {full ? (
+          <button type="button" onClick={toggleFull} className={iconBtn} aria-label="Keluar layar penuh" title="Keluar layar penuh">
+            <Minimize2 className="w-5 h-5" />
+          </button>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={toggleFull}>
+            <Maximize2 className="w-4 h-4" /> Layar penuh
+          </Button>
+        )}
         {state.status !== "ended" && (
           <button type="button" onClick={() => window.confirm("Akhiri Live Quiz sekarang?") && act("end")} className={iconBtn} aria-label="Akhiri kuis" title="Akhiri kuis">
             <Square className="w-5 h-5" />
@@ -296,7 +305,14 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
 
       {nextLabel && (
         <footer className="sticky bottom-0 flex justify-end gap-3 px-4 sm:px-8 py-4 bg-white/90 border-t-2 border-[var(--color-line)]">
-          <Button size="lg" disabled={busy} onClick={() => act(state.status === "lobby" ? "start" : "next")}>
+          <Button
+            size="lg"
+            disabled={busy}
+            onClick={() => {
+              if (state.status === "lobby") enterFullscreen();
+              act(state.status === "lobby" ? "start" : "next");
+            }}
+          >
             {state.status === "lobby" ? <Play className="w-5 h-5" /> : null}
             {nextLabel}
             {state.status !== "lobby" && <ArrowRight className="w-5 h-5" />}

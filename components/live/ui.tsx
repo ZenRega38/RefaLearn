@@ -29,6 +29,18 @@ export function Shape({ shape, className = "w-7 h-7" }: { shape: (typeof ANSWER_
   );
 }
 
+/**
+ * Puts the whole page in full screen. Browsers only allow this inside a
+ * click, so call it synchronously from the click handler (before any
+ * await). It survives client-side navigation to the host screen.
+ */
+export function enterFullscreen() {
+  if (typeof document === "undefined" || document.fullscreenElement) return;
+  document.documentElement.requestFullscreen?.().catch(() => {
+    /* not supported or refused: the host can still use the button */
+  });
+}
+
 /** Keeps a server-clock offset so every device counts down the same deadline. */
 export function useServerClock(serverNow: number | undefined) {
   const offset = useRef(0);

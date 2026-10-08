@@ -228,19 +228,21 @@ export function LivePlayer({ pin, onClose, fill = false }: { pin: string; onClos
                 <Picture name={q.image} className="h-28 sm:h-36 w-auto" />
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {q.options.map((opt, i) => (
+            <p className="text-center text-sm font-semibold text-[var(--color-ink-soft)]">Lihat pilihan jawaban di layar pengajar, lalu tekan warna yang sama.</p>
+            {/* Players only get colours and shapes; the answer texts are on the host screen. */}
+            <div className="grid grid-cols-2 gap-3">
+              {q.options.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   disabled={sending !== null}
                   onClick={() => answer(i)}
-                  className="flex items-center gap-3 rounded-[var(--radius-card)] px-4 py-4 text-left text-lg font-semibold text-white shadow-[var(--shadow-sketch)] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform disabled:opacity-70"
+                  aria-label={`Jawaban ${ANSWER_STYLES[i].label}`}
+                  className="relative flex items-center justify-center h-28 sm:h-36 rounded-[var(--radius-card)] shadow-[var(--shadow-sketch)] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform disabled:opacity-70"
                   style={{ background: ANSWER_STYLES[i].bg }}
                 >
-                  <Shape shape={ANSWER_STYLES[i].shape} className="w-7 h-7 shrink-0" />
-                  <span className="flex-1">{opt}</span>
-                  {sending === i && <Loader2 className="w-5 h-5 animate-spin" />}
+                  <Shape shape={ANSWER_STYLES[i].shape} className="w-14 h-14 sm:w-16 sm:h-16" />
+                  {sending === i && <Loader2 className="absolute top-2 right-2 w-5 h-5 text-white animate-spin" />}
                 </button>
               ))}
             </div>
@@ -261,9 +263,9 @@ export function LivePlayer({ pin, onClose, fill = false }: { pin: string; onClos
             <div className="live-shake space-y-2">
               <XCircle className="w-20 h-20 mx-auto text-[var(--color-danger-red)]" />
               <p className="text-4xl font-[var(--font-kalam)] text-[var(--color-danger-red)]">{me.choice === null ? "Waktu habis!" : "Belum tepat"}</p>
-              <p className="text-[var(--color-ink-soft)]">Jawaban yang benar:</p>
+              <p className="text-[var(--color-ink-soft)]">Jawaban yang benar (lihat layar pengajar):</p>
               <p className="inline-flex items-center gap-2 rounded-[var(--radius-card)] px-4 py-2 font-semibold text-white shadow-[var(--shadow-sketch)]" style={{ background: ANSWER_STYLES[state.reveal.answer].bg }}>
-                <Shape shape={ANSWER_STYLES[state.reveal.answer].shape} className="w-5 h-5" /> {q.options[state.reveal.answer]}
+                <Shape shape={ANSWER_STYLES[state.reveal.answer].shape} className="w-5 h-5" /> {ANSWER_STYLES[state.reveal.answer].label}
               </p>
             </div>
           )}

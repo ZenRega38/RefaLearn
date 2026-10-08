@@ -186,6 +186,10 @@ describe("a full live quiz", () => {
     const playerView = await buildState(client, s, { playerId: "Ani" });
     expect(playerView.reveal).toBeNull();
     expect(JSON.stringify(playerView.question)).not.toContain("answer");
+    // Players see colours and shapes only; the texts stay on the host screen.
+    expect(playerView.question?.options).toEqual(set.questions[1].options.map(() => ""));
+    const hostView = await buildState(client, s, { host: true });
+    expect(hostView.question?.options).toEqual(set.questions[1].options);
 
     vi.advanceTimersByTime(1500);
     const right1 = set.questions[1].answer;

@@ -227,7 +227,11 @@ export async function buildState(admin: SupabaseClient, session: SessionRow, opt
     playerCount: players.length,
     lobby: session.status === "lobby" || opts.host ? players.map((p) => ({ id: p.id, nickname: p.nickname, avatar: p.avatar })) : [],
     answered: thisQuestion.length,
-    question: showQuestion ? { prompt: q.prompt ?? "", image: q.image ?? null, options: q.options } : null,
+    // Answer texts only go to the host screen; players get one blank per
+    // option and pick by colour and shape, so they must look up.
+    question: showQuestion
+      ? { prompt: q.prompt ?? "", image: q.image ?? null, options: opts.host ? q.options : q.options.map(() => "") }
+      : null,
     reveal: showQuestion && revealed ? { answer: q.answer, counts } : null,
     board: session.status === "scoreboard" || session.status === "podium" || session.status === "ended" || opts.host ? now.sorted.slice(0, opts.host ? 50 : 5).map(row) : [],
     me: me
