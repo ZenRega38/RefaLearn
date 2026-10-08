@@ -1,6 +1,6 @@
 import "server-only";
 import type { Level, Passage } from "@/lib/course/types";
-import { arrange, audio, fill, listen, live, match, pick, pickMany, pics, repeat, say, speaking, table, text, tip, trFill, trPick, tryIt, vocab, voice, warn, writing } from "../kit";
+import { arrange, audio, fill, listen, live, match, pick, pickMany, pics, repeat, say, speaking, table, text, tip, trPick, tryIt, vocab, voice, warn, writing } from "../kit";
 
 // Grade 4 (Fase B). Chapter 1 — What Time Is It? · Chapter 2 — Months and Birthdays
 
