@@ -1,4 +1,5 @@
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
+import { PhoneReminder } from "@/components/dashboard/PhoneReminder";
 
 // Same reasoning as app/admin/layout.tsx — this is always a specific
 // student's own data, never a cacheable static page.
@@ -8,6 +9,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
         <div>
             <DashboardTabs />
+            <PhoneReminder />
             {children}
         </div>
     );

@@ -65,6 +65,7 @@ update public.profiles set role = 'admin' where id = '<auth user id>';
 
 - **URL Configuration → Redirect URLs:** add `https://<your-domain>/auth/callback` (and `http://localhost:3000/auth/callback` for dev). Sign-up confirmation and password-reset links land there.
 - **Attack Protection → Captcha:** enable Turnstile with your secret key (the site key goes in `NEXT_PUBLIC_TURNSTILE_SITE_KEY`).
+- **Sign In / Providers → Google** ("Masuk/Daftar dengan Google"): in Google Cloud Console create an OAuth client (type *Web application*), set its *Authorized redirect URI* to `https://<project-ref>.supabase.co/auth/v1/callback`, then paste the Client ID and Client Secret into the Google provider in Supabase and enable it. The OAuth consent screen needs the app name, support email and your domain. Google accounts become students through the same signup trigger (name from Google); the dashboard asks them to add a WhatsApp number. Until the provider is enabled, the button shows a friendly "belum diaktifkan" message.
 
 ### Seed data
 
@@ -86,7 +87,7 @@ app/
                   prepayments, news, alumni, partners, chat, contracts, settings
   api/            availability, bookings, sessions (cancel/reschedule),
                   materials (orders/download), chat notify, admin actions, crons
-  auth/callback   email-link landing (confirmation, password recovery)
+  auth/callback   email-link and Google sign-in landing (confirmation, recovery, OAuth)
 components/       ui, sketch, booking, chat, news, alumni, admin, dashboard
 lib/
   supabase/       client (browser), server (cookies), public (cookie-less), admin (service role)
