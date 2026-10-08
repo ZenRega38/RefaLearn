@@ -8,9 +8,10 @@ import { ENGLISH_SD_2 } from "@/content/english-sd-2";
 import { ENGLISH_SD_4 } from "@/content/english-sd-4";
 import { ENGLISH_SD_5 } from "@/content/english-sd-5";
 import { ENGLISH_SD_6 } from "@/content/english-sd-6";
+import { ENGLISH_SMP_7 } from "@/content/english-smp-7";
 
 const COURSES: Record<string, Course> = Object.fromEntries(
-  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_DAY].map((c) => [c.slug, c])
+  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_DAY].map((c) => [c.slug, c])
 );
 
 export const ALL_COURSES = Object.values(COURSES);
