@@ -123,6 +123,8 @@ export default function MaterialDetailPage() {
   }
 
   const inCart = cart.includes(material.id);
+  // A free interactive course needs no order: any signed-in user can open it.
+  const freeCourse = material.price === 0 && !!material.course_slug;
 
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
@@ -163,7 +165,19 @@ export default function MaterialDetailPage() {
                 </div>
               </div>
 
-              {ownership !== "none" ? (
+              {freeCourse ? (
+                <div className="space-y-2">
+                  <Button
+                    href={userId ? `/learn/${material.course_slug}` : `/login?next=/learn/${material.course_slug}`}
+                    className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
+                  >
+                    <GraduationCap className="w-5 h-5 mr-2" /> Mulai Belajar Gratis
+                  </Button>
+                  <p className="text-xs text-center text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                    {userId ? "Langsung buka kursusnya, tanpa checkout." : "Masuk atau daftar dulu supaya progres belajarmu tersimpan."}
+                  </p>
+                </div>
+              ) : ownership !== "none" ? (
                 <div className="bg-[var(--color-success-green)]/10 text-[var(--color-success-green)] p-4 rounded-lg flex items-start gap-3 border border-[var(--color-success-green)]/30">
                   <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <div>
@@ -192,7 +206,7 @@ export default function MaterialDetailPage() {
                     isLoading={buying}
                     className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
                   >
-                    <ShoppingBag className="w-5 h-5 mr-2" /> Beli Sekarang
+                    <ShoppingBag className="w-5 h-5 mr-2" /> {material.price === 0 ? "Ambil Gratis" : "Beli Sekarang"}
                   </Button>
                   {material.price > 0 && (
                     inCart ? (
@@ -213,10 +227,12 @@ export default function MaterialDetailPage() {
                   <ShieldCheck className="w-4 h-4 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
                   <span>Akses seumur hidup (Lifetime access)</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
-                  <span>Pembayaran aman & diverifikasi manual</span>
-                </li>
+                {material.price > 0 && (
+                  <li className="flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
+                    <span>Pembayaran aman & diverifikasi manual</span>
+                  </li>
+                )}
               </ul>
             </Card>
           </div>
@@ -240,13 +256,14 @@ export default function MaterialDetailPage() {
                   <GraduationCap className="w-5 h-5" /> Kursus interaktif
                 </h2>
                 <ul className="text-sm font-[var(--font-inter)] text-[var(--color-ink)] space-y-1.5 list-disc pl-5">
-                  <li>Materi bertahap per level dengan contoh audio dan latihan langsung</li>
+                  <li>Materi bertahap dengan contoh audio dan latihan langsung</li>
                   <li>Checkpoint ala Duolingo di setiap materi: isian, susun kata, pasangkan, pilihan ganda</li>
-                  <li>Big Quiz untuk naik level</li>
-                  <li>Tryout full-length dengan waktu, urutan, dan jenis soal seperti tes asli</li>
+                  <li>Kuis di setiap level atau modul untuk mengukur kemajuan</li>
+                  {material.course_slug === "toefl-itp" && <li>Tryout full-length dengan waktu, urutan, dan jenis soal seperti tes asli</li>}
+                  {material.course_slug === "english-day" && <li>Live Quiz bareng di kelas, dipandu langsung oleh pengajar</li>}
                 </ul>
                 <Button href={`/learn/${material.course_slug}`} variant="secondary" size="sm">
-                  <Target className="w-4 h-4" /> Lihat silabus & coba pretest gratis
+                  <Target className="w-4 h-4" /> {material.course_slug === "toefl-itp" ? "Lihat silabus & coba pretest gratis" : "Lihat silabus"}
                 </Button>
               </Card>
             )}

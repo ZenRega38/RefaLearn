@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Picture } from "@/components/course/pictures";
 import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
+import { AdminLevelControls } from "@/components/course/AdminLevelControls";
 import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
 import type { Skill } from "@/lib/course/types";
 import { formatPrice } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
-import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag } from "lucide-react";
+import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag, Radio } from "lucide-react";
 
 type Attempt = { id: string; total_score: number | null; submitted_at: string | null };
 type QuizInfo = { id: string; title: string; questions: number; passPercent: number; unlocked: boolean; passed: boolean; score: number | null; maxScore: number | null };
@@ -26,6 +27,9 @@ type Outline = {
   comingSoon: string | null;
   mascot: string | null;
   free: boolean;
+  openOrder: boolean;
+  adminLocks: boolean;
+  isAdmin: boolean;
   quizSecondsPerQuestion: number | null;
   loggedIn: boolean;
   access: boolean;
@@ -39,6 +43,8 @@ type Outline = {
     cover: string[];
     locked: boolean;
     hasLive: boolean;
+    openForStudents?: boolean;
+    live?: { id: string; pin: string; status: string } | null;
     pretest: QuizInfo | null;
     lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number | null; unlocked: boolean; done: boolean }[];
     quiz: QuizInfo;
@@ -52,15 +58,21 @@ export default function CourseHomePage() {
   const [outline, setOutline] = useState<Outline | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(
+    () =>
+      fetch(`/api/courses/${slug}`, { cache: "no-store" })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          setOutline(data);
+        })
+        .catch((err: Error) => setError(err.message)),
+    [slug]
+  );
+
   useEffect(() => {
-    fetch(`/api/courses/${slug}`, { cache: "no-store" })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setOutline(data);
-      })
-      .catch((err: Error) => setError(err.message));
-  }, [slug]);
+    load();
+  }, [load]);
 
   if (error) {
     return (
@@ -110,6 +122,16 @@ export default function CourseHomePage() {
           </h1>
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">{outline.subtitle}</p>
         </div>
+
+        {outline.isAdmin && (outline.adminLocks || outline.levels.some((l) => l.hasLive)) && (
+          <div className="flex items-start gap-3 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-brand-blue)]/40 bg-white/70 p-4 font-[var(--font-inter)] text-sm">
+            <Radio className="w-5 h-5 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
+            <p className="text-[var(--color-ink-soft)]">
+              <strong className="text-[var(--color-brand-blue)]">Mode admin.</strong> Anda melihat semua modul, termasuk yang masih terkunci untuk peserta.
+              Di bawah setiap modul ada kontrol untuk {outline.adminLocks ? "membuka atau mengunci modul dan " : ""}memulai Live Quiz. Harga dan status gratis diatur dari menu admin Materi.
+            </p>
+          </div>
+        )}
 
         {/* Progress / access */}
         <Card variant="sketch" className="space-y-4">
@@ -262,7 +284,7 @@ export default function CourseHomePage() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--color-brand-blue)]">{q.title}</p>
                           <p className="text-xs text-[var(--color-ink-soft)]">
-                            {q.questions} soal{outline.quizSecondsPerQuestion ? ` · ${outline.quizSecondsPerQuestion} detik per soal` : ""} · {outline.free ? `target ${q.passPercent}%` : `lulus minimal ${q.passPercent}% untuk lanjut`}
+                            {q.questions} soal{outline.quizSecondsPerQuestion ? ` · ${outline.quizSecondsPerQuestion} detik per soal` : ""} · {outline.openOrder ? `target ${q.passPercent}%` : `lulus minimal ${q.passPercent}% untuk lanjut`}
                             {q.score !== null && ` · nilai terbaik ${q.score}/${q.maxScore}`}
                           </p>
                         </div>
@@ -274,7 +296,22 @@ export default function CourseHomePage() {
               </ul>
             </Card>
             )}
-            {!level.locked && level.hasLive && <LiveQuizWidget courseSlug={slug} levelId={level.id} />}
+            {outline.isAdmin ? (
+              (outline.adminLocks || level.hasLive) && (
+                <AdminLevelControls
+                  slug={slug}
+                  levelId={level.id}
+                  levelTitle={level.title}
+                  adminLocks={outline.adminLocks}
+                  openForStudents={level.openForStudents ?? true}
+                  hasLive={level.hasLive}
+                  live={level.live ?? null}
+                  onChanged={load}
+                />
+              )
+            ) : (
+              !level.locked && level.hasLive && <LiveQuizWidget courseSlug={slug} levelId={level.id} />
+            )}
           </div>
         ))}
 

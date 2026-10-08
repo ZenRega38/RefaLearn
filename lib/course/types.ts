@@ -163,8 +163,6 @@ export type Course = {
   tryout?: Exam;
   /** Shown under the last level, e.g. upcoming levels. */
   comingSoon?: string;
-  /** Free for every signed-in user (no purchase needed). */
-  free?: boolean;
   /** Levels stay locked until the admin opens them (course_level_access). */
   adminLocks?: boolean;
   /** Inside an open level every lesson and the quiz are open at once (no sequential unlocking). */

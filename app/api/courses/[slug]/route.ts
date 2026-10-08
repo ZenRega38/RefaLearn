@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeUnlocks, getCourse } from "@/lib/course/content";
-import { examMinutes, hasCourseAccess, loadOpenLevels, loadProgress } from "@/lib/course/server";
+import { examMinutes, hasCourseAccess, isFreeCourse, loadOpenLevels, loadProgress } from "@/lib/course/server";
 import type { ProgressItem } from "@/lib/course/types";
 
 export const dynamic = "force-dynamic";
@@ -23,14 +23,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
 
   let access = false;
   let loggedIn = false;
+  let role = "guest";
   let progress: ProgressItem[] = [];
   let attempts: { id: string; kind: string; total_score: number | null; submitted_at: string | null; started_at: string }[] = [];
 
   if (user) {
     loggedIn = true;
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    role = profile?.role || "student";
     [access, progress] = await Promise.all([
-      hasCourseAccess(admin, user.id, profile?.role || "student", slug),
+      hasCourseAccess(admin, user.id, role, slug),
       loadProgress(admin, user.id, slug),
     ]);
     const { data } = await admin
@@ -43,16 +45,35 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     attempts = data || [];
   }
 
-  const openLevels = course.adminLocks ? await loadOpenLevels(admin, slug) : undefined;
+  const isAdmin = role === "admin";
+  // Students only enter opened levels; the admin sees every level (to
+  // preview and host it) but also gets the real open state to manage it.
+  const [studentOpen, free, { data: material }, { data: running }] = await Promise.all([
+    course.adminLocks ? loadOpenLevels(admin, slug) : Promise.resolve(undefined),
+    isFreeCourse(admin, slug),
+    admin
+      .from("materials")
+      .select("slug, price")
+      .eq("course_slug", slug)
+      .eq("is_active", true)
+      .order("price", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    isAdmin
+      ? admin
+          .from("live_sessions")
+          .select("id, pin, level_id, status")
+          .eq("course_slug", slug)
+          .neq("status", "ended")
+          .gte("created_at", new Date(Date.now() - 6 * 3600_000).toISOString())
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: null }),
+  ]);
+  const openLevels = isAdmin && course.adminLocks ? new Set(course.levels.map((l) => l.id)) : studentOpen;
   const unlocks = computeUnlocks(course, progress, openLevels);
   const byId = new Map(progress.map((p) => [p.itemId, p]));
-  const { data: material } = await admin
-    .from("materials")
-    .select("slug, price, is_active")
-    .eq("course_slug", slug)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  const liveByLevel = new Map<string, { id: string; pin: string; status: string }>();
+  for (const s of running || []) if (!liveByLevel.has(s.level_id)) liveByLevel.set(s.level_id, { id: s.id, pin: s.pin, status: s.status });
 
   const count = (e: NonNullable<typeof course.pretest>) => e.sections.reduce((n, s) => n + s.questions.length, 0);
   const quizInfo = (q: { id: string; title: string; questions: unknown[]; passPercent: number }) => ({
@@ -73,7 +94,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     labels: course.labels,
     comingSoon: course.comingSoon ?? null,
     mascot: course.mascot ?? null,
-    free: !!course.free,
+    free,
+    openOrder: !!course.openOrder,
+    adminLocks: !!course.adminLocks,
+    isAdmin,
     quizSecondsPerQuestion: course.quizSecondsPerQuestion ?? null,
     loggedIn,
     access,
@@ -87,6 +111,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       cover: level.cover ?? [],
       locked: unlocks.lockedLevels.has(level.id),
       hasLive: !!level.live,
+      // Admin-only: whether students can enter this level, and its running live quiz.
+      openForStudents: isAdmin ? (course.adminLocks ? !!studentOpen?.has(level.id) : true) : undefined,
+      live: isAdmin ? liveByLevel.get(level.id) ?? null : undefined,
       pretest: level.pretest ? quizInfo(level.pretest) : null,
       lessons: level.lessons.map((l) => ({
         id: l.id,

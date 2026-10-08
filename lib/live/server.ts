@@ -215,6 +215,7 @@ export async function buildState(admin: SupabaseClient, session: SessionRow, opt
 
   return {
     pin: session.pin,
+    courseSlug: session.course_slug,
     title: session.title,
     status: session.status,
     index: idx,

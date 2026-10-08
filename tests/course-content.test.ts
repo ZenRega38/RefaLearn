@@ -319,8 +319,8 @@ describe("admin-opened modules (English Day)", () => {
     expect(computeUnlocks(course, []).unlocked.size).toBe(0);
   });
 
-  it("is free, untimed per lesson, and timed per quiz question", () => {
-    expect(course.free && course.adminLocks && course.openOrder).toBe(true);
+  it("is admin-opened, untimed per lesson, and timed per quiz question", () => {
+    expect(course.adminLocks && course.openOrder).toBe(true);
     expect(course.quizSecondsPerQuestion).toBeGreaterThan(0);
     for (const level of course.levels) for (const lesson of level.lessons) expect(lesson.minutes, lesson.id).toBeUndefined();
   });

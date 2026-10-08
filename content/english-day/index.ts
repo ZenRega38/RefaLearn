@@ -9,8 +9,9 @@ import { M9, M10 } from "./m09-10";
 
 // English Day — 10 modul percakapan untuk staf Household (WiFi/IndiHome),
 // diadaptasi dari modul ajar "English Day — 10 Sesi Lengkap". One module per
-// weekly session. Free for every signed-in user; the admin opens modules as
-// the class reaches them, and can host each module's live quiz.
+// weekly session. Offered through a store material (free when its price is
+// 0); the admin opens modules as the class reaches them and hosts each
+// module's live quiz from the course page.
 //
 // No durations on lessons: participants come back to review whenever they
 // like. Module quizzes have a per-question timer instead.
@@ -29,7 +30,6 @@ export const ENGLISH_DAY: Course = {
   subtitle: "10 modul percakapan sehari-hari dan layanan pelanggan. Berani ngomong dulu, sempurna belakangan.",
   labels: { level: "Modul", quiz: "Kuis Modul" },
   mascot: "owl",
-  free: true,
   adminLocks: true,
   openOrder: true,
   quizSecondsPerQuestion: 45,

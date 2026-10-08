@@ -21,7 +21,6 @@ import {
     Wallet,
     Handshake,
     Gift,
-    Radio,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -34,7 +33,6 @@ const navItems = [
     { href: "/admin/materials", label: "Materi", icon: BookOpen },
     { href: "/admin/material-orders", label: "Pesanan Materi", icon: ShoppingBag },
     { href: "/admin/material-access", label: "Akses Materi", icon: Gift },
-    { href: "/admin/course-modules", label: "Modul & Live Quiz", icon: Radio },
     { href: "/admin/prepayments", label: "Bayar di Muka", icon: Wallet },
     { href: "/admin/news", label: "News", icon: Newspaper },
     { href: "/admin/alumni", label: "Alumni", icon: GraduationCap },

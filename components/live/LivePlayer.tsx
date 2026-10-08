@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Volume2, VolumeX, Music, Loader2, CheckCircle2, XCircle, Flame, X } from "lucide-react";
 import { Picture } from "@/components/course/pictures";
+import { Button } from "@/components/ui/Button";
 import { LIVE_AVATARS, type LiveState } from "@/lib/live/types";
 import { liveAudio } from "@/components/live/audio";
 import { ANSWER_STYLES, CountdownRing, GetReady, LiveStyles, Podium, Scoreboard, Shape, useServerClock } from "@/components/live/ui";
@@ -121,39 +122,44 @@ export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void
     if (sfxOn) audio.sfx("join");
   };
 
+  const toggleBtn = (on: boolean) =>
+    `p-2 rounded-full border-2 transition-colors ${on ? "bg-[var(--color-brand-blue)] border-[var(--color-brand-blue)] text-white" : "bg-white border-[var(--color-line)] text-[var(--color-ink-soft)] hover:border-[var(--color-brand-blue)]"}`;
+
   const shell = (children: ReactNode) => (
-    <div className="live-bg min-h-[560px] w-full rounded-none sm:rounded-2xl p-4 sm:p-6 text-white font-[var(--font-inter)] relative overflow-hidden">
+    <div className="live-bg min-h-[560px] w-full rounded-none sm:rounded-[var(--radius-card)] sm:border-2 sm:border-[var(--color-line)] p-4 sm:p-6 font-[var(--font-inter)] relative overflow-hidden">
       <LiveStyles />
       <div className="flex items-center justify-between gap-2 mb-4">
-        <span className="text-xs font-bold tracking-widest uppercase opacity-80">Live Quiz · PIN {pin}</span>
+        <span className="text-xs font-semibold tracking-wider uppercase text-[var(--color-accent-coral)]">
+          Live Quiz · <span className="text-[var(--color-brand-blue)]">PIN {pin}</span>
+        </span>
         <div className="flex gap-1.5">
-          <button type="button" onClick={() => { audio.unlock(); setMusicOn((m) => !m); }} className={`p-2 rounded-full ${musicOn ? "bg-white text-[#3B2A6E]" : "bg-white/15"}`} aria-label={musicOn ? "Matikan musik" : "Nyalakan musik"} title="Musik latar">
+          <button type="button" onClick={() => { audio.unlock(); setMusicOn((m) => !m); }} className={toggleBtn(musicOn)} aria-label={musicOn ? "Matikan musik" : "Nyalakan musik"} title="Musik latar">
             <Music className="w-4 h-4" />
           </button>
-          <button type="button" onClick={() => { audio.unlock(); setSfxOn((s) => !s); }} className={`p-2 rounded-full ${sfxOn ? "bg-white text-[#3B2A6E]" : "bg-white/15"}`} aria-label={sfxOn ? "Matikan efek suara" : "Nyalakan efek suara"} title="Efek suara">
+          <button type="button" onClick={() => { audio.unlock(); setSfxOn((s) => !s); }} className={toggleBtn(sfxOn)} aria-label={sfxOn ? "Matikan efek suara" : "Nyalakan efek suara"} title="Efek suara">
             {sfxOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
           {onClose && (
-            <button type="button" onClick={onClose} className="p-2 rounded-full bg-white/15 hover:bg-white/25" aria-label="Tutup Live Quiz">
+            <button type="button" onClick={onClose} className={toggleBtn(false)} aria-label="Tutup Live Quiz">
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
-      {error && <p className="mb-3 text-sm bg-black/25 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[var(--color-danger-red)] bg-white border border-[var(--color-danger-red)]/40 rounded-lg px-3 py-2">{error}</p>}
       {children}
     </div>
   );
 
-  if (!state && !error) return shell(<div className="flex justify-center py-24"><Loader2 className="w-8 h-8 animate-spin" /></div>);
-  if (!state) return shell(<p className="text-center py-16 text-lg font-bold">{error}</p>);
+  if (!state && !error) return shell(<div className="flex justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-[var(--color-brand-blue)]" /></div>);
+  if (!state) return shell(<p className="text-center py-16 text-lg font-semibold text-[var(--color-ink)]">{error}</p>);
 
   if (state.status === "ended" && !state.me) {
     return shell(
       <div className="text-center py-16 space-y-3">
         <Picture name="owl-cheer" className="w-28 h-28 mx-auto" />
-        <p className="text-2xl font-black">Kuis ini sudah selesai.</p>
-        <p className="opacity-80">Tunggu pengajar membuka Live Quiz berikutnya, ya!</p>
+        <p className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Kuis ini sudah selesai.</p>
+        <p className="text-[var(--color-ink-soft)]">Tunggu pengajar membuka Live Quiz berikutnya, ya!</p>
       </div>
     );
   }
@@ -164,28 +170,31 @@ export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void
   const q = state.question;
 
   return shell(
-    <div className="space-y-5">
+    <div className="space-y-5 text-[var(--color-ink)]">
       {/* Me */}
-      <div className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-2">
+      <div className="flex items-center gap-3 bg-white border-2 border-[var(--color-line)] rounded-[var(--radius-card)] shadow-[var(--shadow-sketch)] px-3 py-2">
         <Picture name={me.avatar} className="w-10 h-10" />
-        <span className="font-black flex-1 truncate">{me.nickname}</span>
-        {me.streak >= 2 && <span className="flex items-center gap-1 text-sm font-bold text-[#FFD23F]"><Flame className="w-4 h-4" />{me.streak}</span>}
-        <span className="font-black tabular-nums bg-white text-[#3B2A6E] rounded-lg px-2.5 py-1">{me.score.toLocaleString("id-ID")}</span>
+        <span className="font-semibold flex-1 truncate">{me.nickname}</span>
+        {me.streak >= 2 && <span className="flex items-center gap-1 text-sm font-semibold text-[var(--color-accent-coral)]"><Flame className="w-4 h-4" />{me.streak}</span>}
+        <span className="font-bold tabular-nums text-white bg-[var(--color-brand-blue)] rounded-md px-2.5 py-1">{me.score.toLocaleString("id-ID")}</span>
       </div>
 
       {state.status === "lobby" && (
         <div className="text-center space-y-4 py-4">
           <Picture name={me.avatar} className="w-28 h-28 mx-auto live-float" />
-          <p className="text-2xl font-black">Kamu sudah masuk! 🎉</p>
-          <p className="opacity-85">Lihat namamu di layar? Tunggu pengajar memulai kuis.</p>
+          <p className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Kamu sudah masuk! 🎉</p>
+          <p className="text-[var(--color-ink-soft)]">Lihat namamu di layar? Tunggu pengajar memulai kuis.</p>
           <div className="flex flex-wrap justify-center gap-2 pt-2">
             {state.lobby.map((p) => (
-              <span key={p.id} className={`flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full text-sm font-bold live-pop ${p.id === me.id ? "bg-[#FFE45C] text-[#3B2A6E]" : "bg-white/15"}`}>
+              <span
+                key={p.id}
+                className={`flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full border-2 text-sm font-semibold live-pop ${p.id === me.id ? "bg-[var(--color-accent-yellow-light)] border-[var(--color-warning-amber)]" : "bg-white border-[var(--color-line)]"}`}
+              >
                 <Picture name={p.avatar} className="w-7 h-7" /> {p.nickname}
               </span>
             ))}
           </div>
-          <p className="text-sm opacity-70">{state.playerCount} pemain di lobi</p>
+          <p className="text-sm text-[var(--color-ink-soft)]">{state.playerCount} pemain di lobi</p>
         </div>
       )}
 
@@ -194,23 +203,23 @@ export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void
           <GetReady startsAt={state.startsAt} now={now} index={state.index} total={state.total} sound={sfxOn} />
         ) : me.choice !== null ? (
           <div className="text-center py-10 space-y-4">
-            <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center live-pop" style={{ background: ANSWER_STYLES[me.choice].bg }}>
+            <div className="w-24 h-24 mx-auto rounded-[var(--radius-card)] shadow-[var(--shadow-sketch)] flex items-center justify-center live-pop" style={{ background: ANSWER_STYLES[me.choice].bg }}>
               <Shape shape={ANSWER_STYLES[me.choice].shape} className="w-12 h-12" />
             </div>
-            <p className="text-2xl font-black">Jawaban terkirim!</p>
-            <p className="opacity-85">Semoga benar… tunggu yang lain dulu, ya. ({state.answered}/{state.playerCount})</p>
+            <p className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Jawaban terkirim!</p>
+            <p className="text-[var(--color-ink-soft)]">Semoga benar… tunggu yang lain dulu, ya. ({state.answered}/{state.playerCount})</p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-1">
-                <p className="text-xs font-bold opacity-80">Soal {state.index + 1} dari {state.total}</p>
-                <p className="text-xl sm:text-2xl font-black leading-snug">{q.prompt}</p>
+              <div className="flex-1 sketch-card bg-white px-4 py-3">
+                <p className="text-xs font-semibold text-[var(--color-ink-soft)]">Soal {state.index + 1} dari {state.total}</p>
+                <p className="text-xl sm:text-2xl font-bold leading-snug">{q.prompt}</p>
               </div>
               <CountdownRing endsAt={state.endsAt} total={state.seconds} now={now} sound={sfxOn} size={68} />
             </div>
             {q.image && (
-              <div className="flex justify-center bg-white rounded-2xl py-2">
+              <div className="flex justify-center sketch-card bg-white py-2">
                 <Picture name={q.image} className="h-28 sm:h-36 w-auto" />
               </div>
             )}
@@ -221,7 +230,7 @@ export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void
                   type="button"
                   disabled={sending !== null}
                   onClick={() => answer(i)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-4 text-left text-lg font-bold shadow-[0_4px_0_rgba(0,0,0,0.25)] active:translate-y-1 active:shadow-none transition-transform disabled:opacity-70"
+                  className="flex items-center gap-3 rounded-[var(--radius-card)] px-4 py-4 text-left text-lg font-semibold text-white shadow-[var(--shadow-sketch)] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform disabled:opacity-70"
                   style={{ background: ANSWER_STYLES[i].bg }}
                 >
                   <Shape shape={ANSWER_STYLES[i].shape} className="w-7 h-7 shrink-0" />
@@ -238,38 +247,38 @@ export function LivePlayer({ pin, onClose }: { pin: string; onClose?: () => void
         <div className="text-center space-y-4 py-4">
           {me.result?.correct ? (
             <div className="live-pop space-y-2">
-              <CheckCircle2 className="w-20 h-20 mx-auto text-[#5BE37D]" />
-              <p className="text-3xl font-black">Benar!</p>
-              <p className="text-xl font-black bg-white text-[#26890C] inline-block rounded-xl px-4 py-1">+{me.result.points.toLocaleString("id-ID")}</p>
-              {me.streak >= 2 && <p className="font-bold text-[#FFD23F] flex items-center justify-center gap-1"><Flame className="w-5 h-5" /> Streak {me.streak} jawaban benar!</p>}
+              <CheckCircle2 className="w-20 h-20 mx-auto text-[var(--color-success-green)]" />
+              <p className="text-4xl font-[var(--font-kalam)] text-[var(--color-success-green)]">Benar!</p>
+              <p className="text-xl font-bold text-white bg-[var(--color-success-green)] inline-block rounded-md px-4 py-1">+{me.result.points.toLocaleString("id-ID")}</p>
+              {me.streak >= 2 && <p className="font-semibold text-[var(--color-accent-coral)] flex items-center justify-center gap-1"><Flame className="w-5 h-5" /> Streak {me.streak} jawaban benar!</p>}
             </div>
           ) : (
             <div className="live-shake space-y-2">
-              <XCircle className="w-20 h-20 mx-auto text-[#FF8A8A]" />
-              <p className="text-3xl font-black">{me.choice === null ? "Waktu habis!" : "Belum tepat"}</p>
-              <p className="opacity-90">Jawaban yang benar:</p>
-              <p className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold" style={{ background: ANSWER_STYLES[state.reveal.answer].bg }}>
+              <XCircle className="w-20 h-20 mx-auto text-[var(--color-danger-red)]" />
+              <p className="text-4xl font-[var(--font-kalam)] text-[var(--color-danger-red)]">{me.choice === null ? "Waktu habis!" : "Belum tepat"}</p>
+              <p className="text-[var(--color-ink-soft)]">Jawaban yang benar:</p>
+              <p className="inline-flex items-center gap-2 rounded-[var(--radius-card)] px-4 py-2 font-semibold text-white shadow-[var(--shadow-sketch)]" style={{ background: ANSWER_STYLES[state.reveal.answer].bg }}>
                 <Shape shape={ANSWER_STYLES[state.reveal.answer].shape} className="w-5 h-5" /> {q.options[state.reveal.answer]}
               </p>
             </div>
           )}
-          <p className="opacity-85">Kamu di peringkat <strong>{me.rank}</strong> dari {me.total}</p>
+          <p className="text-[var(--color-ink-soft)]">Kamu di peringkat <strong className="text-[var(--color-brand-blue)]">{me.rank}</strong> dari {me.total}</p>
         </div>
       )}
 
       {state.status === "scoreboard" && (
         <div className="space-y-4">
-          <p className="text-center text-2xl font-black">Papan Skor</p>
+          <p className="text-center text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Papan Skor</p>
           <Scoreboard key={state.index} rows={state.board} highlightId={me.id} />
-          {!state.board.some((r) => r.id === me.id) && <p className="text-center opacity-90">Kamu di peringkat <strong>{me.rank}</strong>. Kejar terus! 💪</p>}
+          {!state.board.some((r) => r.id === me.id) && <p className="text-center text-[var(--color-ink-soft)]">Kamu di peringkat <strong className="text-[var(--color-brand-blue)]">{me.rank}</strong>. Kejar terus! 💪</p>}
         </div>
       )}
 
       {(state.status === "podium" || state.status === "ended") && (
         <div className="space-y-4">
-          <p className="text-center text-2xl font-black">🏆 Juara Live Quiz 🏆</p>
+          <p className="text-center text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">🏆 Juara Live Quiz 🏆</p>
           <Podium rows={state.board} highlightId={me.id} sound={sfxOn} />
-          <p className="text-center text-lg font-bold">
+          <p className="text-center text-lg font-semibold">
             {me.rank <= 3 ? `Selamat! Kamu juara ${me.rank}! 🎉` : `Kamu di peringkat ${me.rank} dari ${me.total}. Great job!`}
           </p>
         </div>
@@ -306,11 +315,11 @@ function JoinForm({ pin, title, onJoined }: { pin: string; title: string; onJoin
   };
 
   return (
-    <form onSubmit={join} className="max-w-md mx-auto space-y-5">
+    <form onSubmit={join} className="max-w-md mx-auto space-y-5 text-[var(--color-ink)]">
       <div className="text-center space-y-1">
         <Picture name="owl-wave" className="w-20 h-20 mx-auto" />
-        <p className="text-2xl font-black">{title}</p>
-        <p className="opacity-85">Tulis namamu dan pilih avatar, lalu masuk lobi.</p>
+        <p className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] leading-tight">{title}</p>
+        <p className="text-[var(--color-ink-soft)]">Tulis namamu dan pilih avatar, lalu masuk lobi.</p>
       </div>
       <input
         value={nickname}
@@ -318,20 +327,27 @@ function JoinForm({ pin, title, onJoined }: { pin: string; title: string; onJoin
         maxLength={20}
         placeholder="Nama panggilanmu"
         aria-label="Nama panggilan"
-        className="w-full rounded-xl px-4 py-3 text-lg font-bold text-[#3B2A6E] bg-white placeholder:text-[#3B2A6E]/40 focus:outline-none focus:ring-4 focus:ring-[#FFE45C]"
+        className="input-field w-full text-lg font-semibold"
         autoFocus
       />
       <div className="grid grid-cols-6 gap-2">
         {LIVE_AVATARS.map((a) => (
-          <button key={a} type="button" onClick={() => setAvatar(a)} aria-label={`Avatar ${a}`} className={`aspect-square rounded-xl p-1 transition-transform ${avatar === a ? "bg-[#FFE45C] scale-110" : "bg-white/15 hover:bg-white/25"}`}>
+          <button
+            key={a}
+            type="button"
+            onClick={() => setAvatar(a)}
+            aria-label={`Avatar ${a}`}
+            aria-pressed={avatar === a}
+            className={`aspect-square rounded-[var(--radius-card)] p-1 border-2 transition-transform ${avatar === a ? "bg-[var(--color-accent-yellow-light)] border-[var(--color-warning-amber)] scale-110" : "bg-white border-[var(--color-line)] hover:border-[var(--color-brand-blue)]"}`}
+          >
             <Picture name={a} className="w-full h-full" />
           </button>
         ))}
       </div>
-      {error && <p className="text-sm bg-black/25 rounded-lg px-3 py-2">{error}</p>}
-      <button type="submit" disabled={busy || nickname.trim().length < 2} className="w-full rounded-xl bg-[#FFE45C] text-[#3B2A6E] py-3 text-lg font-black shadow-[0_4px_0_rgba(0,0,0,0.25)] active:translate-y-1 active:shadow-none disabled:opacity-60">
-        {busy ? "Masuk…" : "Masuk Lobi"}
-      </button>
+      {error && <p className="text-sm text-[var(--color-danger-red)] bg-white border border-[var(--color-danger-red)]/40 rounded-lg px-3 py-2">{error}</p>}
+      <Button type="submit" size="lg" className="w-full" isLoading={busy} disabled={nickname.trim().length < 2}>
+        Masuk Lobi
+      </Button>
     </form>
   );
 }

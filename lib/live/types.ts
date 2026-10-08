@@ -15,6 +15,8 @@ export type LiveBoardRow = {
 
 export type LiveState = {
   pin: string;
+  /** The course the quiz belongs to (the host returns to its page). */
+  courseSlug: string;
   title: string;
   status: LiveStatus;
   index: number;

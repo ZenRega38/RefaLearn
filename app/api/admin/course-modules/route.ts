@@ -1,48 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, readJson, requireAdminUser } from "@/lib/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ALL_COURSES, getCourse } from "@/lib/course/content";
-import { loadOpenLevels } from "@/lib/course/server";
+import { getCourse } from "@/lib/course/content";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET — courses whose modules the admin opens week by week, with each
- * module's open state and whether it has a live quiz. Also lists any live
- * session still running so the admin can return to it.
+ * POST { slug, levelId, open } — open or lock one module for students.
+ * Used by the admin controls on the course page (/learn/[slug]).
  */
-export async function GET() {
-  const auth = await requireAdminUser();
-  if (!auth.ok) return jsonError(auth.error, auth.status);
-  const admin = createAdminClient();
-
-  const courses = await Promise.all(
-    ALL_COURSES.filter((c) => c.adminLocks || c.levels.some((l) => l.live)).map(async (course) => {
-      const open = course.adminLocks ? await loadOpenLevels(admin, course.slug) : null;
-      return {
-        slug: course.slug,
-        title: course.title,
-        adminLocks: !!course.adminLocks,
-        levels: course.levels.map((l) => ({
-          id: l.id,
-          title: l.title,
-          open: open ? open.has(l.id) : true,
-          live: l.live ? { title: l.live.title, questions: l.live.questions.length } : null,
-        })),
-      };
-    })
-  );
-
-  const { data: running } = await admin
-    .from("live_sessions")
-    .select("id, pin, course_slug, level_id, title, status, created_at")
-    .neq("status", "ended")
-    .order("created_at", { ascending: false });
-
-  return NextResponse.json({ courses, running: running || [] });
-}
-
-/** POST { slug, levelId, open } — open or lock one module. */
 export async function POST(request: NextRequest) {
   const auth = await requireAdminUser();
   if (!auth.ok) return jsonError(auth.error, auth.status);
