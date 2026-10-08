@@ -7,6 +7,7 @@ import { getDayType, getSessionPrice } from "@/lib/pricing";
 import { INVOICE_DUE_DAYS, SESSION_COUNT_OPTIONS } from "@/lib/policy";
 import { todayStr } from "@/lib/time";
 import { formatDateStr, hhmm } from "@/lib/format";
+import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, type ProfileCompletion } from "@/lib/profile";
 import {
     getAdminEmails,
     getUserEmail,
@@ -71,6 +72,25 @@ export async function POST(request: NextRequest) {
 
     if (body.checkOnly) {
         return NextResponse.json({ dates: preview });
+    }
+
+    // Booking needs a complete profile so the admin can verify the student
+    // before accepting. Free materials only need a login and skip this.
+    const { data: completion } = await admin
+        .from("profiles")
+        .select(PROFILE_COMPLETION_COLUMNS)
+        .eq("id", user.id)
+        .single();
+    const missing = missingProfileFields(completion as ProfileCompletion | null, todayStr());
+    if (missing.length > 0) {
+        return NextResponse.json(
+            {
+                error: `Lengkapi profil terlebih dahulu sebelum booking. Data yang masih kurang: ${missing.join(", ")}.`,
+                code: "PROFILE_INCOMPLETE",
+                missing,
+            },
+            { status: 403 }
+        );
     }
 
     if (resolved[0].date > horizon) {
