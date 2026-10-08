@@ -1,6 +1,6 @@
 import "server-only";
 import type { Level } from "@/lib/course/types";
-import { arrange, audio, fill, listen, live, match, pick, pickMany, pics, repeat, say, speaking, text, tip, trMatch, trPick, tryIt, vocab, voice } from "../kit";
+import { arrange, audio, fill, listen, live, match, pick, pickMany, pics, repeat, say, speaking, text, tip, trPick, tryIt, vocab, voice } from "../kit";
 
 // Grade 1 (Fase A). Chapter 3 — Colors and Shapes · Chapter 4 — Numbers and Toys
 

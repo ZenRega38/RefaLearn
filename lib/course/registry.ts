@@ -11,6 +11,7 @@ type Entry = { slug: string; title: string; uiLang?: "id" | "en"; readAloud?: bo
 export const COURSES = [
   { slug: "toefl-itp", title: "TOEFL ITP Mastery — dari Nol sampai Skor Tinggi" },
   { slug: "english-sd-1", title: "English Grade 1 (SD) — Kurikulum Merdeka", uiLang: "en", readAloud: true },
+  { slug: "english-sd-2", title: "English Grade 2 (SD) — Kurikulum Merdeka", uiLang: "en", readAloud: true },
   { slug: "english-sd-3", title: "Bahasa Inggris Kelas 3 SD — Kurikulum Merdeka" },
   // English Day runs its whole quiz experience in English (see ui-text.ts).
   { slug: "english-day", title: "English Day — Everyday English for Work", uiLang: "en" },
