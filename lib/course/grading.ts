@@ -79,18 +79,20 @@ const LISTENING = [24, 25, 26, 27, 28, 29, 30, 31, 32, 32, 33, 35, 37, 38, 39, 4
 const STRUCTURE = [20, 20, 21, 22, 23, 25, 26, 27, 29, 31, 33, 35, 36, 37, 38, 40, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 60, 61, 63, 65, 67, 68];
 const READING = [21, 22, 23, 23, 24, 25, 26, 27, 28, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 43, 44, 45, 46, 46, 47, 48, 48, 49, 50, 51, 52, 52, 53, 54, 54, 55, 56, 57, 58, 59, 60, 61, 63, 65, 66, 67];
 
-const TABLES: Record<Skill, number[]> = { listening: LISTENING, structure: STRUCTURE, reading: READING };
+type ItpSkill = "listening" | "structure" | "reading";
+const TABLES: Record<ItpSkill, number[]> = { listening: LISTENING, structure: STRUCTURE, reading: READING };
 
 /** Full-test question counts per section. */
-export const FULL_COUNTS: Record<Skill, number> = { listening: 50, structure: 40, reading: 50 };
+export const FULL_COUNTS: Record<ItpSkill, number> = { listening: 50, structure: 40, reading: 50 };
 
 /**
  * Converted section score. A shorter section (pretest) is first scaled to
  * the full-length raw count so it lands on the same 31–68 scale.
  */
 export function convertedScore(skill: Skill, correct: number, total: number): number {
-  const table = TABLES[skill];
-  const full = FULL_COUNTS[skill];
+  if (!(skill in TABLES)) return Math.round((correct / Math.max(total, 1)) * 100);
+  const table = TABLES[skill as ItpSkill];
+  const full = FULL_COUNTS[skill as ItpSkill];
   const raw = total === full ? correct : Math.round((correct / Math.max(total, 1)) * full);
   return table[Math.max(0, Math.min(full, raw))];
 }

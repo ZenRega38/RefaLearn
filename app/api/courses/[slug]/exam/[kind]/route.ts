@@ -3,7 +3,7 @@ import { jsonError, readJson } from "@/lib/api-auth";
 import { getExam } from "@/lib/course/content";
 import { toPublicQuestion } from "@/lib/course/grading";
 import { buildExamResult, courseContext, examMinutes } from "@/lib/course/server";
-import type { ExamKind, Response } from "@/lib/course/types";
+import type { Exam, ExamKind, Response } from "@/lib/course/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ type Params = { params: Promise<{ slug: string; kind: string }> };
 const isKind = (k: string): k is ExamKind => k === "pretest" || k === "tryout";
 
 /** Section layout for the review screen (ids in order + passages). */
-function layoutOf(exam: ReturnType<typeof getExam>) {
+function layoutOf(exam: Exam) {
   return exam.sections.map((s) => ({ skill: s.skill, title: s.title, questionIds: s.questions.map((q) => q.id), passages: s.passages ?? [] }));
 }
 
@@ -26,7 +26,9 @@ async function load(slug: string, kind: string) {
       return { ok: false as const, error: "Tryout terbuka setelah semua materi dan Big Quiz selesai.", status: 403 };
     }
   }
-  return { ...ctx, kind, exam: getExam(ctx.course, kind) };
+  const exam = getExam(ctx.course, kind);
+  if (!exam) return { ok: false as const, error: "Kursus ini tidak memiliki ujian tersebut.", status: 404 };
+  return { ...ctx, kind, exam };
 }
 
 /** GET ?attemptId= — a finished attempt with full review. */

@@ -2,7 +2,7 @@
 // content/ (server-only) and reaches the browser only through API routes
 // that check access — never through a client import.
 
-export type Skill = "listening" | "structure" | "reading";
+export type Skill = "listening" | "structure" | "reading" | "vocabulary" | "speaking" | "writing";
 
 export type Speaker = "man" | "woman" | "narrator";
 export type AudioLine = { speaker: Speaker; text: string };
@@ -19,6 +19,8 @@ type QuestionBase = {
   passageId?: string;
   /** Shown after answering — why the key is right. */
   explanation: string;
+  /** Higher-Order Thinking Skills item (analyse / evaluate / create). */
+  hots?: boolean;
 };
 
 /** Single answer, four (or more) options. */
@@ -66,7 +68,9 @@ export type Block =
   | { type: "table"; head: string[]; rows: string[][] }
   | { type: "audio"; caption?: string; script: AudioScript; showTranscript?: boolean }
   | { type: "passage"; passage: Passage }
-  | { type: "try"; question: Question };
+  | { type: "try"; question: Question }
+  /** Picture-word cards; tapping one speaks the English word. */
+  | { type: "vocab"; title?: string; items: { emoji: string; word: string; meaning: string; example?: string }[] };
 
 export type LessonSection = { title: string; blocks: Block[] };
 
@@ -94,8 +98,12 @@ export type Level = {
   id: string;
   title: string;
   description: string;
+  /** Short goal badge, e.g. "Target 400–450" or "Tujuan pembelajaran". */
   targetScore: string;
+  /** Optional diagnostic at the start of the level/chapter (any score passes). */
+  pretest?: LevelQuiz;
   lessons: Lesson[];
+  /** End-of-level quiz / chapter posttest; passing opens the next level. */
   quiz: LevelQuiz;
 };
 
@@ -128,9 +136,14 @@ export type Course = {
   slug: string;
   title: string;
   subtitle: string;
+  /** UI words: "Level"/"Bab", "Big Quiz"/"Posttest". */
+  labels: { level: string; quiz: string };
   levels: Level[];
-  pretest: Exam;
-  tryout: Exam;
+  /** Course-wide diagnostic and final test (e.g. TOEFL pretest & tryout). */
+  pretest?: Exam;
+  tryout?: Exam;
+  /** Shown under the last level, e.g. upcoming levels. */
+  comingSoon?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -146,7 +159,7 @@ export type PublicQuestion =
   | (Omit<MatchQuestion, "pairs" | "explanation"> & { left: string[]; right: string[] })
   | Omit<ErrorQuestion, "answer" | "correction" | "explanation">;
 
-export type ProgressItem = { itemId: string; kind: "lesson" | "level_quiz"; score: number | null; maxScore: number | null; passed: boolean };
+export type ProgressItem = { itemId: string; kind: "lesson" | "level_quiz" | "level_pretest"; score: number | null; maxScore: number | null; passed: boolean };
 
 export type SectionResult = { skill: Skill; correct: number; total: number; converted: number };
 

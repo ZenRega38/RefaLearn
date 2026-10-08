@@ -15,10 +15,13 @@ import { formatTimestamp } from "@/lib/format";
 import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag } from "lucide-react";
 
 type Attempt = { id: string; total_score: number | null; submitted_at: string | null };
+type QuizInfo = { id: string; title: string; questions: number; passPercent: number; unlocked: boolean; passed: boolean; score: number | null; maxScore: number | null };
 type Outline = {
   slug: string;
   title: string;
   subtitle: string;
+  labels: { level: string; quiz: string };
+  comingSoon: string | null;
   loggedIn: boolean;
   access: boolean;
   store: { slug: string; price: number } | null;
@@ -28,11 +31,12 @@ type Outline = {
     title: string;
     description: string;
     targetScore: string;
+    pretest: QuizInfo | null;
     lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number; unlocked: boolean; done: boolean }[];
-    quiz: { id: string; title: string; questions: number; passPercent: number; unlocked: boolean; passed: boolean; score: number | null; maxScore: number | null };
+    quiz: QuizInfo;
   }[];
-  pretest: { title: string; description: string; minutes: number; questions: number; attempts: Attempt[] };
-  tryout: { title: string; description: string; minutes: number; questions: number; unlocked: boolean; attempts: Attempt[] };
+  pretest: { title: string; description: string; minutes: number; questions: number; attempts: Attempt[] } | null;
+  tryout: { title: string; description: string; minutes: number; questions: number; unlocked: boolean; attempts: Attempt[] } | null;
 };
 
 export default function CourseHomePage() {
@@ -72,9 +76,15 @@ export default function CourseHomePage() {
   }
 
   const pct = Math.round((outline.progress.completed / Math.max(outline.progress.total, 1)) * 100);
-  const lastPretest = outline.pretest.attempts[0];
-  const bestTryout = outline.tryout.attempts.reduce<number | null>((best, a) => (a.total_score !== null && (best === null || a.total_score > best) ? a.total_score : best), null);
-  const nextLesson = outline.levels.flatMap((l) => [...l.lessons.map((x) => ({ ...x, href: `/learn/${slug}/lesson/${x.id}` })), { ...l.quiz, done: l.quiz.passed, href: `/learn/${slug}/quiz/${l.quiz.id}` }]).find((x) => x.unlocked && !x.done);
+  const lastPretest = outline.pretest?.attempts[0];
+  const bestTryout = (outline.tryout?.attempts ?? []).reduce<number | null>((best, a) => (a.total_score !== null && (best === null || a.total_score > best) ? a.total_score : best), null);
+  const nextLesson = outline.levels
+    .flatMap((l) => [
+      ...(l.pretest ? [{ ...l.pretest, done: l.pretest.passed, href: `/learn/${slug}/quiz/${l.pretest.id}` }] : []),
+      ...l.lessons.map((x) => ({ ...x, href: `/learn/${slug}/lesson/${x.id}` })),
+      { ...l.quiz, done: l.quiz.passed, href: `/learn/${slug}/quiz/${l.quiz.id}` },
+    ])
+    .find((x) => x.unlocked && !x.done);
 
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
@@ -113,7 +123,9 @@ export default function CourseHomePage() {
               <div>
                 <p className="font-semibold text-[var(--color-ink)]">Buka seluruh materi, kuis, dan tryout</p>
                 <p className="text-sm text-[var(--color-ink-soft)]">
-                  {outline.loggedIn ? "Pretest gratis bisa langsung dikerjakan." : "Masuk dulu untuk mengerjakan pretest gratis."}
+                  {outline.pretest
+                    ? outline.loggedIn ? "Pretest gratis bisa langsung dikerjakan." : "Masuk dulu untuk mengerjakan pretest gratis."
+                    : "Lihat daftar bab dan materinya di bawah."}
                 </p>
               </div>
               {outline.store ? (
@@ -128,6 +140,7 @@ export default function CourseHomePage() {
         </Card>
 
         {/* Pretest */}
+        {outline.pretest && (
         <Card variant="sketch" className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent-yellow)]/20 flex items-center justify-center shrink-0">
@@ -149,6 +162,7 @@ export default function CourseHomePage() {
             {lastPretest ? "Ulangi Pretest" : "Mulai Pretest"}
           </Button>
         </Card>
+        )}
 
         {/* Levels */}
         {outline.levels.map((level) => (
@@ -161,6 +175,28 @@ export default function CourseHomePage() {
 
             <Card className="p-0 overflow-hidden">
               <ul className="divide-y divide-[var(--color-line)]">
+                {level.pretest && (
+                  <li>
+                    {(() => {
+                      const p = level.pretest;
+                      const row = (
+                        <div className={`flex items-center gap-4 p-4 font-[var(--font-inter)] bg-[var(--color-accent-yellow)]/10 ${p.unlocked ? "hover:bg-[var(--color-accent-yellow)]/20" : "opacity-60"}`}>
+                          <span className="w-8 h-8 rounded-full bg-[var(--color-accent-yellow)] flex items-center justify-center shrink-0">
+                            {p.passed ? <CheckCircle2 className="w-5 h-5 text-white" /> : p.unlocked ? <Target className="w-4 h-4 text-white" /> : <Lock className="w-4 h-4 text-white" />}
+                          </span>
+                          <div className="flex-1">
+                            <p className="font-bold text-[var(--color-ink)]">{p.title}</p>
+                            <p className="text-xs text-[var(--color-ink-soft)]">
+                              {p.questions} soal · cek kemampuan awal sebelum belajar
+                              {p.score !== null && ` · skor ${p.score}/${p.maxScore}`}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                      return p.unlocked ? <Link href={`/learn/${slug}/quiz/${p.id}`}>{row}</Link> : row;
+                    })()}
+                  </li>
+                )}
                 {level.lessons.map((lesson, i) => {
                   const row = (
                     <div className={`flex items-center gap-4 p-4 font-[var(--font-inter)] ${lesson.unlocked ? "hover:bg-[var(--color-paper-bg-alt)]/60" : "opacity-60"}`}>
@@ -189,7 +225,7 @@ export default function CourseHomePage() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--color-brand-blue)]">{q.title}</p>
                           <p className="text-xs text-[var(--color-ink-soft)]">
-                            {q.questions} soal · lulus minimal {q.passPercent}% untuk naik level
+                            {q.questions} soal · lulus minimal {q.passPercent}% untuk lanjut
                             {q.score !== null && ` · nilai terbaik ${q.score}/${q.maxScore}`}
                           </p>
                         </div>
@@ -203,13 +239,14 @@ export default function CourseHomePage() {
           </div>
         ))}
 
-        <Card className="text-center py-6 border-dashed bg-white/50">
-          <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-            Level 2 (Menengah, target 480–520) dan Level 3 (Mahir, target 550+) sedang disiapkan.
-          </p>
-        </Card>
+        {outline.comingSoon && (
+          <Card className="text-center py-6 border-dashed bg-white/50">
+            <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">{outline.comingSoon}</p>
+          </Card>
+        )}
 
         {/* Tryout */}
+        {outline.tryout && (
         <Card variant="sketch" className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent-coral)]/15 flex items-center justify-center shrink-0">
@@ -240,6 +277,7 @@ export default function CourseHomePage() {
             </span>
           )}
         </Card>
+        )}
       </div>
     </PaperBackground>
   );

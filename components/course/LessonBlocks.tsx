@@ -10,6 +10,7 @@ import { PassageView } from "@/components/course/PassageView";
 import { QuestionBlock } from "@/components/course/QuestionBlock";
 import { answerText, isAnswered } from "@/components/course/QuestionInput";
 import { Button } from "@/components/ui/Button";
+import { speak, speechSupported } from "@/components/course/speech";
 
 /** Inline "Coba sekarang" question inside the lesson material. */
 function TryIt({ question }: { question: Question }) {
@@ -46,6 +47,41 @@ function TryIt({ question }: { question: Question }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Picture-word cards: tap to hear the English word (and its example). */
+function VocabCards({ title, items }: { title?: string; items: { emoji: string; word: string; meaning: string; example?: string }[] }) {
+  const [active, setActive] = useState<string | null>(null);
+  const [canSpeak] = useState(() => speechSupported());
+
+  const say = (word: string, example?: string) => {
+    if (!canSpeak) return;
+    setActive(word);
+    const h = speak([{ speaker: "woman", text: word }, ...(example ? [{ speaker: "woman" as const, text: example }] : [])]);
+    h.done.then(() => setActive((a) => (a === word ? null : a)));
+  };
+
+  return (
+    <div className="space-y-2">
+      {title && <p className="text-sm font-bold text-[var(--color-ink)]">{title}</p>}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        {items.map((it) => (
+          <button
+            key={it.word}
+            type="button"
+            onClick={() => say(it.word, it.example)}
+            className={`text-left rounded-[var(--radius-card)] border-2 bg-white p-3 transition-all hover:-translate-y-0.5 ${active === it.word ? "border-[var(--color-accent-coral)] shadow-[var(--shadow-sketch)]" : "border-[var(--color-line)]"}`}
+          >
+            <span className="block text-4xl leading-none mb-2" aria-hidden>{it.emoji}</span>
+            <span className="block font-bold text-[var(--color-brand-blue)] text-base">{it.word} {canSpeak && <span className="text-xs">🔊</span>}</span>
+            <span className="block text-xs text-[var(--color-ink-soft)]">{it.meaning}</span>
+            {it.example && <span className="block text-xs text-[var(--color-ink)] italic mt-1">“{it.example}”</span>}
+          </button>
+        ))}
+      </div>
+      {canSpeak && <p className="text-xs text-[var(--color-ink-soft)]">Ketuk kartu untuk mendengar cara mengucapkannya.</p>}
     </div>
   );
 }
@@ -111,6 +147,8 @@ export function LessonBlocks({ blocks }: { blocks: Block[] }) {
             return <PassageView key={i} passage={b.passage} />;
           case "try":
             return <TryIt key={i} question={b.question} />;
+          case "vocab":
+            return <VocabCards key={i} title={b.title} items={b.items} />;
         }
       })}
     </div>

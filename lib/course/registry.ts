@@ -3,6 +3,7 @@
 // a material in the store.
 export const COURSES = [
   { slug: "toefl-itp", title: "TOEFL ITP Mastery — dari Nol sampai Skor Tinggi" },
+  { slug: "english-sd-3", title: "Bahasa Inggris Kelas 3 SD — Kurikulum Merdeka" },
 ] as const;
 
 export type CourseSlug = (typeof COURSES)[number]["slug"];

@@ -18,9 +18,11 @@ export async function GET(_req: Request, { params }: Params) {
 
   const found = findLevelQuiz(ctx.course, quizId);
   if (!found) return jsonError("Quiz tidak ditemukan.", 404);
-  if (!ctx.unlocks.unlocked.has(quizId)) return jsonError("Selesaikan semua materi di level ini terlebih dahulu.", 403);
+  if (!ctx.unlocks.unlocked.has(quizId)) return jsonError("Selesaikan bagian sebelumnya terlebih dahulu.", 403);
 
   return NextResponse.json({
+    isPretest: found.isPretest,
+    labels: ctx.course.labels,
     quiz: {
       id: found.quiz.id,
       title: found.quiz.title,
@@ -47,7 +49,8 @@ export async function POST(request: NextRequest, { params }: Params) {
   const review = gradeQuestions(found.quiz.questions, body?.responses || {});
   const score = review.filter((r) => r.correct).length;
   const max = review.length;
-  const passed = (score / max) * 100 >= found.quiz.passPercent;
+  // A chapter pretest is diagnostic: taking it is enough to move on.
+  const passed = found.isPretest || (score / max) * 100 >= found.quiz.passPercent;
 
   // Keep the best attempt: never downgrade a pass or a higher score.
   const previous = ctx.progress.find((p) => p.itemId === quizId);
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         student_id: ctx.user.id,
         course_slug: slug,
         item_id: quizId,
-        kind: "level_quiz",
+        kind: found.isPretest ? "level_pretest" : "level_quiz",
         score: Math.max(score, previous?.score ?? 0),
         max_score: max,
         passed: passed || !!previous?.passed,
@@ -68,5 +71,5 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (error) return jsonError(error.message, 500);
   }
 
-  return NextResponse.json({ score, max, passed, passPercent: found.quiz.passPercent, review });
+  return NextResponse.json({ score, max, passed, isPretest: found.isPretest, passPercent: found.quiz.passPercent, review });
 }

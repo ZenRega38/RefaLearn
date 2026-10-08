@@ -50,6 +50,11 @@ export function QuestionBlock({
             allowTranscript={showTranscript}
           />
         )}
+        {question.hots && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-[var(--color-accent-coral)]/15 text-[var(--color-accent-coral)] font-[var(--font-inter)]">
+            🧠 HOTS · Ayo berpikir!
+          </span>
+        )}
         {question.prompt && (
           <div className="text-base md:text-lg font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
             <Md text={question.prompt} />

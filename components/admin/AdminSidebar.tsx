@@ -20,6 +20,7 @@ import {
     X,
     Wallet,
     Handshake,
+    Gift,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +32,7 @@ const navItems = [
     { href: "/admin/invoices", label: "Tagihan", icon: Receipt },
     { href: "/admin/materials", label: "Materi", icon: BookOpen },
     { href: "/admin/material-orders", label: "Pesanan Materi", icon: ShoppingBag },
+    { href: "/admin/material-access", label: "Akses Materi", icon: Gift },
     { href: "/admin/prepayments", label: "Bayar di Muka", icon: Wallet },
     { href: "/admin/news", label: "News", icon: Newspaper },
     { href: "/admin/alumni", label: "Alumni", icon: GraduationCap },

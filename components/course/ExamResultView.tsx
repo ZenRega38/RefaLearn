@@ -7,7 +7,7 @@ import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
 import type { ExamResult, Passage, Skill } from "@/lib/course/types";
 import { Trophy, Info } from "lucide-react";
 
-const SECTION_MAX: Record<Skill, number> = { listening: 68, structure: 68, reading: 67 };
+const SECTION_MAX: Partial<Record<Skill, number>> = { listening: 68, structure: 68, reading: 67 };
 
 function band(score: number) {
   if (score >= 550) return "Mahir — memenuhi syarat banyak beasiswa & program pascasarjana";

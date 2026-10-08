@@ -260,6 +260,20 @@ export async function sendMaterialOrderStatusEmail(
     );
 }
 
+export async function sendMaterialGrantedEmail(
+    to: string,
+    params: { studentName: string; titles: string[] }
+) {
+    const html = layout(`
+    ${greet(params.studentName)}
+    <p>Refa Learn memberikan akses materi berikut untuk Anda — <strong>gratis</strong>:</p>
+    <ul>${params.titles.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>
+    <p>Materi sudah bisa dibuka sekarang dari dashboard Anda.</p>
+    ${button("/dashboard/materials", "Buka Materi Saya")}
+  `);
+    return sendEmail(to, "Materi Baru untuk Anda — Refa Learn", html);
+}
+
 export async function sendPrepaymentStatusEmail(
     to: string,
     params: { studentName: string; status: "confirmed" | "rejected" }

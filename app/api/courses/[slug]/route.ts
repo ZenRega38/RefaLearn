@@ -53,12 +53,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     .limit(1)
     .maybeSingle();
 
-  const count = (e: typeof course.pretest) => e.sections.reduce((n, s) => n + s.questions.length, 0);
+  const count = (e: NonNullable<typeof course.pretest>) => e.sections.reduce((n, s) => n + s.questions.length, 0);
+  const quizInfo = (q: { id: string; title: string; questions: unknown[]; passPercent: number }) => ({
+    id: q.id,
+    title: q.title,
+    questions: q.questions.length,
+    passPercent: q.passPercent,
+    unlocked: access && unlocks.unlocked.has(q.id),
+    passed: unlocks.done.has(q.id),
+    score: byId.get(q.id)?.score ?? null,
+    maxScore: byId.get(q.id)?.maxScore ?? null,
+  });
 
   return NextResponse.json({
     slug: course.slug,
     title: course.title,
     subtitle: course.subtitle,
+    labels: course.labels,
+    comingSoon: course.comingSoon ?? null,
     loggedIn,
     access,
     store: material ? { slug: material.slug, price: material.price } : null,
@@ -68,6 +80,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       title: level.title,
       description: level.description,
       targetScore: level.targetScore,
+      pretest: level.pretest ? quizInfo(level.pretest) : null,
       lessons: level.lessons.map((l) => ({
         id: l.id,
         title: l.title,
@@ -77,31 +90,26 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         unlocked: access && unlocks.unlocked.has(l.id),
         done: unlocks.done.has(l.id),
       })),
-      quiz: {
-        id: level.quiz.id,
-        title: level.quiz.title,
-        questions: level.quiz.questions.length,
-        passPercent: level.quiz.passPercent,
-        unlocked: access && unlocks.unlocked.has(level.quiz.id),
-        passed: unlocks.done.has(level.quiz.id),
-        score: byId.get(level.quiz.id)?.score ?? null,
-        maxScore: byId.get(level.quiz.id)?.maxScore ?? null,
-      },
+      quiz: quizInfo(level.quiz),
     })),
-    pretest: {
-      title: course.pretest.title,
-      description: course.pretest.description,
-      minutes: examMinutes(course.pretest),
-      questions: count(course.pretest),
-      attempts: attempts.filter((a) => a.kind === "pretest"),
-    },
-    tryout: {
-      title: course.tryout.title,
-      description: course.tryout.description,
-      minutes: examMinutes(course.tryout),
-      questions: count(course.tryout),
-      unlocked: access && unlocks.tryoutUnlocked,
-      attempts: attempts.filter((a) => a.kind === "tryout"),
-    },
+    pretest: course.pretest
+      ? {
+          title: course.pretest.title,
+          description: course.pretest.description,
+          minutes: examMinutes(course.pretest),
+          questions: count(course.pretest),
+          attempts: attempts.filter((a) => a.kind === "pretest"),
+        }
+      : null,
+    tryout: course.tryout
+      ? {
+          title: course.tryout.title,
+          description: course.tryout.description,
+          minutes: examMinutes(course.tryout),
+          questions: count(course.tryout),
+          unlocked: access && unlocks.tryoutUnlocked,
+          attempts: attempts.filter((a) => a.kind === "tryout"),
+        }
+      : null,
   });
 }

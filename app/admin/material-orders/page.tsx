@@ -17,6 +17,7 @@ type Order = {
   material_ids: string[];
   total_amount: number;
   status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected';
+  source: 'purchase' | 'grant';
   proof_url: string | null;
   created_at: string;
   profiles: { full_name: string; phone: string } | null;
@@ -177,7 +178,7 @@ export default function AdminMaterialOrdersPage() {
                         {order.total_amount === 0 ? "Gratis" : formatPrice(order.total_amount)}
                       </td>
                       <td className="p-4 text-center" data-label="Status">
-                        {getStatusBadge(order.status)}
+                        {order.source === 'grant' ? <Badge variant="green">Diberikan admin</Badge> : getStatusBadge(order.status)}
                       </td>
                       <td className="p-4 text-right" data-label="Aksi">
 

@@ -33,6 +33,8 @@ export const TOEFL_ITP: Course = {
   slug: "toefl-itp",
   title: "TOEFL ITP Mastery",
   subtitle: "Dari nol sampai skor tinggi — materi interaktif, kuis bertahap, dan tryout format asli.",
+  labels: { level: "Level", quiz: "Big Quiz" },
+  comingSoon: "Level 2 (Menengah, target 480–520) dan Level 3 (Mahir, target 550+) sedang disiapkan.",
   levels: [
     {
       id: "level-1",

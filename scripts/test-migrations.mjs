@@ -190,5 +190,18 @@ const ownProgress = await as("authenticated", S1, `select item_id from course_pr
 const otherProgress = await as("authenticated", S2, `select item_id from course_progress`);
 check(ownProgress.rows.length === 1 && otherProgress.rows.length === 0, "students see only their own progress", `${ownProgress.rows.length}/${otherProgress.rows.length}`);
 
+console.log("\nGrants & chapter pretests:");
+await expectOk("chapter pretest progress kind accepted", () => as("service_role", null,
+  `insert into course_progress (student_id, course_slug, item_id, kind, passed) values ($1,'english-sd-3','sd3-b1-pre','level_pretest',true)`, [S2]));
+await expectOk("admin grants a material for free", () => as("authenticated", ADMIN,
+  `insert into material_orders (student_id, material_ids, total_amount, status, source, granted_by) values ($1,$2,0,'confirmed','grant',$3)`, [S2, [mat], ADMIN]));
+await expectFail("a grant cannot carry a price", () => as("authenticated", ADMIN,
+  `insert into material_orders (student_id, material_ids, total_amount, status, source) values ($1,$2,50000,'confirmed','grant')`, [S2, [mat]]), /grant_shape/);
+const pendingOrder = (await db.query(`insert into material_orders (student_id, material_ids, total_amount, status) values ($1,$2,100000,'pending') returning id`, [S1, [mat]])).rows[0].id;
+await expectFail("student cannot turn a purchase into a grant", () => as("authenticated", S1,
+  `update material_orders set source='grant', status='proof_uploaded', proof_url=$2 where id=$1`, [pendingOrder, `orders/${S1}/x.jpg`]), /Only an admin/);
+const granted = await as("authenticated", S2, `select id from materials where id=$1`, [mat]);
+check(granted.rows.length === 1, "granted student can see the (hidden) material", granted.rows.length);
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

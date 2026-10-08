@@ -1,24 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { TOEFL_ITP } from "@/content/toefl-itp";
-import { computeUnlocks } from "@/lib/course/content";
+import { ENGLISH_SD_3 } from "@/content/english-sd-3";
+import { ALL_COURSES, computeUnlocks, findLevelQuiz } from "@/lib/course/content";
+import { COURSES as REGISTRY } from "@/lib/course/registry";
 import { convertedScore, isCorrect, normalizeAnswer, toPublicQuestion, totalScore } from "@/lib/course/grading";
-import type { Passage, Question, Response } from "@/lib/course/types";
-
-const course = TOEFL_ITP;
+import type { Course, Passage, ProgressItem, Question, Response } from "@/lib/course/types";
 
 type Located = { q: Question; passages: Passage[]; where: string };
 
-function allQuestions(): Located[] {
+function allQuestions(course: Course): Located[] {
   const out: Located[] = [];
   for (const level of course.levels) {
+    if (level.pretest) for (const q of level.pretest.questions) out.push({ q, passages: level.pretest.passages ?? [], where: level.pretest.id });
     for (const lesson of level.lessons) {
-      const passages = lesson.passages ?? [];
+      const passages = [
+        ...(lesson.passages ?? []),
+        ...lesson.sections.flatMap((s) => s.blocks.flatMap((b) => (b.type === "passage" ? [b.passage] : []))),
+      ];
       for (const s of lesson.sections) for (const b of s.blocks) if (b.type === "try") out.push({ q: b.question, passages, where: lesson.id });
-      for (const q of lesson.checkpoint) out.push({ q, passages, where: lesson.id });
+      for (const q of lesson.checkpoint) out.push({ q, passages: lesson.passages ?? [], where: lesson.id });
     }
     for (const q of level.quiz.questions) out.push({ q, passages: level.quiz.passages ?? [], where: level.quiz.id });
   }
   for (const exam of [course.pretest, course.tryout]) {
+    if (!exam) continue;
     for (const s of exam.sections) for (const q of s.questions) out.push({ q, passages: s.passages ?? [], where: `${exam.kind}/${s.skill}` });
   }
   return out;
@@ -36,15 +41,26 @@ function keyOf(q: Question): Response {
   }
 }
 
-describe("course content integrity", () => {
-  const questions = allQuestions();
+describe("course registry", () => {
+  it("lists exactly the courses that have content", () => {
+    expect(REGISTRY.map((c) => c.slug).sort()).toEqual(ALL_COURSES.map((c) => c.slug).sort());
+  });
+});
 
-  it("has unique question ids", () => {
+describe.each(ALL_COURSES.map((c) => [c.slug, c] as const))("content integrity: %s", (_slug, course) => {
+  const questions = allQuestions(course);
+
+  it("has unique question ids across the course", () => {
     const ids = questions.map((x) => x.q.id);
     expect(ids.length).toBe(new Set(ids).size);
   });
 
-  it.each(questions.map((x) => [x.q.id, x]))("%s has a valid key and explanation", (_id, { q, passages }) => {
+  it("has unique lesson / quiz ids", () => {
+    const ids = course.levels.flatMap((l) => [l.id, l.quiz.id, ...(l.pretest ? [l.pretest.id] : []), ...l.lessons.map((x) => x.id)]);
+    expect(ids.length).toBe(new Set(ids).size);
+  });
+
+  it.each(questions.map((x) => [x.q.id, x] as const))("%s has a valid key and explanation", (_id, { q, passages }) => {
     expect(q.explanation.length).toBeGreaterThan(5);
     switch (q.type) {
       case "mc":
@@ -61,6 +77,7 @@ describe("course content integrity", () => {
         expect(q.accept.length).toBeGreaterThan(0);
         break;
       case "order":
+        expect(q.tiles.length).toBeGreaterThanOrEqual(3);
         for (const order of q.answer) expect([...order].sort()).toEqual([...q.tiles].sort());
         break;
       case "match":
@@ -78,7 +95,6 @@ describe("course content integrity", () => {
 
   it("points every “X in line N” at a line that contains X", () => {
     const re = /[“"]([^”"]+)[”"] in lines? (\d+)(?:[–-](\d+))?/;
-    let checked = 0;
     for (const { q, passages } of questions) {
       const m = q.type === "mc" && q.prompt ? q.prompt.match(re) : null;
       if (!m || !q.passageId) continue;
@@ -86,42 +102,17 @@ describe("course content integrity", () => {
       const from = Number(m[2]);
       const to = m[3] ? Number(m[3]) : from;
       const text = passage.lines.slice(from - 1, to).join(" ").toLowerCase();
-      expect(text, `${q.id}: “${m[1]}” not in line ${from}${m[3] ? `–${to}` : ""}`).toContain(m[1].toLowerCase());
-      checked++;
-    }
-    expect(checked).toBeGreaterThan(20);
-  });
-
-  it("tryout matches the TOEFL ITP format", () => {
-    const counts = course.tryout.sections.map((s) => [s.skill, s.questions.length, s.minutes]);
-    expect(counts).toEqual([
-      ["listening", 50, 35],
-      ["structure", 40, 25],
-      ["reading", 50, 55],
-    ]);
-    for (const s of course.tryout.sections) {
-      const listed = s.parts.flatMap((p) => p.questionIds);
-      expect(listed).toEqual(s.questions.map((q) => q.id));
-    }
-    const listening = course.tryout.sections[0].questions;
-    expect(listening.every((q) => q.audio && q.audio.length > 0)).toBe(true);
-    const written = course.tryout.sections[1].questions.filter((q) => q.type === "error");
-    expect(written).toHaveLength(25);
-  });
-
-  it("pretest parts list every question exactly once", () => {
-    for (const s of course.pretest.sections) {
-      expect(s.parts.flatMap((p) => p.questionIds)).toEqual(s.questions.map((q) => q.id));
+      expect(text, `${q.id}: “${m[1]}” not in line ${from}`).toContain(m[1].toLowerCase());
     }
   });
 
-  it("spreads exam answer keys across A–D", () => {
-    const keys = course.tryout.sections
-      .flatMap((s) => s.questions)
-      .map((q) => (q.type === "mc" ? q.answer : q.type === "error" ? "ABCD".indexOf(q.answer) : -1))
-      .filter((k) => k >= 0);
-    const share = [0, 1, 2, 3].map((k) => keys.filter((x) => x === k).length / keys.length);
-    for (const s of share) expect(s).toBeGreaterThan(0.12);
+  it("explanations citing “Baris N” point at a passage line", () => {
+    for (const { q, passages } of questions) {
+      const m = q.explanation.match(/Baris (\d+)/);
+      if (!m || !q.passageId) continue;
+      const passage = passages.find((p) => p.id === q.passageId)!;
+      expect(Number(m[1]), q.id).toBeLessThanOrEqual(passage.lines.length);
+    }
   });
 
   it("never leaks keys or explanations in public questions", () => {
@@ -129,7 +120,67 @@ describe("course content integrity", () => {
       const json = JSON.stringify(toPublicQuestion(q));
       expect(json).not.toContain('"explanation"');
       expect(json).not.toMatch(/"(answer|answers|accept|correction|pairs)":/);
+      if (q.hots) expect(json).toContain('"hots":true');
     }
+  });
+});
+
+describe("TOEFL ITP format", () => {
+  const tryout = TOEFL_ITP.tryout!;
+
+  it("tryout matches the TOEFL ITP format", () => {
+    expect(tryout.sections.map((s) => [s.skill, s.questions.length, s.minutes])).toEqual([
+      ["listening", 50, 35],
+      ["structure", 40, 25],
+      ["reading", 50, 55],
+    ]);
+    for (const s of tryout.sections) expect(s.parts.flatMap((p) => p.questionIds)).toEqual(s.questions.map((q) => q.id));
+    expect(tryout.sections[0].questions.every((q) => q.audio && q.audio.length > 0)).toBe(true);
+    expect(tryout.sections[1].questions.filter((q) => q.type === "error")).toHaveLength(25);
+  });
+
+  it("pretest parts list every question exactly once", () => {
+    for (const s of TOEFL_ITP.pretest!.sections) expect(s.parts.flatMap((p) => p.questionIds)).toEqual(s.questions.map((q) => q.id));
+  });
+
+  it("spreads exam answer keys across A–D", () => {
+    const keys = tryout.sections
+      .flatMap((s) => s.questions)
+      .map((q) => (q.type === "mc" ? q.answer : q.type === "error" ? "ABCD".indexOf(q.answer) : -1))
+      .filter((k) => k >= 0);
+    for (const k of [0, 1, 2, 3]) expect(keys.filter((x) => x === k).length / keys.length).toBeGreaterThan(0.12);
+  });
+});
+
+describe("Grade 3 module (Kurikulum Merdeka)", () => {
+  it("has six chapters, each with a pretest, three lessons and a posttest", () => {
+    expect(ENGLISH_SD_3.levels).toHaveLength(6);
+    for (const bab of ENGLISH_SD_3.levels) {
+      expect(bab.pretest?.questions.length).toBeGreaterThanOrEqual(5);
+      expect(bab.lessons).toHaveLength(3);
+      expect(bab.quiz.questions.length).toBeGreaterThanOrEqual(8);
+      expect(bab.quiz.passPercent).toBe(70);
+      for (const lesson of bab.lessons) expect(lesson.checkpoint.length).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it("puts HOTS questions in every chapter's lessons and posttest", () => {
+    for (const bab of ENGLISH_SD_3.levels) {
+      expect(bab.quiz.questions.filter((q) => q.hots).length, bab.id).toBeGreaterThanOrEqual(2);
+      for (const lesson of bab.lessons) expect(lesson.checkpoint.some((q) => q.hots), lesson.id).toBe(true);
+    }
+  });
+
+  it("spreads posttest keys instead of always the first option", () => {
+    const keys = ENGLISH_SD_3.levels.flatMap((b) => b.quiz.questions).filter((q) => q.type === "mc").map((q) => (q.type === "mc" ? q.answer : -1));
+    const firstShare = keys.filter((k) => k === 0).length / keys.length;
+    expect(firstShare).toBeLessThan(0.5);
+  });
+
+  it("finds chapter pretests by id", () => {
+    const bab = ENGLISH_SD_3.levels[0];
+    expect(findLevelQuiz(ENGLISH_SD_3, bab.pretest!.id)?.isPretest).toBe(true);
+    expect(findLevelQuiz(ENGLISH_SD_3, bab.quiz.id)?.isPretest).toBe(false);
   });
 });
 
@@ -137,6 +188,7 @@ describe("grading", () => {
   it("normalizes typed answers", () => {
     expect(normalizeAnswer("  Delayed. ")).toBe("delayed");
     expect(normalizeAnswer("Put   Off")).toBe("put off");
+    expect(normalizeAnswer("Don’t")).toBe("don't");
   });
 
   it("converts raw scores to the ITP scale", () => {
@@ -145,7 +197,6 @@ describe("grading", () => {
     expect(convertedScore("reading", 50, 50)).toBe(67);
     expect(totalScore([68, 68, 67])).toBe(677);
     expect(totalScore([31, 31, 31])).toBe(310);
-    // A 10-question pretest section scales to the full 50.
     expect(convertedScore("listening", 10, 10)).toBe(68);
     expect(convertedScore("listening", 5, 10)).toBe(convertedScore("listening", 25, 50));
   });
@@ -163,19 +214,30 @@ describe("grading", () => {
 });
 
 describe("unlocking", () => {
-  const level = course.levels[0];
-  const pass = (itemId: string) => ({ itemId, kind: "lesson" as const, score: null, maxScore: null, passed: true });
+  const pass = (itemId: string): ProgressItem => ({ itemId, kind: "lesson", score: null, maxScore: null, passed: true });
 
-  it("opens only the first lesson for a new student", () => {
-    const u = computeUnlocks(course, []);
-    expect([...u.unlocked]).toEqual([level.lessons[0].id]);
-    expect(u.tryoutUnlocked).toBe(false);
+  it("TOEFL: opens only the first lesson, then quiz, then tryout", () => {
+    const level = TOEFL_ITP.levels[0];
+    expect([...computeUnlocks(TOEFL_ITP, []).unlocked]).toEqual([level.lessons[0].id]);
+    const lessons = level.lessons.map((l) => pass(l.id));
+    expect(computeUnlocks(TOEFL_ITP, lessons).unlocked.has(level.quiz.id)).toBe(true);
+    expect(computeUnlocks(TOEFL_ITP, lessons).tryoutUnlocked).toBe(false);
+    expect(computeUnlocks(TOEFL_ITP, [...lessons, pass(level.quiz.id)]).tryoutUnlocked).toBe(true);
   });
 
-  it("opens the level quiz after all lessons, and the tryout after the quiz", () => {
-    const lessons = level.lessons.map((l) => pass(l.id));
-    expect(computeUnlocks(course, lessons).unlocked.has(level.quiz.id)).toBe(true);
-    expect(computeUnlocks(course, lessons).tryoutUnlocked).toBe(false);
-    expect(computeUnlocks(course, [...lessons, pass(level.quiz.id)]).tryoutUnlocked).toBe(true);
+  it("Grade 3: chapter pretest comes first, posttest opens the next chapter", () => {
+    const [bab1, bab2] = ENGLISH_SD_3.levels;
+    expect([...computeUnlocks(ENGLISH_SD_3, []).unlocked]).toEqual([bab1.pretest!.id]);
+
+    const afterPretest = computeUnlocks(ENGLISH_SD_3, [pass(bab1.pretest!.id)]);
+    expect(afterPretest.unlocked.has(bab1.lessons[0].id)).toBe(true);
+    expect(afterPretest.unlocked.has(bab1.lessons[1].id)).toBe(false);
+
+    const bab1Done = [pass(bab1.pretest!.id), ...bab1.lessons.map((l) => pass(l.id)), pass(bab1.quiz.id)];
+    const u = computeUnlocks(ENGLISH_SD_3, bab1Done);
+    expect(u.unlocked.has(bab2.pretest!.id)).toBe(true);
+    expect(u.unlocked.has(bab2.lessons[0].id)).toBe(false);
+    expect(u.completedItems).toBe(5);
+    expect(u.totalItems).toBe(6 * 5);
   });
 });

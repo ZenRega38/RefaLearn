@@ -19,6 +19,7 @@ type Order = {
   material_ids: string[];
   total_amount: number;
   status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected';
+  source?: 'purchase' | 'grant';
   proof_url: string | null;
   created_at: string;
 };
@@ -202,7 +203,7 @@ export default function StudentMaterialsDashboard() {
                       Pesanan {formatTimestamp(order.created_at, 'dd MMM yyyy')}
                     </div>
                     <div className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                      {order.total_amount === 0 ? "Gratis" : formatPrice(order.total_amount)}
+                      {order.source === 'grant' ? "Diberikan oleh Refa Learn 🎁" : order.total_amount === 0 ? "Gratis" : formatPrice(order.total_amount)}
                     </div>
                   </div>
 

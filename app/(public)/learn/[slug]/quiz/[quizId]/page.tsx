@@ -13,10 +13,11 @@ import type { Passage, PublicQuestion, Response } from "@/lib/course/types";
 import { ArrowLeft, ArrowRight, RefreshCw, Trophy, RotateCcw, ClipboardCheck } from "lucide-react";
 
 type QuizPayload = {
+  isPretest: boolean;
   quiz: { id: string; title: string; passPercent: number; passages: Passage[]; questions: PublicQuestion[] };
   level: { id: string; title: string };
 };
-type Result = { score: number; max: number; passed: boolean; passPercent: number; review: ReviewItem[] };
+type Result = { score: number; max: number; passed: boolean; isPretest: boolean; passPercent: number; review: ReviewItem[] };
 
 export default function LevelQuizPage() {
   const { slug, quizId } = useParams<{ slug: string; quizId: string }>();
@@ -109,14 +110,16 @@ export default function LevelQuizPage() {
               </p>
               <p className="font-[var(--font-inter)] text-[var(--color-ink)]">
                 {result.score} dari {result.max} benar ·{" "}
-                {result.passed ? (
+                {result.isPretest ? (
+                  <strong className="text-[var(--color-brand-blue)]">Pretest selesai — materi bab ini sudah terbuka. Yuk mulai belajar!</strong>
+                ) : result.passed ? (
                   <strong className="text-[var(--color-success-green)]">Lulus! Level berikutnya terbuka.</strong>
                 ) : (
                   <strong className="text-[var(--color-danger-red)]">Belum lulus (minimal {result.passPercent}%).</strong>
                 )}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {!result.passed && (
+                {!result.passed && !result.isPretest && (
                   <Button onClick={retry}><RotateCcw className="w-4 h-4" /> Ulangi Quiz</Button>
                 )}
                 <Button href={`/learn/${slug}`} variant={result.passed ? "primary" : "secondary"}>Kembali ke Kursus</Button>
