@@ -9,9 +9,9 @@ values
   ('material-files', 'material-files', false)
 on conflict (id) do nothing;
 
--- storage.objects already has RLS enabled by default on Supabase projects,
--- but this is safe/idempotent to include explicitly.
-alter table storage.objects enable row level security;
+-- storage.objects already has RLS enabled on every Supabase project, and
+-- hosted projects refuse `alter table storage.objects` ("must be owner of
+-- table objects"), so it is not repeated here.
 
 -- ---------------------------------------------------------------------
 -- payment-proofs
