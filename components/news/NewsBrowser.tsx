@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { CategoryBadges } from "@/components/ui/CategoryBadges";
+import { splitCategories } from "@/lib/format";
 import { Calendar, ArrowRight, LayoutGrid, List } from "lucide-react";
 
 export type NewsListItem = {
@@ -20,8 +21,9 @@ export type NewsListItem = {
 export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [category, setCategory] = useState("Semua");
-  const categories = ["Semua", ...Array.from(new Set(posts.map((p) => p.category).filter((c): c is string => !!c)))];
-  const visible = category === "Semua" ? posts : posts.filter((p) => p.category === category);
+  // A post can carry several comma-separated categories; each one becomes its own filter.
+  const categories = ["Semua", ...Array.from(new Set(posts.flatMap((p) => splitCategories(p.category))))];
+  const visible = category === "Semua" ? posts : posts.filter((p) => splitCategories(p.category).includes(category));
 
   return (
     <div className="space-y-8">
@@ -85,9 +87,9 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
                 )}
 
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    {post.category ? <Badge variant="blue">{post.category}</Badge> : <span />}
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <CategoryBadges category={post.category} />
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                       <Calendar className="w-3.5 h-3.5" />
                       {post.formattedDate}
                     </div>
@@ -123,8 +125,8 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
                   )}
                 </div>
                 <div className="p-5 flex flex-col flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    {post.category && <Badge variant="blue">{post.category}</Badge>}
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <CategoryBadges category={post.category} />
                     <div className="flex items-center gap-1.5 text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                       <Calendar className="w-3.5 h-3.5" />
                       {post.formattedDate}

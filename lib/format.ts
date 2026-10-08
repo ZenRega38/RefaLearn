@@ -54,3 +54,22 @@ export function toWhatsAppNumber(phone: string | null | undefined): string {
   if (digits.startsWith("0")) return `62${digits.slice(1)}`;
   return digits;
 }
+
+/**
+ * Splits a comma-separated category field ("International, Diplomacy") into
+ * separate categories. Trims, drops empties, and removes case-insensitive
+ * duplicates while keeping the first spelling.
+ */
+export function splitCategories(value: string | null | undefined): string[] {
+  if (!value) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of value.split(",")) {
+    const cat = raw.trim();
+    const key = cat.toLowerCase();
+    if (!cat || seen.has(key)) continue;
+    seen.add(key);
+    out.push(cat);
+  }
+  return out;
+}

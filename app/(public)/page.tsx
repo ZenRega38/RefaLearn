@@ -10,6 +10,7 @@ import { Calendar, BookOpen, MessageCircle, FileText, CheckCircle2, ArrowRight }
 import { createPublicClient } from "@/lib/supabase/public";
 import { SESSION_PRICES, formatPrice } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
+import { CategoryBadges } from "@/components/ui/CategoryBadges";
 
 export const revalidate = 300;
 
@@ -318,10 +319,10 @@ export default async function Home() {
                       </div>
                     )}
                     <div className="p-5 flex flex-col flex-1">
-                      <div className="flex items-center justify-between mb-2 gap-2">
-                        {post.category ? <Badge variant="blue">{post.category}</Badge> : <span />}
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <CategoryBadges category={post.category} />
                         {post.published_at && (
-                          <span className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{formatTimestamp(post.published_at)}</span>
+                          <span className="shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{formatTimestamp(post.published_at)}</span>
                         )}
                       </div>
                       <h3 className="text-lg font-bold font-[var(--font-inter)] leading-snug group-hover:text-[var(--color-brand-blue)] transition-colors">

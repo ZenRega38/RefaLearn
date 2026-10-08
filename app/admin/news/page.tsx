@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, Star } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { slugify } from "@/lib/format";
+import { slugify, splitCategories } from "@/lib/format";
 
 type NewsPost = {
   id: string;
@@ -160,7 +160,8 @@ export default function AdminNewsPage() {
     const postData = {
       title,
       slug,
-      category,
+      // Stored as one text field; normalize spacing so "a,b ,  c" saves as "a, b, c".
+      category: splitCategories(category).join(", "),
       content,
       cover_image_url: coverUrl,
       status,
@@ -229,7 +230,7 @@ export default function AdminNewsPage() {
                 label="Kategori"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Tips Belajar, Pengumuman, dll"
+                placeholder="Pisahkan dengan koma, misal: Tips Belajar, Pengumuman"
               />
             </div>
 
@@ -314,8 +315,12 @@ export default function AdminNewsPage() {
                         <div className="text-xs text-[var(--color-ink-soft)] truncate max-w-xs">{post.slug}</div>
                       </td>
                       <td className="p-4" data-label="Kategori">
-                        {post.category ? (
-                          <span className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs">{post.category}</span>
+                        {splitCategories(post.category).length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {splitCategories(post.category).map((cat) => (
+                              <span key={cat} className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs">{cat}</span>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-[var(--color-ink-soft)] italic">-</span>
                         )}
