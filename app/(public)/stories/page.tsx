@@ -6,9 +6,9 @@ import { formatTimestamp } from "@/lib/format";
 
 // Server Component
 export const metadata = {
-  title: "Berita & Artikel",
-  description: "Tips belajar Bahasa Inggris, informasi program terbaru, dan pengumuman dari Refa Learn Tarakan.",
-  alternates: { canonical: "/news" },
+  title: "Stories",
+  description: "Cerita, pengalaman, tips belajar Bahasa Inggris, dan kabar terbaru dari Refa Learn Tarakan.",
+  alternates: { canonical: "/stories" },
 };
 
 export const revalidate = 60; // Revalidate every minute
@@ -42,9 +42,9 @@ export default async function NewsIndexPage() {
     <PaperBackground>
       <section className="pt-32 pb-16 relative">
         <div className="container-main text-center">
-          <h1 className="text-4xl md:text-5xl mb-6">Info & <SketchBox color="var(--color-accent-yellow)">Artikel</SketchBox></h1>
+          <h1 className="text-4xl md:text-5xl mb-6"><SketchBox color="var(--color-accent-yellow)">Stories</SketchBox></h1>
           <p className="text-lg text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Tips belajar Bahasa Inggris, informasi program terbaru, dan pengumuman dari Refa Learn.
+            Cerita, pengalaman, tips belajar, dan kabar terbaru dari Refa Learn.
           </p>
         </div>
       </section>
@@ -53,7 +53,7 @@ export default async function NewsIndexPage() {
         <div className="container-main">
           {items.length === 0 ? (
             <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada artikel yang diterbitkan.</p>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada story yang diterbitkan.</p>
             </div>
           ) : (
             <NewsBrowser posts={items} />

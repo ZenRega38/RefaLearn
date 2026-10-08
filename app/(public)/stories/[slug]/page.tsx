@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: post.title,
     description: excerpt,
-    alternates: { canonical: `/news/${post.slug}` },
+    alternates: { canonical: `/stories/${post.slug}` },
     openGraph: {
       type: 'article',
       title: post.title,
@@ -82,7 +82,7 @@ export default async function NewsDetailPage({ params }: Props) {
     ...(candidates || []).filter((p) => !post.category || p.category !== post.category),
   ].slice(0, 3);
 
-  const url = `${siteUrl()}/news/${post.slug}`;
+  const url = `${siteUrl()}/stories/${post.slug}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -100,8 +100,8 @@ export default async function NewsDetailPage({ params }: Props) {
       <article className="pt-24 pb-20 relative">
         <div className="container-main max-w-3xl mx-auto">
 
-          <Link href="/news" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)] mb-8">
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Berita
+          <Link href="/stories" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)] mb-8">
+            <ArrowLeft className="w-4 h-4" /> Kembali ke Stories
           </Link>
 
           <div className="mb-8">
@@ -140,10 +140,10 @@ export default async function NewsDetailPage({ params }: Props) {
 
           {related.length > 0 && (
             <div className="mt-12">
-              <h2 className="text-2xl mb-6">Artikel Terkait</h2>
+              <h2 className="text-2xl mb-6">Stories Lainnya</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {related.map((r) => (
-                  <Link key={r.id} href={`/news/${r.slug}`} className="group">
+                  <Link key={r.id} href={`/stories/${r.slug}`} className="group">
                     <Card variant="sketch" className="p-4 h-full">
                       {r.category && <Badge variant="blue" className="mb-2">{r.category}</Badge>}
                       <h3 className="font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors leading-snug">

@@ -294,18 +294,18 @@ export default async function Home() {
         </section>
       )}
 
-      {/* LATEST NEWS */}
+      {/* LATEST STORIES */}
       {latestPosts.length > 0 && (
         <section className="section-padding bg-[var(--color-paper-bg-alt)]">
           <div className="container-main">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl mb-4">Info & Artikel Terbaru</h2>
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Tips belajar dan kabar terbaru dari Refa Learn.</p>
+              <h2 className="text-3xl md:text-4xl mb-4">Stories Terbaru</h2>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Cerita, tips belajar, dan kabar terbaru dari Refa Learn.</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               {latestPosts.map((post) => (
-                <Link href={`/news/${post.slug}`} key={post.id} className="group h-full flex">
+                <Link href={`/stories/${post.slug}`} key={post.id} className="group h-full flex">
                   <Card variant="sketch" className="p-0 overflow-hidden flex flex-col w-full hover:border-[var(--color-brand-blue)] transition-colors duration-300">
                     {post.cover_image_url ? (
                       <div className="w-full h-40 bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] overflow-hidden">
@@ -333,8 +333,8 @@ export default async function Home() {
               ))}
             </div>
             <div className="text-center mt-10">
-              <Link href="/news" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
-                Lihat semua artikel <ArrowRight className="w-4 h-4" />
+              <Link href="/stories" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
+                Lihat semua stories <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>

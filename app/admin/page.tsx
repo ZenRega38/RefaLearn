@@ -120,7 +120,7 @@ export default function AdminOverviewDashboard() {
     { href: "/admin/materials", label: "Materi Digital", icon: <BookOpen className="w-6 h-6" />, color: "text-purple-500", bg: "bg-purple-100" },
     { href: "/admin/material-orders", label: "Pembelian Materi", icon: <ShoppingBag className="w-6 h-6" />, color: "text-pink-500", bg: "bg-pink-100", badge: stats.pendingOrders },
     { href: "/admin/prepayments", label: "Bayar di Muka", icon: <Wallet className="w-6 h-6" />, color: "text-teal-600", bg: "bg-teal-100", badge: stats.pendingPrepayments },
-    { href: "/admin/news", label: "Manajemen Berita", icon: <Newspaper className="w-6 h-6" />, color: "text-indigo-500", bg: "bg-indigo-100" },
+    { href: "/admin/news", label: "Manajemen Stories", icon: <Newspaper className="w-6 h-6" />, color: "text-indigo-500", bg: "bg-indigo-100" },
     { href: "/admin/alumni", label: "Kisah Alumni", icon: <GraduationCap className="w-6 h-6" />, color: "text-orange-500", bg: "bg-orange-100" },
     { href: "/admin/partners", label: "Partner", icon: <Handshake className="w-6 h-6" />, color: "text-cyan-600", bg: "bg-cyan-100" },
     { href: "/admin/settings", label: "Pengaturan Website", icon: <Settings className="w-6 h-6" />, color: "text-slate-500", bg: "bg-slate-100" },

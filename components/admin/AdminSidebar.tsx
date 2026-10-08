@@ -34,7 +34,7 @@ const navItems = [
     { href: "/admin/material-orders", label: "Pesanan Materi", icon: ShoppingBag },
     { href: "/admin/material-access", label: "Akses Materi", icon: Gift },
     { href: "/admin/prepayments", label: "Bayar di Muka", icon: Wallet },
-    { href: "/admin/news", label: "News", icon: Newspaper },
+    { href: "/admin/news", label: "Stories", icon: Newspaper },
     { href: "/admin/alumni", label: "Alumni", icon: GraduationCap },
     { href: "/admin/partners", label: "Partner", icon: Handshake },
     { href: "/admin/chat", label: "Chat", icon: MessageCircle },

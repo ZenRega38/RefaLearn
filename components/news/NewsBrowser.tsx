@@ -62,12 +62,12 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
 
       {visible.length === 0 ? (
         <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada artikel di kategori ini.</p>
+          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada story di kategori ini.</p>
         </div>
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {visible.map((post) => (
-            <Link href={`/news/${post.slug}`} key={post.id} className="group h-full flex">
+            <Link href={`/stories/${post.slug}`} key={post.id} className="group h-full flex">
               <Card variant="sketch" className="p-0 overflow-hidden flex flex-col w-full hover:border-[var(--color-brand-blue)] transition-colors duration-300">
                 {post.cover_image_url ? (
                   <div className="w-full h-48 bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] overflow-hidden">
@@ -112,7 +112,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
       ) : (
         <div className="space-y-4">
           {visible.map((post) => (
-            <Link href={`/news/${post.slug}`} key={post.id} className="group block">
+            <Link href={`/stories/${post.slug}`} key={post.id} className="group block">
               <Card variant="sketch" className="p-0 overflow-hidden flex flex-col sm:flex-row hover:border-[var(--color-brand-blue)] transition-colors duration-300">
                 <div className="sm:w-56 h-40 sm:h-auto shrink-0 bg-[var(--color-paper-bg-alt)] border-b sm:border-b-0 sm:border-r border-[var(--color-line)] overflow-hidden flex items-center justify-center">
                   {post.cover_image_url ? (

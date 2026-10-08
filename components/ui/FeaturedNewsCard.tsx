@@ -26,7 +26,7 @@ type FeaturedNewsCardProps = PostCardProps | QuoteCardProps;
  *
  * cover_image_url is free-text the admin pastes in (no domain allowlist),
  * so this uses a plain <img> rather than next/image — same choice already
- * made for CredentialBadge and the /news pages themselves.
+ * made for CredentialBadge and the /stories pages themselves.
  */
 export function FeaturedNewsCard(props: FeaturedNewsCardProps) {
     const card = (
@@ -62,7 +62,7 @@ export function FeaturedNewsCard(props: FeaturedNewsCardProps) {
 
     if (props.type === "post") {
         return (
-            <Link href={`/news/${props.slug}`} className="block">
+            <Link href={`/stories/${props.slug}`} className="block">
                 {card}
             </Link>
         );

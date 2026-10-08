@@ -210,12 +210,6 @@ export default async function AboutPage() {
                     imageAlt="Sertifikat Duolingo English Test, skor 130, CEFR C1 Advanced"
                     icon={<Award className="w-4 h-4 text-[var(--color-success-green)]" />}
                   />
-                  <CredentialBadge
-                    label="EPT Telkom University 530"
-                    imageSrc="/certificates/TelUEPrT-rega.webp"
-                    imageAlt="Sertifikat English Proficiency Test Language Center Telkom University, skor 530"
-                    icon={<Award className="w-4 h-4 text-[var(--color-brand-blue)]" />}
-                  />
                   <div className="flex items-center gap-2 text-sm font-[var(--font-inter)] bg-white px-3 py-1.5 rounded-full border border-[var(--color-line)] shadow-sm">
                     <Award className="w-4 h-4 text-[var(--color-success-green)]" />
                     <span>Ruangguru Tutor</span>
