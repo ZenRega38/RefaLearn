@@ -19,6 +19,7 @@ import {
     Menu,
     X,
     Wallet,
+    Handshake,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -33,27 +34,19 @@ const navItems = [
     { href: "/admin/prepayments", label: "Bayar di Muka", icon: Wallet },
     { href: "/admin/news", label: "News", icon: Newspaper },
     { href: "/admin/alumni", label: "Alumni", icon: GraduationCap },
+    { href: "/admin/partners", label: "Partner", icon: Handshake },
     { href: "/admin/chat", label: "Chat", icon: MessageCircle },
     { href: "/admin/contracts", label: "Kontrak", icon: FileSignature },
     { href: "/admin/settings", label: "Pengaturan", icon: Settings },
 ];
 
-export function AdminSidebar() {
-    const pathname = usePathname();
-    const router = useRouter();
-    const supabase = createClient();
-    const [mobileOpen, setMobileOpen] = useState(false);
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.push("/");
-        router.refresh();
-    };
-
+// Declared at module level (not inside AdminSidebar) so React doesn't treat
+// it as a brand-new component type on every render.
+function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigate: () => void }) {
     const isActive = (href: string, exact?: boolean) =>
         exact ? pathname === href : pathname === href || pathname?.startsWith(href + "/");
 
-    const NavLinks = () => (
+    return (
         <nav className="flex-1 overflow-y-auto py-4">
             <ul className="space-y-1 px-3">
                 {navItems.map((item) => {
@@ -63,7 +56,7 @@ export function AdminSidebar() {
                         <li key={item.href}>
                             <Link
                                 href={item.href}
-                                onClick={() => setMobileOpen(false)}
+                                onClick={onNavigate}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium font-[var(--font-inter)] transition-colors ${active
                                     ? "bg-[var(--color-brand-blue)] text-white"
                                     : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
@@ -78,6 +71,19 @@ export function AdminSidebar() {
             </ul>
         </nav>
     );
+}
+
+export function AdminSidebar() {
+    const pathname = usePathname();
+    const router = useRouter();
+    const [supabase] = useState(() => createClient());
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push("/");
+        router.refresh();
+    };
 
     return (
         <>
@@ -105,7 +111,7 @@ export function AdminSidebar() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <NavLinks />
+                        <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} />
                         <div className="p-3 border-t border-[var(--color-line)]">
                             <button
                                 onClick={handleLogout}
@@ -127,7 +133,7 @@ export function AdminSidebar() {
                         Refa Learn
                     </span>
                 </div>
-                <NavLinks />
+                <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} />
                 <div className="p-3 border-t border-[var(--color-line)]">
                     <button
                         onClick={handleLogout}

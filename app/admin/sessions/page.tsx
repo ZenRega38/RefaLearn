@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/Textarea";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
 import { Check, X, Eye, Edit3, MessageSquare, Clock, RefreshCw, Calendar } from "lucide-react";
-import { formatPrice } from "@/lib/pricing";
+import { DAY_TYPE_LABELS, formatPrice, type DayType } from "@/lib/pricing";
+import { formatDateStr, hhmm, toWhatsAppNumber } from "@/lib/format";
+import { todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
 
 type Profile = {
   full_name: string;
@@ -38,15 +38,18 @@ type RescheduleRequest = {
   requested_start_time: string;
   requested_end_time: string;
   reason: string | null;
-  sessions: { date: string; start_time: string; student_id: string; profiles: Profile };
+  sessions: { date: string; start_time: string; student_id: string; profiles: Profile } | null;
 };
 
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
+
 export default function AdminSessionsPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [rescheduleRequests, setRescheduleRequests] = useState<RescheduleRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'upcoming' | 'past'>('pending');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'upcoming' | 'past' | 'needs_closing'>('pending');
 
   // Notes state
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -54,94 +57,92 @@ export default function AdminSessionsPage() {
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('sessions')
       .select('*, profiles(full_name, phone)');
 
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const today = todayStr();
 
     if (filter === 'pending') {
       query = query.eq('status', 'pending');
     } else if (filter === 'upcoming') {
-      query = query.in('status', ['accepted']).gte('date', todayStr);
+      query = query.in('status', ['accepted']).gte('date', today);
     } else if (filter === 'past') {
-      query = query.in('status', ['completed', 'cancelled', 'no_show']);
+      query = query.in('status', ['completed', 'cancelled', 'no_show', 'declined']);
+    } else if (filter === 'needs_closing') {
+      // Accepted sessions whose date has passed but were never marked.
+      query = query.eq('status', 'accepted').lt('date', today);
     }
 
-    // Always sort pending first, then by date ascending
+    // History reads newest-first; everything else chronologically.
+    const ascending = filter !== 'past';
     query = query
-      .order('status', { ascending: false }) // 'pending' comes after 'accepted' alphabetically, wait we should sort by date
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true });
+      .order('date', { ascending })
+      .order('start_time', { ascending });
 
-    const { data, error } = await query;
+    const { data } = await query;
     if (data) setSessions(data as Session[]);
     setLoading(false);
-  };
+  }, [supabase, filter]);
 
-  const fetchRescheduleRequests = async () => {
+  const fetchRescheduleRequests = useCallback(async () => {
     const { data } = await supabase
       .from('reschedule_requests')
       .select('id, session_id, requested_date, requested_start_time, requested_end_time, reason, sessions(date, start_time, student_id, profiles(full_name, phone))')
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
 
-    if (data) setRescheduleRequests(data as any);
-  };
+    if (data) setRescheduleRequests(data as unknown as RescheduleRequest[]);
+  }, [supabase]);
 
   const handleRescheduleDecision = async (req: RescheduleRequest, approve: boolean) => {
-    if (approve) {
-      const { getDayType, getSessionPrice } = await import("@/lib/pricing");
-      const newDate = new Date(`${req.requested_date}T00:00:00`);
-
-      const { error: sessionUpdateError } = await supabase
-        .from('sessions')
-        .update({
-          date: req.requested_date,
-          start_time: req.requested_start_time,
-          end_time: req.requested_end_time,
-          day_type: getDayType(newDate),
-          price: getSessionPrice(newDate),
-        })
-        .eq('id', req.session_id);
-
-      if (sessionUpdateError) {
-        alert(`Gagal approve — kemungkinan slot itu sudah terisi: ${sessionUpdateError.message}`);
-        return;
-      }
+    setBusyId(req.id);
+    try {
+      const res = await fetch('/api/admin/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: req.id, approve }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+    } catch (err) {
+      alert(`Gagal memproses reschedule: ${errorText(err)}`);
+    } finally {
+      setBusyId(null);
+      fetchRescheduleRequests();
+      fetchSessions();
     }
-
-    const { error } = await supabase
-      .from('reschedule_requests')
-      .update({ status: approve ? 'approved' : 'rejected', resolved_at: new Date().toISOString() })
-      .eq('id', req.id);
-
-    if (error) {
-      alert(`Gagal update status request: ${error.message}`);
-      return;
-    }
-
-    fetchRescheduleRequests();
-    fetchSessions();
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data load on filter change
     fetchSessions();
     fetchRescheduleRequests();
-  }, [filter]);
+  }, [fetchSessions, fetchRescheduleRequests]);
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('sessions')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (!error) {
+  const updateStatus = async (id: string, newStatus: string, force = false): Promise<void> => {
+    setBusyId(id);
+    try {
+      const res = await fetch('/api/admin/sessions/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: id, status: newStatus, force }),
+      });
+      const data = await res.json();
+      if (res.status === 409 && data.needsConfirmation) {
+        if (window.confirm("Sesi ini belum dimulai. Tetap tandai statusnya sekarang?")) {
+          await updateStatus(id, newStatus, true);
+        }
+        return;
+      }
+      if (!res.ok) throw new Error(data.error);
       fetchSessions();
-    } else {
-      alert(`Gagal update status: ${error.message}`);
+    } catch (err) {
+      alert(`Gagal update status: ${errorText(err)}`);
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -182,7 +183,7 @@ export default function AdminSessionsPage() {
     }
   };
 
-  const formatTimeStr = (time: string) => time.substring(0, 5);
+  const formatTimeStr = hhmm;
 
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen relative">
@@ -196,10 +197,11 @@ export default function AdminSessionsPage() {
             <select
               className="input-field py-2"
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(e.target.value as typeof filter)}
             >
               <option value="pending">Menunggu Konfirmasi</option>
               <option value="upcoming">Akan Datang (Disetujui)</option>
+              <option value="needs_closing">Perlu Ditandai (Sudah Lewat)</option>
               <option value="past">Riwayat / Selesai</option>
               <option value="all">Semua Sesi</option>
             </select>
@@ -219,17 +221,17 @@ export default function AdminSessionsPage() {
                 <div>
                   <div className="font-semibold">{req.sessions?.profiles?.full_name}</div>
                   <div className="text-[var(--color-ink-soft)]">
-                    {format(parseISO(req.sessions.date), 'dd MMM yyyy', { locale: id })} {req.sessions.start_time.substring(0, 5)}
+                    {req.sessions ? `${formatDateStr(req.sessions.date)} ${hhmm(req.sessions.start_time)}` : '-'}
                     {" → "}
-                    {format(parseISO(req.requested_date), 'dd MMM yyyy', { locale: id })} {req.requested_start_time.substring(0, 5)}
+                    {formatDateStr(req.requested_date)} {hhmm(req.requested_start_time)} {APP_TIMEZONE_LABEL}
                   </div>
-                  {req.reason && <div className="text-xs text-[var(--color-ink-soft)] italic mt-1">"{req.reason}"</div>}
+                  {req.reason && <div className="text-xs text-[var(--color-ink-soft)] italic mt-1">&quot;{req.reason}&quot;</div>}
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <Button size="sm" onClick={() => handleRescheduleDecision(req, true)} className="bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
+                  <Button size="sm" onClick={() => handleRescheduleDecision(req, true)} isLoading={busyId === req.id} className="bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
                     <Check className="w-4 h-4 mr-1" /> Approve
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleRescheduleDecision(req, false)} className="text-[var(--color-danger-red)]">
+                  <Button size="sm" variant="ghost" onClick={() => handleRescheduleDecision(req, false)} disabled={busyId === req.id} className="text-[var(--color-danger-red)]">
                     <X className="w-4 h-4 mr-1" /> Tolak
                   </Button>
                 </div>
@@ -264,36 +266,36 @@ export default function AdminSessionsPage() {
                       : 0;
 
                     return (
-                      <>
+                      <Fragment key={session.id}>
                         {isNewSeriesGroup && (
-                          <tr key={`${session.series_id}-header`} className="bg-blue-50/60">
+                          <tr className="bg-blue-50/60">
                             <td colSpan={5} className="px-4 py-1.5 text-xs font-bold text-[var(--color-brand-blue)] font-[var(--font-inter)] uppercase tracking-wide">
                               ↻ Rangkaian Mingguan — {session.profiles?.full_name} ({seriesCount} sesi)
                             </td>
                           </tr>
                         )}
-                        <tr key={session.id} className={`border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors ${session.series_id ? 'bg-blue-50/20' : ''}`}>
+                        <tr className={`border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors ${session.series_id ? 'bg-blue-50/20' : ''}`}>
                           <td className="p-4" data-label="Tanggal">
                             <div className="font-semibold text-[var(--color-ink)] flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-[var(--color-brand-blue)]" />
-                              {format(parseISO(session.date), 'dd MMM yyyy', { locale: id })}
+                              {formatDateStr(session.date, 'EEE, dd MMM yyyy')}
                             </div>
                             <div className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5" />
-                              {formatTimeStr(session.start_time)} - {formatTimeStr(session.end_time)}
+                              {formatTimeStr(session.start_time)} - {formatTimeStr(session.end_time)} {APP_TIMEZONE_LABEL}
                             </div>
                           </td>
                           <td className="p-4" data-label="Siswa">
                             <div className="font-semibold text-[var(--color-ink)]">{session.profiles?.full_name || 'Unknown'}</div>
                             <div className="text-xs text-[var(--color-ink-soft)] flex items-center gap-1 mt-1">
-                              <a href={`https://wa.me/${session.profiles?.phone?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
+                              <a href={`https://wa.me/${toWhatsAppNumber(session.profiles?.phone)}`} target="_blank" rel="noreferrer" className="hover:text-[var(--color-success-green)] hover:underline flex items-center gap-1">
                                 {session.profiles?.phone || '-'}
                               </a>
                             </div>
                           </td>
                           <td className="p-4" data-label="Harga">
                             <div className="font-bold text-[var(--color-ink)]">{formatPrice(session.price)}</div>
-                            <div className="text-xs text-[var(--color-ink-soft)] capitalize">{session.day_type}</div>
+                            <div className="text-xs text-[var(--color-ink-soft)]">{DAY_TYPE_LABELS[session.day_type as DayType] ?? session.day_type}</div>
                           </td>
                           <td className="p-4 text-center" data-label="Status">
                             {getStatusBadge(session.status)}
@@ -303,10 +305,10 @@ export default function AdminSessionsPage() {
                             {/* Pending Actions */}
                             {session.status === 'pending' && (
                               <div className="flex justify-end gap-2">
-                                <Button size="sm" onClick={() => updateStatus(session.id, 'accepted')} className="px-3 bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
+                                <Button size="sm" onClick={() => updateStatus(session.id, 'accepted')} isLoading={busyId === session.id} className="px-3 bg-[var(--color-success-green)] hover:bg-[var(--color-success-green)] border-transparent text-white">
                                   <Check className="w-4 h-4 mr-1" /> Terima
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => updateStatus(session.id, 'declined')} className="px-3 text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10">
+                                <Button size="sm" variant="ghost" onClick={() => updateStatus(session.id, 'declined')} disabled={busyId === session.id} className="px-3 text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10">
                                   <X className="w-4 h-4 mr-1" /> Tolak
                                 </Button>
                               </div>
@@ -318,7 +320,7 @@ export default function AdminSessionsPage() {
                                 <Button size="sm" variant="sketch" onClick={() => openNotesModal(session)} className="px-2" title="Catatan Kelas">
                                   <Edit3 className="w-4 h-4" />
                                 </Button>
-                                <Button size="sm" onClick={() => updateStatus(session.id, 'completed')} className="px-3">
+                                <Button size="sm" onClick={() => updateStatus(session.id, 'completed')} isLoading={busyId === session.id} className="px-3">
                                   Selesai
                                 </Button>
                                 <select
@@ -330,7 +332,7 @@ export default function AdminSessionsPage() {
                                   value=""
                                 >
                                   <option value="" disabled>Lainnya...</option>
-                                  <option value="cancelled">Batal</option>
+                                  <option value="cancelled">Batal (tanpa biaya)</option>
                                   <option value="no_show">No Show</option>
                                 </select>
                               </div>
@@ -346,7 +348,7 @@ export default function AdminSessionsPage() {
                             )}
                           </td>
                         </tr>
-                      </>
+                      </Fragment>
                     );
                   })
                 )}
@@ -364,7 +366,7 @@ export default function AdminSessionsPage() {
               <h2 className="text-xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" /> Catatan Sesi
               </h2>
-              <button onClick={() => setIsNotesModalOpen(false)} className="p-2 text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] rounded-full">
+              <button onClick={() => setIsNotesModalOpen(false)} aria-label="Tutup" className="p-2 text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>

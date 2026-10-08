@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
@@ -60,7 +60,7 @@ const bulletsToStorage = (linesText: string) =>
 const storageToBullets = (stored: string) => stored.split("|").filter(Boolean).join("\n");
 
 export default function AdminSettingsPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [settings, setSettings] = useState<TextSettings>(emptyTextSettings);
   const [missionBullets, setMissionBullets] = useState("");
   const [bankDetails, setBankDetails] = useState<BankDetails>(emptyBank);
@@ -70,9 +70,8 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const fetchSettings = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("site_settings").select("*");
+  const fetchSettings = useCallback(async () => {
+    const { data } = await supabase.from("site_settings").select("*");
     if (data) {
       const newSettings = { ...emptyTextSettings };
       let mission = "";
@@ -83,7 +82,7 @@ export default function AdminSettingsPage() {
 
       data.forEach((item) => {
         if (item.key in newSettings) {
-          (newSettings as any)[item.key] = item.value?.text || "";
+          newSettings[item.key as keyof TextSettings] = item.value?.text || "";
         } else if (item.key === "mission") {
           mission = storageToBullets(item.value?.text || "");
         } else if (item.key === "bank_details") {
@@ -105,11 +104,12 @@ export default function AdminSettingsPage() {
       setCofounderBio(cofounder);
     }
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   const handleSave = async () => {
     setSaving(true);

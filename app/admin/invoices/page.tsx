@@ -1,50 +1,49 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
-import { FileText, Check, X, RefreshCw, Eye, ExternalLink } from "lucide-react";
-import { formatPrice } from "@/lib/pricing";
+import { FileText, Check, X, RefreshCw, ExternalLink, ChevronDown } from "lucide-react";
+import { DAY_TYPE_LABELS, formatPrice, type DayType } from "@/lib/pricing";
+import { formatDateStr, formatTimestamp, hhmm, monthLabel, monthName } from "@/lib/format";
+import { previousPeriod } from "@/lib/time";
 import { getSignedProofUrl } from "@/lib/storage";
-
-// Small client-safe mirror of lib/invoicing.ts's getPreviousPeriod — kept
-// separate because that file imports the server-only Supabase client
-// (next/headers) and can't be pulled into a "use client" component.
-function getPreviousPeriodLocal(reference: Date = new Date()): { month: number; year: number } {
-  const prevMonthDate = new Date(reference.getFullYear(), reference.getMonth() - 1, 1);
-  return { month: prevMonthDate.getMonth() + 1, year: prevMonthDate.getFullYear() };
-}
 
 type Invoice = {
   id: string;
   student_id: string;
   period_month: number;
   period_year: number;
+  session_ids: string[];
   total_amount: number;
   fee_amount: number;
   status: 'draft' | 'sent' | 'proof_uploaded' | 'confirmed' | 'overdue' | 'rejected';
   proof_url: string | null; // storage PATH — see lib/storage.ts
   generated_at: string;
-  profiles: { full_name: string; phone: string };
+  profiles: { full_name: string; phone: string } | null;
 };
 
+type LineItem = { id: string; date: string; start_time: string; day_type: DayType; price: number };
+
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
+
 export default function AdminInvoicesPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  const [lineItems, setLineItems] = useState<Record<string, LineItem>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending_proof' | 'review' | 'confirmed'>('review');
+  const [filter, setFilter] = useState<'all' | 'pending_proof' | 'review' | 'overdue' | 'confirmed'>('review');
   const [viewingId, setViewingId] = useState<string | null>(null);
 
   // "Generate Now" — manual trigger for the monthly invoice run (agent.md
   // 6.6). Defaults to last calendar month, which is the normal case; the
   // month/year selects exist for the edge case of generating an older or
   // catch-up period (e.g. a session marked completed late).
-  const defaultPeriod = getPreviousPeriodLocal();
+  const defaultPeriod = previousPeriod();
   const [genMonth, setGenMonth] = useState(defaultPeriod.month);
   const [genYear, setGenYear] = useState(defaultPeriod.year);
   const [generating, setGenerating] = useState(false);
@@ -64,8 +63,8 @@ export default function AdminInvoicesPage() {
 
       setGenResult({ created: data.created?.length || 0, skipped: data.skipped?.length || 0 });
       await fetchInvoices();
-    } catch (err: any) {
-      alert(`Gagal generate tagihan: ${err.message}`);
+    } catch (err) {
+      alert(`Gagal generate tagihan: ${errorText(err)}`);
     } finally {
       setGenerating(false);
     }
@@ -76,15 +75,15 @@ export default function AdminInvoicesPage() {
     setViewingId(invoice.id);
     try {
       const url = await getSignedProofUrl(invoice.proof_url);
-      window.open(url, '_blank');
-    } catch (err: any) {
-      alert(`Gagal membuka bukti: ${err.message}`);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      alert(`Gagal membuka bukti: ${errorText(err)}`);
     } finally {
       setViewingId(null);
     }
   };
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('invoices')
@@ -92,26 +91,41 @@ export default function AdminInvoicesPage() {
       .order('generated_at', { ascending: false });
 
     if (filter === 'pending_proof') {
-      query = query.eq('status', 'sent');
+      query = query.in('status', ['sent', 'rejected']);
     } else if (filter === 'review') {
       query = query.eq('status', 'proof_uploaded');
+    } else if (filter === 'overdue') {
+      query = query.eq('status', 'overdue');
     } else if (filter === 'confirmed') {
       query = query.eq('status', 'confirmed');
     }
 
-    const { data, error } = await query;
-    if (data) setInvoices(data as Invoice[]);
+    const { data } = await query;
+    const list = (data || []) as Invoice[];
+    setInvoices(list);
+
+    const ids = Array.from(new Set(list.flatMap((i) => i.session_ids || [])));
+    if (ids.length > 0) {
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select('id, date, start_time, day_type, price')
+        .in('id', ids);
+      setLineItems(Object.fromEntries((sessionsData || []).map((s) => [s.id, s as LineItem])));
+    }
     setLoading(false);
-  };
+  }, [supabase, filter]);
 
   useEffect(() => {
     fetchInvoices();
-  }, [filter]);
+  }, [fetchInvoices]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
       .from('invoices')
-      .update({ status: newStatus })
+      .update({
+        status: newStatus,
+        confirmed_at: newStatus === 'confirmed' ? new Date().toISOString() : null,
+      })
       .eq('id', id);
 
     if (!error) {
@@ -143,12 +157,6 @@ export default function AdminInvoicesPage() {
     }
   };
 
-  const getMonthName = (month: number) => {
-    const date = new Date();
-    date.setMonth(month - 1);
-    return format(date, 'MMMM', { locale: id });
-  };
-
   return (
     <PaperBackground className="p-4 md:p-8 min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -161,10 +169,11 @@ export default function AdminInvoicesPage() {
             <select
               className="input-field py-2"
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(e.target.value as typeof filter)}
             >
               <option value="review">Perlu Review (Bukti Diupload)</option>
               <option value="pending_proof">Menunggu Pembayaran</option>
+              <option value="overdue">Terlambat</option>
               <option value="confirmed">Lunas</option>
               <option value="all">Semua Tagihan</option>
             </select>
@@ -179,8 +188,9 @@ export default function AdminInvoicesPage() {
             Generate Tagihan Bulanan
           </h2>
           <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-4">
-            Otomatis berjalan tiap tanggal 1. Gunakan tombol ini untuk generate ulang secara manual
-            (misalnya ada sesi yang baru ditandai selesai setelah tanggal 1, atau untuk periode lama).
+            Otomatis berjalan tiap tanggal 1. Aman dijalankan berkali-kali: hanya sesi selesai (sampai akhir periode)
+            dan biaya pembatalan yang belum pernah ditagihkan yang akan dibuatkan tagihan — sesi yang terlambat ditandai
+            selesai otomatis masuk ke tagihan susulan.
           </p>
           <div className="flex flex-wrap items-end gap-3">
             <div>
@@ -191,7 +201,7 @@ export default function AdminInvoicesPage() {
                 onChange={(e) => setGenMonth(Number(e.target.value))}
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <option key={m} value={m}>{format(new Date(2000, m - 1, 1), 'MMMM', { locale: id })}</option>
+                  <option key={m} value={m}>{monthName(m)}</option>
                 ))}
               </select>
             </div>
@@ -212,7 +222,7 @@ export default function AdminInvoicesPage() {
             </Button>
             {genResult && (
               <span className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                {genResult.created} tagihan dibuat, {genResult.skipped} dilewati (sudah ada).
+                {genResult.created} tagihan dibuat{genResult.skipped > 0 ? `, ${genResult.skipped} gagal (lihat log server)` : ''}.
               </span>
             )}
           </div>
@@ -237,14 +247,22 @@ export default function AdminInvoicesPage() {
                   <tr><td colSpan={5} className="p-8 text-center text-[var(--color-ink-soft)]">Tidak ada tagihan untuk filter ini.</td></tr>
                 ) : (
                   invoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
+                    <Fragment key={invoice.id}>
+                    <tr className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
                       <td className="p-4" data-label="Periode & Dibuat">
                         <div className="font-bold text-[var(--color-ink)]">
-                          {getMonthName(invoice.period_month)} {invoice.period_year}
+                          {monthLabel(invoice.period_month, invoice.period_year)}
                         </div>
                         <div className="text-xs text-[var(--color-ink-soft)] mt-1">
-                          Dibuat: {format(parseISO(invoice.generated_at), 'dd MMM yy', { locale: id })}
+                          Dibuat: {formatTimestamp(invoice.generated_at, 'dd MMM yy')}
                         </div>
+                        <button
+                          onClick={() => setExpandedId(expandedId === invoice.id ? null : invoice.id)}
+                          className="text-xs text-[var(--color-brand-blue)] font-semibold mt-1 flex items-center gap-1"
+                        >
+                          <ChevronDown className={`w-3 h-3 transition-transform ${expandedId === invoice.id ? 'rotate-180' : ''}`} />
+                          Rincian ({invoice.session_ids?.length || 0} sesi)
+                        </button>
                       </td>
                       <td className="p-4" data-label="Siswa">
                         <div className="font-semibold text-[var(--color-ink)]">{invoice.profiles?.full_name}</div>
@@ -254,7 +272,7 @@ export default function AdminInvoicesPage() {
                         {formatPrice(invoice.total_amount)}
                         {invoice.fee_amount > 0 && (
                           <div className="text-xs font-normal text-amber-700 mt-0.5">
-                            termasuk denda {formatPrice(invoice.fee_amount)}
+                            termasuk biaya pembatalan {formatPrice(invoice.fee_amount)}
                           </div>
                         )}
                       </td>
@@ -299,14 +317,47 @@ export default function AdminInvoicesPage() {
                           </div>
                         )}
 
-                        {invoice.status === 'sent' && (
-                          <Button size="sm" variant="ghost" onClick={() => updateStatus(invoice.id, 'confirmed')} className="text-xs">
+                        {['sent', 'overdue', 'rejected'].includes(invoice.status) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (window.confirm("Tandai tagihan ini lunas tanpa bukti di sistem (mis. dibayar tunai)?")) {
+                                updateStatus(invoice.id, 'confirmed');
+                              }
+                            }}
+                            className="text-xs"
+                          >
                             Set Lunas Manual
                           </Button>
                         )}
 
                       </td>
                     </tr>
+                    {expandedId === invoice.id && (
+                      <tr className="border-b border-[var(--color-line)] bg-[var(--color-paper-bg-alt)]/40">
+                        <td colSpan={5} className="px-4 py-3">
+                          <ul className="text-xs space-y-1">
+                            {(invoice.session_ids || []).map((sid) => {
+                              const item = lineItems[sid];
+                              return item ? (
+                                <li key={sid} className="flex justify-between gap-4">
+                                  <span>{formatDateStr(item.date, 'EEE, dd MMM yyyy')} · {hhmm(item.start_time)} · {DAY_TYPE_LABELS[item.day_type] ?? item.day_type}</span>
+                                  <span className="font-semibold">{formatPrice(item.price)}</span>
+                                </li>
+                              ) : null;
+                            })}
+                            {invoice.fee_amount > 0 && (
+                              <li className="flex justify-between gap-4 text-amber-700">
+                                <span>Biaya pembatalan</span>
+                                <span className="font-semibold">{formatPrice(invoice.fee_amount)}</span>
+                              </li>
+                            )}
+                          </ul>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))
                 )}
               </tbody>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Kalam, Caveat } from "next/font/google";
 import "./globals.css";
 import { SiteChrome } from "@/components/ui/SiteChrome";
+import { siteUrl } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,6 +25,7 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "Refa Learn — Bridging Borders, Embracing The World!",
     template: "%s | Refa Learn",

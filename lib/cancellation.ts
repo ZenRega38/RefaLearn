@@ -1,33 +1,28 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { CANCELLATION_FEE_AMOUNT, FREE_CANCELLATION_NOTICE_HOURS } from "@/lib/policy";
+import { hoursUntil } from "@/lib/time";
 
-export const CANCELLATION_FEE_AMOUNT = 50000;
+export { CANCELLATION_FEE_AMOUNT, FREE_CANCELLATION_NOTICE_HOURS };
+
+type CancellableSession = {
+  date: string;
+  start_time: string;
+  status: string;
+};
 
 /**
- * Membatalkan satu atau beberapa sesi milik siswa sendiri sebagai SATU aksi —
- * tetap cuma bikin satu baris denda Rp50.000 berapa pun jumlah session_ids
- * yang dibatalkan bareng ("denda per aksi, bukan per kelas").
+ * The fee one cancellation action incurs. Requests the admin hasn't
+ * accepted yet are free; accepted sessions are free with at least
+ * FREE_CANCELLATION_NOTICE_HOURS notice. Otherwise one flat fee for the
+ * whole action — never per session.
  */
-export async function cancelSessionsAsStudent(
-    supabase: SupabaseClient,
-    studentId: string,
-    sessionIds: string[]
-) {
-    if (sessionIds.length === 0) return;
+export function cancellationFeeFor(sessions: CancellableSession[], now: Date = new Date()): number {
+  const late = sessions.some(
+    (s) => s.status === "accepted" && hoursUntil(s.date, s.start_time, now) < FREE_CANCELLATION_NOTICE_HOURS
+  );
+  return late ? CANCELLATION_FEE_AMOUNT : 0;
+}
 
-    const { error: feeError } = await supabase.from("cancellation_fees").insert([
-        {
-            student_id: studentId,
-            session_ids: sessionIds,
-            amount: CANCELLATION_FEE_AMOUNT,
-            status: "unpaid",
-        },
-    ]);
-    if (feeError) throw feeError;
-
-    const { error: sessionError } = await supabase
-        .from("sessions")
-        .update({ status: "cancelled" })
-        .in("id", sessionIds)
-        .eq("student_id", studentId);
-    if (sessionError) throw sessionError;
+/** A session can be cancelled or rescheduled only before it starts. */
+export function hasStarted(session: { date: string; start_time: string }, now: Date = new Date()): boolean {
+  return hoursUntil(session.date, session.start_time, now) <= 0;
 }

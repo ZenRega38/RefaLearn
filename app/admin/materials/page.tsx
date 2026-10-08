@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen, FileUp, FileCheck } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen, FileUp, FileCheck, Tag, X } from "lucide-react";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { slugify } from "@/lib/format";
 import { formatPrice } from "@/lib/pricing";
 import { uploadMaterialFile } from "@/lib/storage";
 
@@ -22,8 +24,15 @@ type Material = {
   cover_image_url: string;
 };
 
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
+
 export default function AdminMaterialsPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  // Admin-managed category list (agent.md 6.9) — stored in site_settings,
+  // never hardcoded.
+  const [categoryList, setCategoryList] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState("");
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,8 +49,7 @@ export default function AdminMaterialsPage() {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const fetchMaterials = async () => {
-    setLoading(true);
+  const fetchMaterials = useCallback(async () => {
     const { data, error } = await supabase
       .from('materials')
       .select('id, title, slug, category, price, is_active, cover_image_url')
@@ -51,11 +59,40 @@ export default function AdminMaterialsPage() {
       setMaterials(data as Material[]);
     }
     setLoading(false);
-  };
+  }, [supabase]);
+
+  const fetchCategories = useCallback(async () => {
+    const { data } = await supabase.from('site_settings').select('value').eq('key', 'material_categories').maybeSingle();
+    const list = (data?.value as { list?: string[] } | null)?.list;
+    setCategoryList(Array.isArray(list) ? list : []);
+  }, [supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchMaterials();
-  }, []);
+    fetchCategories();
+  }, [fetchMaterials, fetchCategories]);
+
+  const saveCategories = async (next: string[]) => {
+    const prev = categoryList;
+    setCategoryList(next);
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert({ key: 'material_categories', value: { list: next } }, { onConflict: 'key' });
+    if (error) {
+      setCategoryList(prev);
+      alert(`Gagal menyimpan kategori: ${error.message}`);
+    }
+  };
+
+  const addCategory = () => {
+    const name = newCategory.trim();
+    if (!name || categoryList.some((c) => c.toLowerCase() === name.toLowerCase())) return;
+    saveCategories([...categoryList, name]);
+    setNewCategory("");
+  };
+
+  const allCategories = Array.from(new Set([...categoryList, ...materials.map((m) => m.category).filter(Boolean)]));
 
   const handleEdit = async (id: string) => {
     const { data, error } = await supabase
@@ -66,6 +103,7 @@ export default function AdminMaterialsPage() {
 
     if (data && !error) {
       setCurrentId(data.id);
+      setCurrentSlug(data.slug);
       setTitle(data.title);
       setCategory(data.category || "");
       setDescription(data.description || "");
@@ -80,6 +118,7 @@ export default function AdminMaterialsPage() {
 
   const handleCreateNew = () => {
     setCurrentId(null);
+    setCurrentSlug(null);
     setTitle("");
     setCategory("");
     setDescription("");
@@ -116,12 +155,9 @@ export default function AdminMaterialsPage() {
         finalFileUrl = await uploadMaterialFile(id, newFile);
       }
 
-      // Create slug from title
-      const slug = title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+      // The slug is fixed once created so shared links keep working when
+      // the title is edited later.
+      const slug = currentSlug || slugify(title);
 
       const materialData = {
         title,
@@ -152,15 +188,32 @@ export default function AdminMaterialsPage() {
 
       setIsEditing(false);
       fetchMaterials();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      alert(`Gagal menyimpan: ${err.message}`);
+      const msg = errorText(err);
+      alert(msg.includes('duplicate key') ? 'Judul/slug ini sudah dipakai materi lain. Gunakan judul berbeda.' : `Gagal menyimpan: ${msg}`);
     } finally {
       setSaving(false);
     }
   };
 
+  // A material that appears in any order is never hard-deleted — buyers keep
+  // permanent access, so it's hidden from the catalog instead.
   const handleDelete = async (id: string) => {
+    const { data: orders } = await supabase
+      .from('material_orders')
+      .select('id')
+      .contains('material_ids', [id])
+      .limit(1);
+
+    if (orders && orders.length > 0) {
+      if (!window.confirm("Materi ini sudah pernah dibeli, jadi tidak bisa dihapus permanen. Sembunyikan dari katalog (nonaktifkan)? Pembeli tetap bisa mengunduhnya.")) return;
+      const { error } = await supabase.from('materials').update({ is_active: false }).eq('id', id);
+      if (error) alert(`Gagal menonaktifkan: ${error.message}`);
+      fetchMaterials();
+      return;
+    }
+
     if (window.confirm("Apakah Anda yakin ingin menghapus materi ini?")) {
       const { error } = await supabase.from('materials').delete().eq('id', id);
       if (!error) {
@@ -194,13 +247,19 @@ export default function AdminMaterialsPage() {
                 placeholder="Contoh: Modul Grammar Basic"
                 required
               />
-              <Input
-                label="Kategori"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Contoh: Modul, Worksheet, Video"
-                required
-              />
+              <div>
+                <Input
+                  label="Kategori"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Pilih atau ketik kategori"
+                  list="material-categories"
+                  required
+                />
+                <datalist id="material-categories">
+                  {allCategories.map((c) => <option key={c} value={c} />)}
+                </datalist>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,12 +284,7 @@ export default function AdminMaterialsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="URL Cover Image (Opsional)"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <ImageUploadField label="Cover Image (Opsional)" value={coverUrl} onChange={setCoverUrl} folder="materials" />
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
                   File Materi (PDF)
@@ -283,6 +337,29 @@ export default function AdminMaterialsPage() {
           </Button>
         </div>
 
+        <Card variant="sketch" className="p-5 mb-6 space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--color-brand-blue)] font-[var(--font-inter)] flex items-center gap-2">
+            <Tag className="w-4 h-4" /> Kategori Materi
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {categoryList.length === 0 && (
+              <span className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada kategori tersimpan.</span>
+            )}
+            {categoryList.map((c) => (
+              <span key={c} className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs font-[var(--font-inter)] flex items-center gap-1">
+                {c}
+                <button onClick={() => saveCategories(categoryList.filter((x) => x !== c))} aria-label={`Hapus kategori ${c}`} className="text-[var(--color-danger-red)]">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2 max-w-md">
+            <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Kategori baru, mis. SMA 10" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }} />
+            <Button variant="secondary" onClick={addCategory} className="shrink-0">Tambah</Button>
+          </div>
+        </Card>
+
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="responsive-table w-full text-left font-[var(--font-inter)] text-sm border-collapse">
@@ -306,7 +383,7 @@ export default function AdminMaterialsPage() {
                 ) : materials.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-[var(--color-ink-soft)]">
-                      Belum ada materi. Klik "Tambah Baru" untuk mengunggah materi pertama.
+                      Belum ada materi. Klik &quot;Tambah Baru&quot; untuk mengunggah materi pertama.
                     </td>
                   </tr>
                 ) : (

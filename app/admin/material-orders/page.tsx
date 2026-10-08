@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
 import { ShoppingBag, Check, X, RefreshCw, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { getSignedProofUrl } from "@/lib/storage";
+import { formatTimestamp, isSafeHttpUrl } from "@/lib/format";
 
 type Order = {
   id: string;
@@ -20,30 +19,39 @@ type Order = {
   status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected';
   proof_url: string | null;
   created_at: string;
-  profiles: { full_name: string; phone: string };
+  profiles: { full_name: string; phone: string } | null;
 };
 
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
+
 export default function AdminMaterialOrdersPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [orders, setOrders] = useState<Order[]>([]);
+  const [titles, setTitles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'review' | 'confirmed'>('review');
   const [viewingId, setViewingId] = useState<string | null>(null);
 
   const handleViewProof = async (order: Order) => {
     if (!order.proof_url) return;
+    // Orders from before proof uploads existed stored a pasted link. Only
+    // ever open real http(s) URLs — never a student-supplied javascript: URL.
+    if (isSafeHttpUrl(order.proof_url)) {
+      window.open(order.proof_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setViewingId(order.id);
     try {
       const url = await getSignedProofUrl(order.proof_url);
-      window.open(url, '_blank');
-    } catch (err: any) {
-      alert(`Gagal membuka bukti: ${err.message}`);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      alert(`Gagal membuka bukti: ${errorText(err)}`);
     } finally {
       setViewingId(null);
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('material_orders')
@@ -51,21 +59,29 @@ export default function AdminMaterialOrdersPage() {
       .order('created_at', { ascending: false });
 
     if (filter === 'pending') {
-      query = query.eq('status', 'pending');
+      query = query.in('status', ['pending', 'rejected']);
     } else if (filter === 'review') {
       query = query.eq('status', 'proof_uploaded');
     } else if (filter === 'confirmed') {
       query = query.eq('status', 'confirmed');
     }
 
-    const { data, error } = await query;
-    if (data) setOrders(data as Order[]);
+    const { data } = await query;
+    const list = (data || []) as Order[];
+    setOrders(list);
+
+    const ids = Array.from(new Set(list.flatMap((o) => o.material_ids)));
+    if (ids.length > 0) {
+      const { data: mats } = await supabase.from('materials').select('id, title').in('id', ids);
+      setTitles(Object.fromEntries((mats || []).map((m) => [m.id, m.title])));
+    }
     setLoading(false);
-  };
+  }, [supabase, filter]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data load on filter change
     fetchOrders();
-  }, [filter]);
+  }, [fetchOrders]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
@@ -77,6 +93,11 @@ export default function AdminMaterialOrdersPage() {
       .eq('id', id);
 
     if (!error) {
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'material_order_status', recordId: id }),
+      }).catch((err) => console.error('[admin/material-orders] notify failed:', err));
       fetchOrders();
     } else {
       alert(`Gagal update status: ${error.message}`);
@@ -105,14 +126,14 @@ export default function AdminMaterialOrdersPage() {
             <select
               className="input-field py-2"
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(e.target.value as typeof filter)}
             >
               <option value="review">Perlu Review (Bukti Diupload)</option>
               <option value="pending">Menunggu Pembayaran</option>
               <option value="confirmed">Lunas & Selesai</option>
               <option value="all">Semua Pembelian</option>
             </select>
-            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3">
+            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3" aria-label="Muat ulang">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -140,18 +161,20 @@ export default function AdminMaterialOrdersPage() {
                     <tr key={order.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
                       <td className="p-4" data-label="Tanggal Order">
                         <div className="font-bold text-[var(--color-ink)]">
-                          {format(parseISO(order.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                          {formatTimestamp(order.created_at, 'dd MMM yyyy HH:mm')}
                         </div>
-                        <div className="text-xs text-[var(--color-ink-soft)] mt-1">
-                          {order.material_ids.length} Item
-                        </div>
+                        <ul className="text-xs text-[var(--color-ink-soft)] mt-1 space-y-0.5">
+                          {order.material_ids.map((mid) => (
+                            <li key={mid}>• {titles[mid] || 'Materi dihapus'}</li>
+                          ))}
+                        </ul>
                       </td>
                       <td className="p-4" data-label="Siswa">
                         <div className="font-semibold text-[var(--color-ink)]">{order.profiles?.full_name}</div>
                         <div className="text-xs text-[var(--color-ink-soft)] mt-1">{order.profiles?.phone}</div>
                       </td>
                       <td className="p-4 font-bold text-[var(--color-ink)]" data-label="Total">
-                        {formatPrice(order.total_amount)}
+                        {order.total_amount === 0 ? "Gratis" : formatPrice(order.total_amount)}
                       </td>
                       <td className="p-4 text-center" data-label="Status">
                         {getStatusBadge(order.status)}
@@ -164,7 +187,8 @@ export default function AdminMaterialOrdersPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => window.open(order.proof_url!, '_blank')}
+                                onClick={() => handleViewProof(order)}
+                                isLoading={viewingId === order.id}
                                 className="px-2"
                                 title="Lihat Bukti"
                               >
@@ -187,14 +211,24 @@ export default function AdminMaterialOrdersPage() {
                                 }
                               }}
                               className="text-[var(--color-danger-red)] px-2"
+                              aria-label="Tolak"
                             >
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
                         )}
 
-                        {order.status === 'pending' && (
-                          <Button size="sm" variant="ghost" onClick={() => updateStatus(order.id, 'confirmed')} className="text-xs">
+                        {['pending', 'rejected'].includes(order.status) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (window.confirm("Tandai pesanan ini lunas tanpa bukti di sistem?")) {
+                                updateStatus(order.id, 'confirmed');
+                              }
+                            }}
+                            className="text-xs"
+                          >
                             Set Lunas Manual
                           </Button>
                         )}

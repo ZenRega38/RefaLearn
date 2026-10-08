@@ -7,8 +7,59 @@ import { SketchCircleHighlight } from "@/components/sketch/SketchCircleHighlight
 import { SketchUnderline } from "@/components/sketch/SketchUnderline";
 import { SketchDivider } from "@/components/sketch/SketchDivider";
 import { Calendar, BookOpen, MessageCircle, FileText, CheckCircle2, ArrowRight } from "lucide-react";
+import { createPublicClient } from "@/lib/supabase/public";
+import { SESSION_PRICES, formatPrice } from "@/lib/pricing";
+import { formatTimestamp } from "@/lib/format";
 
-export default function Home() {
+export const revalidate = 300;
+
+type FeaturedAlumni = {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  achievement_title: string | null;
+  testimonial_text: string | null;
+};
+
+type LatestPost = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string | null;
+  cover_image_url: string | null;
+  published_at: string | null;
+};
+
+const ACHIEVEMENT_COLORS = [
+  "text-[var(--color-accent-coral)]",
+  "text-[var(--color-brand-blue)]",
+  "text-[var(--color-success-green)]",
+];
+
+export default async function Home() {
+  const supabase = createPublicClient();
+  const [{ data: settingsData }, { data: alumniData }, { data: postsData }] = await Promise.all([
+    supabase.from("site_settings").select("key, value").in("key", ["hero_title", "hero_subtitle"]),
+    supabase
+      .from("alumni")
+      .select("id, name, photo_url, achievement_title, testimonial_text")
+      .eq("is_featured", true)
+      .order("order_index", { ascending: true })
+      .limit(3),
+    supabase
+      .from("news_posts")
+      .select("id, title, slug, category, cover_image_url, published_at")
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(3),
+  ]);
+
+  const settings = new Map((settingsData ?? []).map((row) => [row.key, row.value?.text as string | undefined]));
+  const heroTitle = settings.get("hero_title")?.trim();
+  const heroSubtitle = settings.get("hero_subtitle")?.trim();
+  const featuredAlumni = (alumniData ?? []) as FeaturedAlumni[];
+  const latestPosts = (postsData ?? []) as LatestPost[];
+
   return (
     <PaperBackground>
       {/* HERO SECTION */}
@@ -21,12 +72,16 @@ export default function Home() {
           <Badge variant="blue" className="mb-6 animate-fade-in-up">Les Private Bahasa Inggris di Tarakan</Badge>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl mb-6 animate-fade-in-up delay-100">
-            Les Bahasa Inggris Private Tarakan, <br className="hidden md:block" />
-            <span className="text-[var(--color-accent-coral)]">Murah & Berkualitas!</span>
+            {heroTitle ? heroTitle : (
+              <>
+                Les Bahasa Inggris Private Tarakan, <br className="hidden md:block" />
+                <span className="text-[var(--color-accent-coral)]">Murah & Berkualitas!</span>
+              </>
+            )}
           </h1>
 
           <p className="text-lg md:text-xl text-[var(--color-ink-soft)] mb-10 max-w-2xl mx-auto font-[var(--font-inter)] animate-fade-in-up delay-200">
-            Bridging Borders, Embracing The World! Tingkatkan kemampuan Bahasa Inggris Anda bersama tutor private berpengalaman di Tarakan, tersedia kelas online maupun tatap muka. Spesialis persiapan IELTS, TOEFL, dan materi akademik dengan harga terjangkau.
+            {heroSubtitle || "Bridging Borders, Embracing The World! Tingkatkan kemampuan Bahasa Inggris Anda bersama tutor private berpengalaman di Tarakan, tersedia kelas online maupun tatap muka. Spesialis persiapan IELTS, TOEFL, dan materi akademik dengan harga terjangkau."}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up delay-300">
@@ -148,7 +203,7 @@ export default function Home() {
                           Senin - Jumat
                         </td>
                         <td className="py-3 text-center border-b border-dashed border-[var(--color-line)] font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                          Rp 100.000
+                          {formatPrice(SESSION_PRICES.weekday)}
                         </td>
                         <td rowSpan={2} className="py-3 text-center align-middle border-b border-dashed border-l border-[var(--color-line)] font-bold font-[var(--font-inter)] text-[var(--color-ink-soft)]">
                           Rp 736.250*
@@ -159,7 +214,7 @@ export default function Home() {
                           Sabtu
                         </td>
                         <td className="py-3 text-center border-b border-dashed border-[var(--color-line)] font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                          Rp 150.000
+                          {formatPrice(SESSION_PRICES.saturday)}
                         </td>
                       </tr>
                       <tr>
@@ -167,7 +222,7 @@ export default function Home() {
                           Minggu
                         </td>
                         <td className="py-3 text-center font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                          <SketchCircleHighlight color="var(--color-accent-coral)" strokeWidth={2} padding={5}>Rp 200.000</SketchCircleHighlight>
+                          <SketchCircleHighlight color="var(--color-accent-coral)" strokeWidth={2} padding={5}>{formatPrice(SESSION_PRICES.sunday)}</SketchCircleHighlight>
                         </td>
                         <td className="py-3 text-center border-l border-[var(--color-line)] font-bold font-[var(--font-inter)] text-[var(--color-ink-soft)]">
                           ✕ Tutup
@@ -192,74 +247,99 @@ export default function Home() {
 
       <SketchDivider color="var(--color-brand-blue)" strokeWidth={2} className="opacity-30" />
 
-      {/* TESTIMONIALS TEASER (Placeholder for Alumni module data) */}
-      <section className="section-padding bg-[var(--color-paper-bg)]">
-        <div className="container-main">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl mb-4">Cerita Sukses Alumni</h2>
-            <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Bergabunglah dengan mereka yang telah meraih targetnya.</p>
-          </div>
+      {/* TESTIMONIALS — featured alumni from /admin/alumni (hidden until there are any) */}
+      {featuredAlumni.length > 0 && (
+        <section className="section-padding bg-[var(--color-paper-bg)]">
+          <div className="container-main">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl mb-4">Cerita Sukses Alumni</h2>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Bergabunglah dengan mereka yang telah meraih targetnya.</p>
+            </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Placeholder Testimonial 1 */}
-            <Card variant="sketch" className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] flex items-center justify-center">
-                  <span className="font-bold text-[var(--color-ink-soft)]">A</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)]">Andi Pratama</h4>
-                  <p className="text-xs text-[var(--color-accent-coral)] font-bold">IELTS 7.5</p>
-                </div>
-              </div>
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] text-sm italic relative z-10">
-                <span className="absolute -top-4 -left-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">"</span>
-                "Tutor sangat sabar dan mengerti area kelemahan saya. Dalam 2 bulan, writing score saya naik signifikan!"
-                <span className="absolute -bottom-4 -right-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">"</span>
-              </p>
-            </Card>
-            {/* Placeholder Testimonial 2 */}
-            <Card variant="sketch" className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] flex items-center justify-center">
-                  <span className="font-bold text-[var(--color-ink-soft)]">S</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)]">Siti Nurbaya</h4>
-                  <p className="text-xs text-[var(--color-brand-blue)] font-bold">Diterima di UI</p>
-                </div>
-              </div>
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] text-sm italic relative z-10">
-                <span className="absolute -top-4 -left-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">"</span>
-                "Belajar SIMAK UI bahasa inggris jadi jauh lebih mudah dimengerti berkat Refa Learn. Sistem bayarnya juga gak bikin deg-degan di awal."
-                <span className="absolute -bottom-4 -right-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">"</span>
-              </p>
-            </Card>
-            {/* Placeholder Testimonial 3 */}
-            <Card variant="sketch" className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] flex items-center justify-center">
-                  <span className="font-bold text-[var(--color-ink-soft)]">K</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)]">Kevin L.</h4>
-                  <p className="text-xs text-[var(--color-success-green)] font-bold">TOEFL 580</p>
-                </div>
-              </div>
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] text-sm italic relative z-10">
-                <span className="absolute -top-4 -left-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">"</span>
-                "Materi PDF nya sangat terstruktur dan sesi 90 menit itu sangat efektif karena kita fokus bedah soal. Recommended tutor!"
-                <span className="absolute -bottom-4 -right-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">"</span>
-              </p>
-            </Card>
+            <div className="grid md:grid-cols-3 gap-6">
+              {featuredAlumni.map((alumnus, idx) => (
+                <Card key={alumnus.id} variant="sketch" className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] flex items-center justify-center overflow-hidden shrink-0">
+                      {alumnus.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={alumnus.photo_url} alt={alumnus.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="font-bold text-[var(--color-ink-soft)]">{alumnus.name.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[var(--color-ink)] font-[var(--font-inter)]">{alumnus.name}</h4>
+                      {alumnus.achievement_title && (
+                        <p className={`text-xs font-bold ${ACHIEVEMENT_COLORS[idx % ACHIEVEMENT_COLORS.length]}`}>{alumnus.achievement_title}</p>
+                      )}
+                    </div>
+                  </div>
+                  {alumnus.testimonial_text && (
+                    <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] text-sm italic relative z-10">
+                      <span className="absolute -top-4 -left-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">&ldquo;</span>
+                      &ldquo;{alumnus.testimonial_text}&rdquo;
+                      <span className="absolute -bottom-4 -right-2 text-4xl text-[var(--color-line)] font-serif z-[-1]">&rdquo;</span>
+                    </p>
+                  )}
+                </Card>
+              ))}
+            </div>
+            <div className="text-center mt-10">
+              <Link href="/alumni" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
+                Lihat semua alumni <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
-          <div className="text-center mt-10">
-            <Link href="/alumni" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
-              Lihat semua alumni <ArrowRight className="w-4 h-4" />
-            </Link>
+        </section>
+      )}
+
+      {/* LATEST NEWS */}
+      {latestPosts.length > 0 && (
+        <section className="section-padding bg-[var(--color-paper-bg-alt)]">
+          <div className="container-main">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl mb-4">Info & Artikel Terbaru</h2>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Tips belajar dan kabar terbaru dari Refa Learn.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {latestPosts.map((post) => (
+                <Link href={`/news/${post.slug}`} key={post.id} className="group h-full flex">
+                  <Card variant="sketch" className="p-0 overflow-hidden flex flex-col w-full hover:border-[var(--color-brand-blue)] transition-colors duration-300">
+                    {post.cover_image_url ? (
+                      <div className="w-full h-40 bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-40 bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] flex items-center justify-center">
+                        <span className="font-[var(--font-kalam)] text-3xl text-[var(--color-line)] opacity-50">Refa Learn</span>
+                      </div>
+                    )}
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        {post.category ? <Badge variant="blue">{post.category}</Badge> : <span />}
+                        {post.published_at && (
+                          <span className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{formatTimestamp(post.published_at)}</span>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-bold font-[var(--font-inter)] leading-snug group-hover:text-[var(--color-brand-blue)] transition-colors">
+                        {post.title}
+                      </h3>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+            <div className="text-center mt-10">
+              <Link href="/news" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
+                Lihat semua artikel <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
     </PaperBackground>
   );

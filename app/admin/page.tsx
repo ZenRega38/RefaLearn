@@ -15,86 +15,114 @@ import {
   ShoppingBag,
   Newspaper,
   GraduationCap,
-  ShieldCheck
+  ShieldCheck,
+  Wallet,
+  Handshake,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/pricing";
+import { todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
+import { hhmm } from "@/lib/format";
+
+type TodaySession = { id: string; start_time: string; end_time: string; status: string; profiles: { full_name: string } | null };
 
 type DashboardStats = {
   totalStudents: number;
   pendingSessions: number;
   pendingInvoices: number;
   pendingOrders: number;
+  pendingPrepayments: number;
+  pendingReschedules: number;
+  unreadChats: number;
   totalRevenue: number;
 };
 
 export default function AdminOverviewDashboard() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  const [todaySessions, setTodaySessions] = useState<TodaySession[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     pendingSessions: 0,
     pendingInvoices: 0,
     pendingOrders: 0,
+    pendingPrepayments: 0,
+    pendingReschedules: 0,
+    unreadChats: 0,
     totalRevenue: 0
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
-      // Students count
-      const { count: studentsCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'student');
+      const { data: { user } } = await supabase.auth.getUser();
+      const count = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count || 0);
 
-      // Pending Sessions
-      const { count: sessionsCount } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+      const [
+        totalStudents,
+        pendingSessions,
+        pendingInvoices,
+        pendingOrders,
+        pendingPrepayments,
+        pendingReschedules,
+        unreadChats,
+        revenueRows,
+        today,
+      ] = await Promise.all([
+        count(supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student')),
+        count(supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+        count(supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('status', 'proof_uploaded')),
+        count(supabase.from('material_orders').select('*', { count: 'exact', head: true }).eq('status', 'proof_uploaded')),
+        count(supabase.from('prepayments').select('*', { count: 'exact', head: true }).eq('status', 'proof_uploaded')),
+        count(supabase.from('reschedule_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+        count(supabase.from('chat_messages').select('*', { count: 'exact', head: true }).eq('is_read', false).neq('sender_id', user?.id ?? '')),
+        Promise.all([
+          supabase.from('invoices').select('total_amount').eq('status', 'confirmed'),
+          supabase.from('material_orders').select('total_amount').eq('status', 'confirmed'),
+          supabase.from('prepayments').select('total_amount').eq('status', 'confirmed'),
+        ]),
+        supabase
+          .from('sessions')
+          .select('id, start_time, end_time, status, profiles(full_name)')
+          .eq('date', todayStr())
+          .eq('status', 'accepted')
+          .order('start_time', { ascending: true }),
+      ]);
 
-      // Pending Invoices (proof uploaded waiting for review)
-      const { count: invoicesCount } = await supabase
-        .from('invoices')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'proof_uploaded');
+      // Total collected: confirmed monthly invoices + confirmed material
+      // orders + confirmed prepayments.
+      const totalRevenue = revenueRows
+        .flatMap((r) => r.data || [])
+        .reduce((sum, row) => sum + (row.total_amount || 0), 0);
 
-      // Pending Orders (proof uploaded waiting for review)
-      const { count: ordersCount } = await supabase
-        .from('material_orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'proof_uploaded');
-
-      // Total Revenue (Confirmed invoices + confirmed orders)
-      const { data: invData } = await supabase.from('invoices').select('total_amount').eq('status', 'confirmed');
-      const { data: ordData } = await supabase.from('material_orders').select('total_amount').eq('status', 'confirmed');
-
-      let revenue = 0;
-      invData?.forEach(i => revenue += i.total_amount);
-      ordData?.forEach(o => revenue += o.total_amount);
-
+      setTodaySessions((today.data || []) as unknown as TodaySession[]);
       setStats({
-        totalStudents: studentsCount || 0,
-        pendingSessions: sessionsCount || 0,
-        pendingInvoices: invoicesCount || 0,
-        pendingOrders: ordersCount || 0,
-        totalRevenue: revenue
+        totalStudents,
+        pendingSessions,
+        pendingInvoices,
+        pendingOrders,
+        pendingPrepayments,
+        pendingReschedules,
+        unreadChats,
+        totalRevenue,
       });
       setLoading(false);
     };
 
     fetchStats();
-  }, []);
+  }, [supabase]);
 
   const adminLinks = [
-    { href: "/admin/chat", label: "Inbox Chat", icon: <MessageCircle className="w-6 h-6" />, color: "text-[var(--color-brand-blue)]", bg: "bg-[var(--color-brand-blue)]/10" },
-    { href: "/admin/sessions", label: "Kelas & Sesi", icon: <Video className="w-6 h-6" />, color: "text-[var(--color-accent-coral)]", bg: "bg-[var(--color-accent-coral)]/10", badge: stats.pendingSessions },
+    { href: "/admin/chat", label: "Inbox Chat", icon: <MessageCircle className="w-6 h-6" />, color: "text-[var(--color-brand-blue)]", bg: "bg-[var(--color-brand-blue)]/10", badge: stats.unreadChats },
+    { href: "/admin/sessions", label: "Kelas & Sesi", icon: <Video className="w-6 h-6" />, color: "text-[var(--color-accent-coral)]", bg: "bg-[var(--color-accent-coral)]/10", badge: stats.pendingSessions + stats.pendingReschedules },
     { href: "/admin/availability", label: "Jadwal & Ketersediaan", icon: <Calendar className="w-6 h-6" />, color: "text-[var(--color-accent-yellow)]", bg: "bg-[var(--color-accent-yellow)]/20" },
     { href: "/admin/invoices", label: "Tagihan Bulanan", icon: <Receipt className="w-6 h-6" />, color: "text-[var(--color-success-green)]", bg: "bg-[var(--color-success-green)]/10", badge: stats.pendingInvoices },
     { href: "/admin/materials", label: "Materi Digital", icon: <BookOpen className="w-6 h-6" />, color: "text-purple-500", bg: "bg-purple-100" },
     { href: "/admin/material-orders", label: "Pembelian Materi", icon: <ShoppingBag className="w-6 h-6" />, color: "text-pink-500", bg: "bg-pink-100", badge: stats.pendingOrders },
+    { href: "/admin/prepayments", label: "Bayar di Muka", icon: <Wallet className="w-6 h-6" />, color: "text-teal-600", bg: "bg-teal-100", badge: stats.pendingPrepayments },
     { href: "/admin/news", label: "Manajemen Berita", icon: <Newspaper className="w-6 h-6" />, color: "text-indigo-500", bg: "bg-indigo-100" },
     { href: "/admin/alumni", label: "Kisah Alumni", icon: <GraduationCap className="w-6 h-6" />, color: "text-orange-500", bg: "bg-orange-100" },
+    { href: "/admin/partners", label: "Partner", icon: <Handshake className="w-6 h-6" />, color: "text-cyan-600", bg: "bg-cyan-100" },
     { href: "/admin/settings", label: "Pengaturan Website", icon: <Settings className="w-6 h-6" />, color: "text-slate-500", bg: "bg-slate-100" },
     { href: "/admin/contracts", label: "Kontrak Sesi", icon: <ShieldCheck className="w-6 h-6" />, color: "text-[var(--color-success-green)]", bg: "bg-[var(--color-success-green)]/10" },
   ];
@@ -162,11 +190,32 @@ export default function AdminOverviewDashboard() {
             <div>
               <div className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">Review Bukti Bayar</div>
               <div className="text-2xl font-bold font-[var(--font-inter)] text-[var(--color-ink)]">
-                {loading ? "-" : (stats.pendingInvoices + stats.pendingOrders)}
+                {loading ? "-" : (stats.pendingInvoices + stats.pendingOrders + stats.pendingPrepayments)}
               </div>
             </div>
           </Card>
         </div>
+
+        {/* Today */}
+        <Card variant="sketch" className="p-5 bg-white">
+          <h2 className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-ink)] flex items-center gap-2 mb-3">
+            <Clock className="w-5 h-5 text-[var(--color-accent-coral)]" /> Sesi Hari Ini
+          </h2>
+          {loading ? (
+            <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">Memuat...</p>
+          ) : todaySessions.length === 0 ? (
+            <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">Tidak ada sesi terjadwal hari ini.</p>
+          ) : (
+            <ul className="divide-y divide-[var(--color-line)] font-[var(--font-inter)] text-sm">
+              {todaySessions.map((s) => (
+                <li key={s.id} className="py-2 flex justify-between gap-4">
+                  <span className="font-semibold text-[var(--color-ink)]">{s.profiles?.full_name || 'Siswa'}</span>
+                  <span className="text-[var(--color-ink-soft)]">{hhmm(s.start_time)}–{hhmm(s.end_time)} {APP_TIMEZONE_LABEL}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
         {/* Navigation Grid */}
         <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block mt-8">

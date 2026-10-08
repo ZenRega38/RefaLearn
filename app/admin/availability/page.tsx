@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Badge } from "@/components/ui/Badge";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
+import { formatDateStr } from "@/lib/format";
+import { SESSION_MINUTES } from "@/lib/policy";
+import { minutesToTime, timeToMinutes, todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
 import { Plus, Trash2, Calendar, Clock, RefreshCw } from "lucide-react";
 
 type AvailabilityRule = {
@@ -39,7 +39,7 @@ const DAYS = [
 ];
 
 export default function AdminAvailabilityPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [rules, setRules] = useState<AvailabilityRule[]>([]);
   const [blackouts, setBlackouts] = useState<BlackoutDate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,8 +55,7 @@ export default function AdminAvailabilityPage() {
   const [blackoutDate, setBlackoutDate] = useState("");
   const [blackoutReason, setBlackoutReason] = useState("");
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
 
     // Fetch rules
     const { data: rulesData } = await supabase
@@ -77,15 +76,24 @@ export default function AdminAvailabilityPage() {
     if (blackoutsData) setBlackouts(blackoutsData);
 
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleAddRule = async () => {
     if (!isRecurring && !specificDate) {
       alert("Pilih tanggal untuk jadwal satu kali (one-off).");
+      return;
+    }
+    if (!isRecurring && specificDate < todayStr()) {
+      alert("Tanggal jadwal satu kali tidak boleh di masa lalu.");
+      return;
+    }
+    if (!startTime || !endTime || timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+      alert("Jam selesai harus setelah jam mulai (di hari yang sama).");
       return;
     }
 
@@ -130,6 +138,19 @@ export default function AdminAvailabilityPage() {
       return;
     }
 
+    // A blackout only stops new bookings — it doesn't cancel sessions that
+    // are already on that day, so make sure the admin knows about them.
+    const { count } = await supabase
+      .from('sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('date', blackoutDate)
+      .in('status', ['pending', 'accepted']);
+    if (count && count > 0 && !window.confirm(
+      `Ada ${count} sesi menunggu/terjadwal pada tanggal ini. Tanggal libur tidak membatalkan sesi tersebut — tolak atau batalkan manual di menu Sesi. Lanjutkan?`
+    )) {
+      return;
+    }
+
     const { error } = await supabase.from('blackout_dates').insert([{
       date: blackoutDate,
       reason: blackoutReason || null
@@ -145,6 +166,7 @@ export default function AdminAvailabilityPage() {
   };
 
   const handleDeleteBlackout = async (id: string) => {
+    if (!window.confirm("Buka kembali tanggal ini untuk booking?")) return;
     await supabase.from('blackout_dates').delete().eq('id', id);
     fetchData();
   };
@@ -230,24 +252,25 @@ export default function AdminAvailabilityPage() {
                     value={startTime}
                     onChange={(e) => {
                       setStartTime(e.target.value);
-                      // Auto-calculate 90 mins end time if possible
-                      try {
-                        const [h, m] = e.target.value.split(':').map(Number);
-                        const date = new Date();
-                        date.setHours(h, m + 90);
-                        const endH = String(date.getHours()).padStart(2, '0');
-                        const endM = String(date.getMinutes()).padStart(2, '0');
-                        setEndTime(`${endH}:${endM}`);
-                      } catch (e) { }
+                      // Default the end to one session later, capped at 23:59
+                      // so it never wraps past midnight.
+                      if (e.target.value) {
+                        setEndTime(minutesToTime(Math.min(timeToMinutes(e.target.value) + SESSION_MINUTES, 23 * 60 + 59)));
+                      }
                     }}
                   />
                   <Input
-                    label="Jam Selesai (90 menit)"
+                    label="Jam Selesai"
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
                   />
                 </div>
+
+                <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                  Jam dalam {APP_TIMEZONE_LABEL}. Rentang yang lebih panjang otomatis dibagi menjadi slot {SESSION_MINUTES} menit
+                  (mis. 16:00–20:00 → 16:00, 17:30).
+                </p>
 
                 <Button onClick={handleAddRule} className="w-full">
                   <Plus className="w-4 h-4 mr-1" /> Tambah Jadwal
@@ -276,7 +299,7 @@ export default function AdminAvailabilityPage() {
                           {rule.is_recurring ? (
                             <span className="font-semibold text-[var(--color-brand-blue)]">Setiap {DAYS.find(d => d.value === rule.day_of_week)?.label}</span>
                           ) : (
-                            <span className="font-semibold text-[var(--color-accent-coral)]">{format(parseISO(rule.specific_date!), 'dd MMM yyyy', { locale: id })}</span>
+                            <span className="font-semibold text-[var(--color-accent-coral)]">{formatDateStr(rule.specific_date!, 'dd MMM yyyy')}</span>
                           )}
                         </td>
                         <td className="p-3 font-mono text-xs" data-label="Waktu">
@@ -363,7 +386,7 @@ export default function AdminAvailabilityPage() {
                     blackouts.map((b) => (
                       <tr key={b.id} className="border-b border-[var(--color-line)]">
                         <td className="p-3 font-semibold text-[var(--color-ink)]" data-label="Tanggal Libur">
-                          {format(parseISO(b.date), 'dd MMMM yyyy', { locale: id })}
+                          {formatDateStr(b.date, 'dd MMMM yyyy')}
                         </td>
                         <td className="p-3 text-[var(--color-ink-soft)]" data-label="Keterangan">
                           {b.reason || '-'}

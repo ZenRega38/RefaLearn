@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminUser } from "@/lib/api-auth";
+import { errorMessage, readJson, requireAdminUser } from "@/lib/api-auth";
 import {
     getUserEmail,
-    sendSessionDeclinedEmail,
     sendInvoiceStatusEmail,
     sendMaterialOrderStatusEmail,
+    sendPrepaymentStatusEmail,
 } from "@/lib/email";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
+import { monthLabel } from "@/lib/format";
 
 /**
  * Generic "notify a student" endpoint, called by admin pages right after
- * they update a record's status via the browser Supabase client. Kept as
- * one endpoint (dispatching on `type`) rather than one route per event —
- * all of them share the same admin-check + "look up student email" shape.
+ * they confirm or reject a payment. Session accept/decline and reschedule
+ * decisions email from their own routes.
  *
- * Body: { type: string; recordId: string }
+ * Body: { type: "invoice_status" | "material_order_status" | "prepayment_status"; recordId: string }
  */
 export async function POST(request: NextRequest) {
     const auth = await requireAdminUser();
@@ -24,45 +22,20 @@ export async function POST(request: NextRequest) {
     }
     const { supabase } = auth;
 
-    let body: { type?: string; recordId?: string };
-    try {
-        body = await request.json();
-    } catch {
-        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-
-    const { type, recordId } = body;
+    const body = await readJson<{ type?: string; recordId?: string }>(request);
+    const type = body?.type;
+    const recordId = body?.recordId;
     if (!type || !recordId) {
         return NextResponse.json({ error: "type and recordId are required" }, { status: 400 });
     }
 
+    const nameOf = async (studentId: string) => {
+        const { data } = await supabase.from("profiles").select("full_name").eq("id", studentId).single();
+        return data?.full_name || "Siswa";
+    };
+
     try {
         switch (type) {
-            case "session_declined": {
-                const { data: session } = await supabase
-                    .from("sessions")
-                    .select("student_id, date, start_time")
-                    .eq("id", recordId)
-                    .single();
-                if (!session) throw new Error("Session not found");
-
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("full_name")
-                    .eq("id", session.student_id)
-                    .single();
-
-                const email = await getUserEmail(session.student_id);
-                if (email) {
-                    await sendSessionDeclinedEmail(email, {
-                        studentName: profile?.full_name || "Siswa",
-                        date: format(parseISO(session.date), "dd MMMM yyyy", { locale: id }),
-                        time: (session.start_time as string)?.slice(0, 5) || "",
-                    });
-                }
-                break;
-            }
-
             case "invoice_status": {
                 const { data: invoice } = await supabase
                     .from("invoices")
@@ -72,22 +45,11 @@ export async function POST(request: NextRequest) {
                 if (!invoice) throw new Error("Invoice not found");
                 if (invoice.status !== "confirmed" && invoice.status !== "rejected") break;
 
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("full_name")
-                    .eq("id", invoice.student_id)
-                    .single();
-
                 const email = await getUserEmail(invoice.student_id);
                 if (email) {
-                    const monthLabel = format(
-                        new Date(invoice.period_year, invoice.period_month - 1, 1),
-                        "MMMM yyyy",
-                        { locale: id }
-                    );
                     await sendInvoiceStatusEmail(email, {
-                        studentName: profile?.full_name || "Siswa",
-                        monthLabel,
+                        studentName: await nameOf(invoice.student_id),
+                        monthLabel: monthLabel(invoice.period_month, invoice.period_year),
                         status: invoice.status,
                     });
                 }
@@ -103,17 +65,30 @@ export async function POST(request: NextRequest) {
                 if (!order) throw new Error("Order not found");
                 if (order.status !== "confirmed" && order.status !== "rejected") break;
 
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("full_name")
-                    .eq("id", order.student_id)
-                    .single();
-
                 const email = await getUserEmail(order.student_id);
                 if (email) {
                     await sendMaterialOrderStatusEmail(email, {
-                        studentName: profile?.full_name || "Siswa",
+                        studentName: await nameOf(order.student_id),
                         status: order.status,
+                    });
+                }
+                break;
+            }
+
+            case "prepayment_status": {
+                const { data: item } = await supabase
+                    .from("prepayments")
+                    .select("student_id, status")
+                    .eq("id", recordId)
+                    .single();
+                if (!item) throw new Error("Prepayment not found");
+                if (item.status !== "confirmed" && item.status !== "rejected") break;
+
+                const email = await getUserEmail(item.student_id);
+                if (email) {
+                    await sendPrepaymentStatusEmail(email, {
+                        studentName: await nameOf(item.student_id),
+                        status: item.status,
                     });
                 }
                 break;
@@ -124,8 +99,8 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ ok: true });
-    } catch (err: any) {
+    } catch (err) {
         console.error("[api/notify] failed:", err);
-        return NextResponse.json({ error: err.message || "Failed to send notification" }, { status: 500 });
+        return NextResponse.json({ error: errorMessage(err, "Failed to send notification") }, { status: 500 });
     }
 }

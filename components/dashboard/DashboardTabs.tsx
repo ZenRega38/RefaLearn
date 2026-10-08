@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Receipt, BookOpen } from "lucide-react";
+import { CalendarCheck, Receipt, BookOpen, UserCircle } from "lucide-react";
 
 const tabs = [
     { href: "/dashboard", label: "Sesi Saya", icon: CalendarCheck, exact: true },
     { href: "/dashboard/invoices", label: "Tagihan Saya", icon: Receipt },
     { href: "/dashboard/materials", label: "Materi Saya", icon: BookOpen },
+    { href: "/dashboard/profile", label: "Profil", icon: UserCircle },
 ];
 
 export function DashboardTabs() {

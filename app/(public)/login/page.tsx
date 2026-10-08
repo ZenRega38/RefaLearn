@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/redirect";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,9 +25,19 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  const [error, setError] = useState<string | null>(null);
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const [supabase] = useState(() => createClient());
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error") === "link" ? "Link sudah kedaluwarsa atau tidak valid. Silakan coba lagi." : null
+  );
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const {
@@ -64,12 +75,24 @@ export default function LoginPage() {
         .single();
 
       const role = profileData?.role || 'student';
+      const home = role === 'admin' ? '/admin' : '/dashboard';
+      // Back to where they were going (e.g. /schedule), never off-site and
+      // never into the other role's area.
+      const next = safeNextPath(searchParams.get('next'), home);
+      const allowed = role === 'admin' ? !next.startsWith('/dashboard') : !next.startsWith('/admin');
 
       // Force hard refresh to ensure middleware picks up the new session immediately
-      window.location.href = role === 'admin' ? '/admin' : '/dashboard';
+      window.location.assign(allowed ? next : home);
 
-    } catch (err: any) {
-      setError(err.message || "Gagal masuk. Periksa kembali email dan password Anda.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(
+        message === "Invalid login credentials"
+          ? "Email atau password salah."
+          : message === "Email not confirmed"
+            ? "Email Anda belum dikonfirmasi. Cek kotak masuk email Anda untuk link konfirmasi."
+            : message || "Gagal masuk. Periksa kembali email dan password Anda."
+      );
     }
   };
 
@@ -104,14 +127,21 @@ export default function LoginPage() {
                 error={errors.email?.message}
               />
 
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                icon={<Lock className="w-4 h-4" />}
-                {...register("password")}
-                error={errors.password?.message}
-              />
+              <div className="space-y-1">
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="••••••••"
+                  icon={<Lock className="w-4 h-4" />}
+                  {...register("password")}
+                  error={errors.password?.message}
+                />
+                <div className="text-right">
+                  <Link href="/forgot-password" className="text-xs font-[var(--font-inter)] text-[var(--color-brand-blue)] hover:underline">
+                    Lupa password?
+                  </Link>
+                </div>
+              </div>
 
               <Turnstile
                 siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
@@ -134,7 +164,7 @@ export default function LoginPage() {
 
             <div className="mt-8 pt-6 border-t border-dashed border-[var(--color-line)] text-center text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
               Belum punya akun?{" "}
-              <Link href="/register" className="text-[var(--color-brand-blue)] font-bold hover:underline">
+              <Link href={`/register${searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next')!)}` : ''}`} className="text-[var(--color-brand-blue)] font-bold hover:underline">
                 Daftar sekarang
               </Link>
             </div>

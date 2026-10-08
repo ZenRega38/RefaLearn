@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { BookOpen, Upload, Check, RefreshCw, AlertCircle, Download, Lock } from "lucide-react";
+import { PaymentInstructions, type BankDetails, type EwalletDetails } from "@/components/ui/PaymentInstructions";
+import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
+import { uploadPaymentProof } from "@/lib/storage";
+import { formatTimestamp } from "@/lib/format";
 import { useRouter } from "next/navigation";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
 
 type Order = {
   id: string;
@@ -26,91 +27,97 @@ type Material = {
   id: string;
   title: string;
   category: string;
-  cover_image_url: string;
-  file_url: string;
+  cover_image_url: string | null;
 };
+
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
 
 export default function StudentMaterialsDashboard() {
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [orders, setOrders] = useState<(Order & { materials: Material[] })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [ewalletDetails, setEwalletDetails] = useState<EwalletDetails | null>(null);
 
   // Upload modal state
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [proofUrl, setProofUrl] = useState("");
+  const [uploadingOrder, setUploadingOrder] = useState<Order | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push('/login');
+      router.push('/login?next=/dashboard/materials');
       return;
     }
+    setStudentId(user.id);
 
-    const { data: ordersData, error: ordersError } = await supabase
-      .from('material_orders')
-      .select('*')
-      .eq('student_id', user.id)
-      .order('created_at', { ascending: false });
+    const [{ data: ordersData }, { data: settingsData }] = await Promise.all([
+      supabase
+        .from('material_orders')
+        .select('*')
+        .eq('student_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase.from('site_settings').select('key, value').in('key', ['bank_details', 'ewallet_details']),
+    ]);
+
+    settingsData?.forEach((row) => {
+      if (row.key === 'bank_details') setBankDetails(row.value);
+      if (row.key === 'ewallet_details') setEwalletDetails(row.value);
+    });
 
     if (ordersData && ordersData.length > 0) {
-      // Collect all unique material IDs
-      const allMaterialIds = new Set<string>();
-      ordersData.forEach(o => o.material_ids.forEach((id: string) => allMaterialIds.add(id)));
+      const allMaterialIds = Array.from(new Set(ordersData.flatMap((o) => o.material_ids as string[])));
 
-      // Fetch materials
+      // RLS shows purchased items even after the admin hides them from the
+      // catalog, so a confirmed purchase never disappears from here.
       const { data: materialsData } = await supabase
         .from('materials')
-        .select('id, title, category, cover_image_url, file_url')
-        .in('id', Array.from(allMaterialIds));
+        .select('id, title, category, cover_image_url')
+        .in('id', allMaterialIds);
 
       const materialsMap = new Map<string, Material>();
       materialsData?.forEach(m => materialsMap.set(m.id, m as Material));
 
-      // Combine
-      const combined = ordersData.map(order => ({
+      setOrders(ordersData.map(order => ({
         ...order,
-        materials: order.material_ids.map((id: string) => materialsMap.get(id)).filter(Boolean) as Material[]
-      }));
-
-      setOrders(combined);
+        materials: (order.material_ids as string[]).map((id) => materialsMap.get(id)).filter(Boolean) as Material[]
+      })));
     } else {
       setOrders([]);
     }
 
     setLoading(false);
-  };
+  }, [supabase, router]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchOrders();
-  }, [router]);
+  }, [fetchOrders]);
 
   const handleSubmitProof = async () => {
-    if (!proofUrl.trim() || !uploadingId) {
-      alert("Masukkan link bukti pembayaran!");
-      return;
-    }
+    if (!proofFile || !uploadingOrder || !studentId) return;
 
     setSubmitting(true);
-    const { error } = await supabase
-      .from('material_orders')
-      .update({
-        proof_url: proofUrl,
-        status: 'proof_uploaded'
-      })
-      .eq('id', uploadingId);
+    try {
+      const path = await uploadPaymentProof("orders", studentId, uploadingOrder.id, proofFile);
+      const { error } = await supabase
+        .from('material_orders')
+        .update({ proof_url: path, status: 'proof_uploaded' })
+        .eq('id', uploadingOrder.id);
+      if (error) throw error;
 
-    setSubmitting(false);
-
-    if (!error) {
-      setUploadingId(null);
-      setProofUrl("");
+      setUploadingOrder(null);
+      setProofFile(null);
       fetchOrders();
-    } else {
-      alert(`Gagal mengirim bukti: ${error.message}`);
+    } catch (err) {
+      alert(`Gagal mengirim bukti: ${errorText(err)}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -137,30 +144,34 @@ export default function StudentMaterialsDashboard() {
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" href="/materials" size="sm">Cari Materi Lain</Button>
-            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3">
+            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3" aria-label="Muat ulang">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {uploadingId && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md space-y-6">
+        {uploadingOrder && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <Card className="w-full max-w-md space-y-6 my-8">
               <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
                 Upload Bukti Pembayaran
               </h3>
+              <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
+                Total transfer: <strong>{formatPrice(uploadingOrder.total_amount)}</strong>
+              </p>
+              <PaymentInstructions bank={bankDetails} ewallet={ewalletDetails} />
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                Silakan masukkan link/URL gambar bukti transfer (misal: Google Drive, Imgur, dsb).
+                Setelah transfer, unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF, maks. 5 MB).
               </p>
               <Input
-                label="URL Bukti Transfer"
-                placeholder="https://..."
-                value={proofUrl}
-                onChange={(e) => setProofUrl(e.target.value)}
+                type="file"
+                label="File Bukti Transfer"
+                accept="image/*,application/pdf"
+                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
               />
               <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-line)]">
-                <Button variant="ghost" onClick={() => { setUploadingId(null); setProofUrl(""); }}>Batal</Button>
-                <Button onClick={handleSubmitProof} isLoading={submitting}>Kirim Bukti</Button>
+                <Button variant="ghost" onClick={() => { setUploadingOrder(null); setProofFile(null); }}>Batal</Button>
+                <Button onClick={handleSubmitProof} isLoading={submitting} disabled={!proofFile}>Kirim Bukti</Button>
               </div>
             </Card>
           </div>
@@ -187,10 +198,10 @@ export default function StudentMaterialsDashboard() {
                 <div className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <div className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] uppercase tracking-wider font-bold mb-1">
-                      Pesanan {format(parseISO(order.created_at), 'dd MMM yyyy', { locale: id })}
+                      Pesanan {formatTimestamp(order.created_at, 'dd MMM yyyy')}
                     </div>
                     <div className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                      {formatPrice(order.total_amount)}
+                      {order.total_amount === 0 ? "Gratis" : formatPrice(order.total_amount)}
                     </div>
                   </div>
 
@@ -201,8 +212,8 @@ export default function StudentMaterialsDashboard() {
                       <Button
                         size="sm"
                         onClick={() => {
-                          setUploadingId(order.id);
-                          setProofUrl(order.proof_url || "");
+                          setUploadingOrder(order);
+                          setProofFile(null);
                         }}
                       >
                         <Upload className="w-4 h-4 mr-2" /> Upload Bukti
@@ -230,6 +241,7 @@ export default function StudentMaterialsDashboard() {
                     <div key={material.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                       <div className="w-20 h-20 rounded bg-[var(--color-paper-bg-alt)] shrink-0 border border-[var(--color-line)] flex justify-center items-center overflow-hidden">
                         {material.cover_image_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img src={material.cover_image_url} alt={material.title} className="w-full h-full object-cover" />
                         ) : (
                           <BookOpen className="w-8 h-8 text-[var(--color-ink-soft)]/50" />
@@ -244,7 +256,7 @@ export default function StudentMaterialsDashboard() {
                         {order.status === 'confirmed' ? (
                           <Button
                             variant="secondary"
-                            onClick={() => window.open(material.file_url, '_blank')}
+                            onClick={() => window.open(`/api/materials/download?materialId=${material.id}`, '_blank', 'noopener')}
                             className="w-full sm:w-auto"
                           >
                             <Download className="w-4 h-4 mr-2" /> Akses Materi

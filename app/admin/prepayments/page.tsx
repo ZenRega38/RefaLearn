@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
+import { formatTimestamp } from "@/lib/format";
 import { Wallet, Check, X, RefreshCw, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { getSignedProofUrl } from "@/lib/storage";
@@ -16,21 +15,23 @@ type Prepayment = {
     id: string;
     student_id: string;
     total_amount: number;
-    status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected';
+    status: 'pending' | 'proof_uploaded' | 'confirmed' | 'rejected' | 'cancelled';
     proof_url: string | null;
     waived_fee_ids: string[] | null;
     created_at: string;
-    profiles: { full_name: string; phone: string };
+    profiles: { full_name: string; phone: string } | null;
 };
 
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
+
 export default function AdminPrepaymentsPage() {
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
     const [items, setItems] = useState<Prepayment[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'review' | 'all'>('review');
     const [viewingId, setViewingId] = useState<string | null>(null);
 
-    const fetchItems = async () => {
+    const fetchItems = useCallback(async () => {
         setLoading(true);
         let query = supabase
             .from('prepayments')
@@ -42,18 +43,29 @@ export default function AdminPrepaymentsPage() {
         const { data } = await query;
         if (data) setItems(data as Prepayment[]);
         setLoading(false);
-    };
+    }, [supabase, filter]);
 
-    useEffect(() => { fetchItems(); }, [filter]);
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- data load on filter change
+        fetchItems();
+    }, [fetchItems]);
+
+    const notify = (recordId: string) => {
+        fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'prepayment_status', recordId }),
+        }).catch((err) => console.error('[admin/prepayments] notify failed:', err));
+    };
 
     const handleViewProof = async (item: Prepayment) => {
         if (!item.proof_url) return;
         setViewingId(item.id);
         try {
             const url = await getSignedProofUrl(item.proof_url);
-            window.open(url, '_blank');
-        } catch (err: any) {
-            alert(`Gagal membuka bukti: ${err.message}`);
+            window.open(url, '_blank', 'noopener');
+        } catch (err) {
+            alert(`Gagal membuka bukti: ${errorText(err)}`);
         } finally {
             setViewingId(null);
         }
@@ -70,24 +82,33 @@ export default function AdminPrepaymentsPage() {
             return;
         }
 
+        // Only fees still unpaid are waived — one that was already put on an
+        // invoice in the meantime stays billed there (never both).
         if (item.waived_fee_ids && item.waived_fee_ids.length > 0) {
             const { error: feeError } = await supabase
                 .from('cancellation_fees')
                 .update({ status: 'waived', resolved_at: new Date().toISOString() })
-                .in('id', item.waived_fee_ids);
+                .in('id', item.waived_fee_ids)
+                .eq('status', 'unpaid');
 
             if (feeError) {
                 alert(`Pembayaran dikonfirmasi, tapi gagal menghapus denda lama: ${feeError.message}. Cek manual.`);
             }
         }
 
+        notify(item.id);
         fetchItems();
     };
 
     const handleReject = async (id: string) => {
         if (!window.confirm("Tolak bukti pembayaran ini?")) return;
         const { error } = await supabase.from('prepayments').update({ status: 'rejected' }).eq('id', id);
-        if (!error) fetchItems();
+        if (!error) {
+            notify(id);
+            fetchItems();
+        } else {
+            alert(`Gagal menolak: ${error.message}`);
+        }
     };
 
     const getStatusBadge = (status: string) => {
@@ -96,6 +117,7 @@ export default function AdminPrepaymentsPage() {
             case 'proof_uploaded': return <Badge variant="blue">Perlu Review</Badge>;
             case 'confirmed': return <Badge variant="green">Lunas</Badge>;
             case 'rejected': return <Badge variant="red">Ditolak</Badge>;
+            case 'cancelled': return <Badge variant="outline">Dibatalkan (ditagih normal)</Badge>;
             default: return <Badge variant="outline">{status}</Badge>;
         }
     };
@@ -108,7 +130,7 @@ export default function AdminPrepaymentsPage() {
                         <Wallet className="w-8 h-8" /> Pembayaran di Muka
                     </h1>
                     <div className="flex gap-2">
-                        <select className="input-field py-2" value={filter} onChange={(e) => setFilter(e.target.value as any)}>
+                        <select className="input-field py-2" value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
                             <option value="review">Perlu Review</option>
                             <option value="all">Semua</option>
                         </select>
@@ -120,7 +142,7 @@ export default function AdminPrepaymentsPage() {
 
                 <Card className="p-0 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm border-collapse font-[var(--font-inter)]">
+                        <table className="responsive-table w-full text-left text-sm border-collapse font-[var(--font-inter)]">
                             <thead>
                                 <tr className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)]">
                                     <th className="p-4 font-semibold text-[var(--color-ink-soft)]">Tanggal</th>
@@ -139,15 +161,15 @@ export default function AdminPrepaymentsPage() {
                                 ) : (
                                     items.map((item) => (
                                         <tr key={item.id} className="border-b border-[var(--color-line)]">
-                                            <td className="p-4">{format(parseISO(item.created_at), 'dd MMM yyyy', { locale: id })}</td>
-                                            <td className="p-4">
+                                            <td className="p-4" data-label="Tanggal">{formatTimestamp(item.created_at, 'dd MMM yyyy')}</td>
+                                            <td className="p-4" data-label="Siswa">
                                                 <div className="font-semibold">{item.profiles?.full_name}</div>
                                                 <div className="text-xs text-[var(--color-ink-soft)]">{item.profiles?.phone}</div>
                                             </td>
-                                            <td className="p-4 font-bold">{formatPrice(item.total_amount)}</td>
-                                            <td className="p-4 text-xs">{item.waived_fee_ids?.length ? `${item.waived_fee_ids.length} denda` : "-"}</td>
-                                            <td className="p-4 text-center">{getStatusBadge(item.status)}</td>
-                                            <td className="p-4 text-right">
+                                            <td className="p-4 font-bold" data-label="Total">{formatPrice(item.total_amount)}</td>
+                                            <td className="p-4 text-xs" data-label="Denda Dihapus">{item.waived_fee_ids?.length ? `${item.waived_fee_ids.length} denda` : "-"}</td>
+                                            <td className="p-4 text-center" data-label="Status">{getStatusBadge(item.status)}</td>
+                                            <td className="p-4 text-right" data-label="Aksi">
                                                 {item.status === 'proof_uploaded' && (
                                                     <div className="flex justify-end gap-2">
                                                         {item.proof_url && (

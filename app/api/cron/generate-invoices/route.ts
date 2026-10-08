@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateInvoicesForPeriod, getPreviousPeriod } from "@/lib/invoicing";
-import { getUserEmail, sendInvoiceGeneratedEmail } from "@/lib/email";
-import { createClient } from "@/lib/supabase/server";
-import { formatPrice } from "@/lib/pricing";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import { generateInvoicesForPeriod, getPreviousPeriod, notifyInvoicesCreated } from "@/lib/invoicing";
+import { errorMessage } from "@/lib/api-auth";
 
 /**
- * Scheduled job (agent.md Section 6.6): runs on the 1st of every month and
- * bills every student's `completed` sessions from the month that just
- * ended. Wired up in vercel.json to run at 01:00 WIB on day 1 of each month.
+ * Scheduled job (agent.md Section 6.6): bills every student's completed
+ * sessions up to the end of the month that just ended. vercel.json runs it
+ * at 00:00 UTC on day 1 (08:00 WITA).
  *
- * Protected by CRON_SECRET rather than requireAdminUser, since there's no
- * logged-in admin session when Vercel's scheduler calls this — only Vercel
- * (or you, manually, with the secret) should ever be able to trigger it.
+ * Protected by CRON_SECRET rather than an admin session, since there's no
+ * logged-in user when Vercel's scheduler calls this.
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
@@ -25,30 +20,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const result = await generateInvoicesForPeriod(periodMonth, periodYear);
-
-        const monthLabel = format(new Date(periodYear, periodMonth - 1, 1), "MMMM yyyy", { locale: id });
-        const supabase = await createClient(true);
-
-        for (const created of result.created) {
-            try {
-                const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("full_name")
-                    .eq("id", created.studentId)
-                    .single();
-
-                const email = await getUserEmail(created.studentId);
-                if (email) {
-                    await sendInvoiceGeneratedEmail(email, {
-                        studentName: profile?.full_name || "Siswa",
-                        monthLabel,
-                        totalAmount: formatPrice(created.totalAmount),
-                    });
-                }
-            } catch (emailErr) {
-                console.error("[cron/generate-invoices] failed to email student:", created.studentId, emailErr);
-            }
-        }
+        await notifyInvoicesCreated(result);
 
         console.log(`[cron/generate-invoices] period ${periodMonth}/${periodYear}:`, {
             created: result.created.length,
@@ -56,8 +28,8 @@ export async function GET(request: NextRequest) {
         });
 
         return NextResponse.json({ ok: true, ...result });
-    } catch (err: any) {
+    } catch (err) {
         console.error("[cron/generate-invoices] failed:", err);
-        return NextResponse.json({ error: err.message || "Failed to generate invoices" }, { status: 500 });
+        return NextResponse.json({ error: errorMessage(err, "Failed to generate invoices") }, { status: 500 });
     }
 }

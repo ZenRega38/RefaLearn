@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useCart } from "@/lib/cart";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { BookOpen, Search, ShoppingBag } from "lucide-react";
+import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import Link from "next/link";
-import { Input } from "@/components/ui/Input";
 
 type Material = {
   id: string;
@@ -22,7 +22,8 @@ type Material = {
 };
 
 export default function MaterialsCatalogPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  const cart = useCart();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,8 +32,7 @@ export default function MaterialsCatalogPage() {
 
   useEffect(() => {
     const fetchMaterials = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('materials')
         .select('*')
         .eq('is_active', true)
@@ -49,7 +49,7 @@ export default function MaterialsCatalogPage() {
     };
 
     fetchMaterials();
-  }, []);
+  }, [supabase]);
 
   const filteredMaterials = materials.filter(m => {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,6 +71,11 @@ export default function MaterialsCatalogPage() {
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
             Kumpulan e-book, modul, worksheet, dan video pembelajaran eksklusif yang dirancang khusus untuk mempercepat proses belajarmu.
           </p>
+          {cart.length > 0 && (
+            <Button href="/materials/checkout" variant="secondary" size="sm">
+              <ShoppingCart className="w-4 h-4" /> Keranjang ({cart.length})
+            </Button>
+          )}
         </div>
 
         {/* Filters & Search */}
@@ -127,6 +132,7 @@ export default function MaterialsCatalogPage() {
                 <Card variant="sketch" className="p-0 h-full flex flex-col hover:-translate-y-1 transition-transform duration-300">
                   <div className="aspect-[4/3] bg-[var(--color-paper-bg-alt)] border-b-2 border-[var(--color-line)] relative overflow-hidden">
                     {material.cover_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={material.cover_image_url}
                         alt={material.title}

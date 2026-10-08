@@ -23,6 +23,9 @@ export function RichTextEditor({ content, onChange, className = "" }: RichTextEd
       }),
     ],
     content,
+    // These pages are server-rendered first; rendering the editor on the
+    // server causes a hydration mismatch.
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },

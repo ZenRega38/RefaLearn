@@ -19,7 +19,11 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // The drawer is "open for this path": navigating anywhere closes it
+  // without an effect that resets state after render.
+  const [openOnPath, setOpenOnPath] = useState<string | null>(null);
+  const mobileOpen = openOnPath === pathname;
+  const setMobileOpen = (open: boolean) => setOpenOnPath(open ? pathname : null);
   const [scrolled, setScrolled] = useState(false);
   const { profile, loading: authLoading, signOut } = useAuthProfile();
 
@@ -35,10 +39,6 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";

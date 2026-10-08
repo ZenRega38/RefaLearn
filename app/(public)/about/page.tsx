@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
+import { isSafeHttpUrl, toWhatsAppNumber } from "@/lib/format";
+import { DEFAULT_CONTACT } from "@/lib/contact";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { SketchDivider } from "@/components/sketch/SketchDivider";
 import { SketchBox } from "@/components/sketch/SketchBox";
@@ -10,6 +12,8 @@ import Image from "next/image";
 
 export const metadata = {
   title: "Tentang Kami",
+  description: "Kenali Refa Learn dan tutornya — les privat Bahasa Inggris di Tarakan dengan sistem bayar setelah kelas.",
+  alternates: { canonical: "/about" },
 };
 
 export const revalidate = 60; // Re-fetch settings at most once a minute
@@ -54,7 +58,7 @@ function placeholderImage(slotIndex: number) {
 }
 
 export default async function AboutPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("site_settings")
     .select("key, value")
@@ -87,8 +91,15 @@ export default async function AboutPage() {
   const vision = settingsByKey.get("vision")?.text || FALLBACK_VISION;
   const missionRaw = settingsByKey.get("mission")?.text as string | undefined;
   const missionBullets = missionRaw ? missionRaw.split("|").filter(Boolean) : FALLBACK_MISSION;
-  const contactPhone = settingsByKey.get("contact_phone")?.text || "6280000000000";
-  const contactEmail = settingsByKey.get("contact_email")?.text || "hello@refalearn.com";
+  const contactPhone = toWhatsAppNumber(settingsByKey.get("contact_phone")?.text || DEFAULT_CONTACT.whatsapp);
+  const contactEmail = settingsByKey.get("contact_email")?.text || DEFAULT_CONTACT.email;
+
+  // Partners — the whole section stays hidden until the admin adds one.
+  const { data: partnersData } = await supabase
+    .from("partners")
+    .select("id, name, logo_url, url")
+    .order("order_index", { ascending: true });
+  const partners = partnersData ?? [];
 
   // --- "Sorotan" section: up to 3 admin-picked articles, in the order the
   // admin chose them in. Anything the admin hasn't picked yet (or a picked
@@ -153,7 +164,7 @@ export default async function AboutPage() {
                 </div>
 
                 <div className="absolute -top-0 -left-6 font-[var(--font-caveat)] text-2xl text-[var(--color-accent-coral)] rotate-[-10deg] z-20">
-                  "Halo!"
+                  &quot;Halo!&quot;
                 </div>
 
                 {/* Height is pinned to a % of the PHOTO box (not the frame)
@@ -315,13 +326,44 @@ export default async function AboutPage() {
         </div>
       </section>
 
+      {/* Partner */}
+      {partners.length > 0 && (
+        <section className="section-padding">
+          <div className="container-main">
+            <h2 className="text-3xl mb-8 text-center">
+              Partner <SketchBox color="var(--color-accent-yellow)">Kami</SketchBox>
+            </h2>
+            <div className="flex flex-wrap justify-center gap-6">
+              {partners.map((p) => {
+                const inner = (
+                  <div className="flex flex-col items-center gap-2 bg-white px-6 py-4 rounded-[var(--radius-card)] border border-[var(--color-line)] min-w-[140px] hover:shadow-md transition-shadow">
+                    {p.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.logo_url} alt={p.name} className="h-12 w-auto object-contain" />
+                    ) : (
+                      <span className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">{p.name.charAt(0)}</span>
+                    )}
+                    <span className="text-sm font-semibold font-[var(--font-inter)] text-[var(--color-ink)]">{p.name}</span>
+                  </div>
+                );
+                return isSafeHttpUrl(p.url) ? (
+                  <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer">{inner}</a>
+                ) : (
+                  <div key={p.id}>{inner}</div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Hubungi Kami */}
       <section className="section-padding bg-[var(--color-paper-bg-alt)] border-t border-[var(--color-line)]">
         <div className="container-main max-w-4xl mx-auto text-center">
           <h2 className="text-3xl mb-8">Punya Pertanyaan?</h2>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <a href={`https://wa.me/${contactPhone}`} className="flex items-center justify-center gap-3 bg-white px-6 py-4 rounded-[var(--radius-card)] border border-[var(--color-line)] hover:border-[var(--color-success-green)] hover:shadow-md transition-all group">
+            <a href={`https://wa.me/${contactPhone}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 bg-white px-6 py-4 rounded-[var(--radius-card)] border border-[var(--color-line)] hover:border-[var(--color-success-green)] hover:shadow-md transition-all group">
               <MessageCircle className="text-[var(--color-success-green)] group-hover:scale-110 transition-transform" />
               <div className="text-left">
                 <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">WhatsApp</p>

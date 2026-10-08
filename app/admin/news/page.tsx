@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { Plus, Edit2, Trash2, Eye, ExternalLink, RefreshCw, Star } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, Star } from "lucide-react";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { slugify } from "@/lib/format";
 
 type NewsPost = {
   id: string;
@@ -20,7 +22,7 @@ type NewsPost = {
 };
 
 export default function AdminNewsPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,10 +40,13 @@ export default function AdminNewsPage() {
   const [content, setContent] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
+  // Kept from the loaded post so editing never changes its URL or its
+  // original publish date.
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const fetchPosts = async () => {
-    setLoading(true);
+  const fetchPosts = useCallback(async () => {
     const { data, error } = await supabase
       .from('news_posts')
       .select('id, title, slug, category, status, published_at')
@@ -51,9 +56,9 @@ export default function AdminNewsPage() {
       setPosts(data as NewsPost[]);
     }
     setLoading(false);
-  };
+  }, [supabase]);
 
-  const fetchFeatured = async () => {
+  const fetchFeatured = useCallback(async () => {
     const { data } = await supabase
       .from('site_settings')
       .select('value')
@@ -62,7 +67,7 @@ export default function AdminNewsPage() {
 
     const ids = (data?.value as { post_ids?: string[] } | undefined)?.post_ids;
     setFeaturedIds(Array.isArray(ids) ? ids : []);
-  };
+  }, [supabase]);
 
   // Toggles a post in/out of the About page's "Sorotan" section (max 3,
   // order = the order they were added in). Only published posts can be
@@ -101,9 +106,10 @@ export default function AdminNewsPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchPosts();
     fetchFeatured();
-  }, []);
+  }, [fetchPosts, fetchFeatured]);
 
   const handleEdit = async (id: string) => {
     const { data, error } = await supabase
@@ -119,6 +125,8 @@ export default function AdminNewsPage() {
       setContent(data.content);
       setCoverUrl(data.cover_image_url || "");
       setStatus(data.status);
+      setCurrentSlug(data.slug);
+      setPublishedAt(data.published_at);
       setIsEditing(true);
     }
   };
@@ -130,6 +138,8 @@ export default function AdminNewsPage() {
     setContent("");
     setCoverUrl("");
     setStatus("draft");
+    setCurrentSlug(null);
+    setPublishedAt(null);
     setIsEditing(true);
   };
 
@@ -145,12 +155,7 @@ export default function AdminNewsPage() {
 
     setSaving(true);
 
-    // Create slug from title
-    const slug = title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const slug = currentSlug || slugify(title);
 
     const postData = {
       title,
@@ -159,7 +164,8 @@ export default function AdminNewsPage() {
       content,
       cover_image_url: coverUrl,
       status,
-      published_at: status === 'published' ? new Date().toISOString() : null
+      // First publish stamps the date; later edits keep it.
+      published_at: status === 'published' ? (publishedAt || new Date().toISOString()) : publishedAt,
     };
 
     let error;
@@ -180,7 +186,7 @@ export default function AdminNewsPage() {
 
     if (error) {
       console.error(error);
-      alert(`Gagal menyimpan: ${error.message}`);
+      alert(error.message.includes('duplicate key') ? 'Judul/slug ini sudah dipakai berita lain. Gunakan judul berbeda.' : `Gagal menyimpan: ${error.message}`);
     } else {
       setIsEditing(false);
       fetchPosts();
@@ -228,12 +234,7 @@ export default function AdminNewsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="URL Cover Image (Opsional)"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <ImageUploadField label="Cover Image (Opsional)" value={coverUrl} onChange={setCoverUrl} folder="news" />
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">Status Publikasi</label>
                 <select
@@ -302,7 +303,7 @@ export default function AdminNewsPage() {
                 ) : posts.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="p-8 text-center text-[var(--color-ink-soft)]">
-                      Belum ada berita. Klik "Tulis Baru" untuk membuat postingan pertama.
+                      Belum ada berita. Klik &quot;Tulis Baru&quot; untuk membuat postingan pertama.
                     </td>
                   </tr>
                 ) : (

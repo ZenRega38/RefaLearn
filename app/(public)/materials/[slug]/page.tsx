@@ -7,11 +7,11 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { BookOpen, ShoppingBag, ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
+import { BookOpen, ShoppingBag, ArrowLeft, CheckCircle2, ShieldCheck, ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
+import { formatTimestamp } from "@/lib/format";
+import { addToCart, useCart } from "@/lib/cart";
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
 
 type Material = {
   id: string;
@@ -19,43 +19,42 @@ type Material = {
   slug: string;
   category: string;
   price: number;
-  cover_image_url: string;
-  description: string;
+  cover_image_url: string | null;
+  description: string | null;
   created_at: string;
+  updated_at: string | null;
 };
+
+type Ownership = "none" | "pending" | "owned";
 
 export default function MaterialDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
+  const cart = useCart();
 
   const [material, setMaterial] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
-  const [hasBought, setHasBought] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [ownership, setOwnership] = useState<Ownership>("none");
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMaterialAndUser = async () => {
-      setLoading(true);
-
-      // Get user
       const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      setUserId(user?.id ?? null);
 
-      // Get material
-      const { data: matData, error: matError } = await supabase
+      const { data: matData } = await supabase
         .from('materials')
         .select('*')
         .eq('slug', slug)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (matData) {
         setMaterial(matData as Material);
 
-        // Check if already bought
         if (user) {
           const { data: orders } = await supabase
             .from('material_orders')
@@ -64,45 +63,36 @@ export default function MaterialDetailPage() {
             .contains('material_ids', [matData.id])
             .neq('status', 'rejected');
 
-          if (orders && orders.length > 0) {
-            setHasBought(true);
-          }
+          if (orders?.some((o) => o.status === 'confirmed')) setOwnership("owned");
+          else if (orders && orders.length > 0) setOwnership("pending");
         }
       }
       setLoading(false);
     };
 
     if (slug) fetchMaterialAndUser();
-  }, [slug]);
+  }, [slug, supabase]);
 
   const handleBuy = async () => {
-    if (!user) {
-      router.push('/login?redirect=/materials/' + slug);
+    if (!userId) {
+      router.push(`/login?next=/materials/${slug}`);
       return;
     }
-
     if (!material) return;
 
     setBuying(true);
-
-    const status = material.price === 0 ? 'confirmed' : 'pending';
-
-    const { data, error } = await supabase
-      .from('material_orders')
-      .insert([{
-        student_id: user.id,
-        material_ids: [material.id],
-        total_amount: material.price,
-        status: status,
-      }])
-      .select('id')
-      .single();
-
-    if (!error && data) {
+    try {
+      const res = await fetch('/api/materials/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materialIds: [material.id] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
       router.push('/dashboard/materials');
-    } else {
+    } catch (err) {
       setBuying(false);
-      alert(`Gagal memproses pesanan: ${error?.message}`);
+      alert(`Gagal memproses pesanan: ${err instanceof Error ? err.message : ''}`);
     }
   };
 
@@ -131,6 +121,8 @@ export default function MaterialDetailPage() {
     );
   }
 
+  const inCart = cart.includes(material.id);
+
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
       <div className="container-main max-w-5xl mx-auto space-y-8">
@@ -147,6 +139,7 @@ export default function MaterialDetailPage() {
             <Card variant="sketch" className="p-0 overflow-hidden">
               <div className="aspect-[3/4] bg-[var(--color-paper-bg-alt)] relative flex items-center justify-center">
                 {material.cover_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={material.cover_image_url}
                     alt={material.title}
@@ -169,12 +162,18 @@ export default function MaterialDetailPage() {
                 </div>
               </div>
 
-              {hasBought ? (
+              {ownership !== "none" ? (
                 <div className="bg-[var(--color-success-green)]/10 text-[var(--color-success-green)] p-4 rounded-lg flex items-start gap-3 border border-[var(--color-success-green)]/30">
                   <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold font-[var(--font-inter)] text-sm">Sudah Dibeli</p>
-                    <p className="text-xs mt-1">Anda sudah memiliki akses ke materi ini.</p>
+                    <p className="font-semibold font-[var(--font-inter)] text-sm">
+                      {ownership === "owned" ? "Sudah Dibeli" : "Pesanan Sedang Diproses"}
+                    </p>
+                    <p className="text-xs mt-1">
+                      {ownership === "owned"
+                        ? "Anda sudah memiliki akses ke materi ini."
+                        : "Selesaikan pembayaran dari dashboard untuk membuka akses."}
+                    </p>
                     <Button
                       href="/dashboard/materials"
                       variant="secondary"
@@ -186,13 +185,26 @@ export default function MaterialDetailPage() {
                   </div>
                 </div>
               ) : (
-                <Button
-                  onClick={handleBuy}
-                  isLoading={buying}
-                  className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
-                >
-                  <ShoppingBag className="w-5 h-5 mr-2" /> Beli Sekarang
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleBuy}
+                    isLoading={buying}
+                    className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
+                  >
+                    <ShoppingBag className="w-5 h-5 mr-2" /> Beli Sekarang
+                  </Button>
+                  {material.price > 0 && (
+                    inCart ? (
+                      <Button href="/materials/checkout" variant="secondary" className="w-full">
+                        <ShoppingCart className="w-4 h-4" /> Lihat Keranjang
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" className="w-full" onClick={() => addToCart(material.id)}>
+                        <ShoppingCart className="w-4 h-4" /> Tambah ke Keranjang
+                      </Button>
+                    )
+                  )}
+                </div>
               )}
 
               <ul className="space-y-3 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] pt-4 border-t border-dashed border-[var(--color-line)]">
@@ -215,7 +227,7 @@ export default function MaterialDetailPage() {
                 {material.title}
               </h1>
               <div className="flex items-center gap-4 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                <span>Diperbarui: {format(parseISO(material.created_at), 'dd MMM yyyy', { locale: id })}</span>
+                <span>Diperbarui: {formatTimestamp(material.updated_at || material.created_at, 'dd MMM yyyy')}</span>
                 <span className="w-1 h-1 rounded-full bg-[var(--color-line)]" />
                 <span>Kategori: {material.category}</span>
               </div>
@@ -227,7 +239,7 @@ export default function MaterialDetailPage() {
               </h2>
               <div
                 className="prose prose-slate max-w-none font-[var(--font-inter)] prose-p:text-[var(--color-ink-soft)] prose-headings:text-[var(--color-ink)]"
-                dangerouslySetInnerHTML={{ __html: material.description }}
+                dangerouslySetInnerHTML={{ __html: material.description || "" }}
               />
             </Card>
           </div>

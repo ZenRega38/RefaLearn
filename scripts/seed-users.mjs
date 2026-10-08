@@ -104,20 +104,27 @@ async function main() {
       user_metadata: {
         full_name: u.full_name,
         phone: u.phone,
-        role: u.role,
       },
     });
 
     if (error) {
       if (error.message.includes('already been registered') || error.code === 'email_exists') {
         console.log(`↷ ${u.email} already exists, skipping`);
+      } else {
+        console.error(`✗ Failed to create ${u.email}:`, error.message);
         continue;
       }
-      console.error(`✗ Failed to create ${u.email}:`, error.message);
-      continue;
+    } else {
+      console.log(`✓ Created ${u.email} (${data.user.id})`);
     }
 
-    console.log(`✓ Created ${u.email} (${data.user.id})`);
+    // The signup trigger always creates a 'student' profile (the role can no
+    // longer come from user metadata), so promote admins explicitly.
+    if (u.role === 'admin') {
+      const { error: roleError } = await supabase.from('profiles').update({ role: 'admin' }).eq('id', u.id);
+      if (roleError) console.error(`✗ Failed to promote ${u.email} to admin:`, roleError.message);
+      else console.log(`  ↑ ${u.email} is admin`);
+    }
   }
 
   console.log('\nDone. Password for all seeded accounts: Password123!');

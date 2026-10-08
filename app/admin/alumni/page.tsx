@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
 import { Plus, Edit2, Trash2, RefreshCw, Star } from "lucide-react";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 type Alumni = {
   id: string;
@@ -23,7 +24,7 @@ type Alumni = {
 };
 
 export default function AdminAlumniPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,8 +41,7 @@ export default function AdminAlumniPage() {
   const [orderIndex, setOrderIndex] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  const fetchAlumni = async () => {
-    setLoading(true);
+  const fetchAlumni = useCallback(async () => {
     const { data, error } = await supabase
       .from('alumni')
       .select('*')
@@ -52,11 +52,12 @@ export default function AdminAlumniPage() {
       setAlumni(data as Alumni[]);
     }
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchAlumni();
-  }, []);
+  }, [fetchAlumni]);
 
   const handleEdit = (alumnus: Alumni) => {
     setCurrentId(alumnus.id);
@@ -183,12 +184,7 @@ export default function AdminAlumniPage() {
               />
             </div>
 
-            <Input
-              label="URL Foto (Opsional)"
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="https://..."
-            />
+            <ImageUploadField label="Foto (Opsional)" value={photoUrl} onChange={setPhotoUrl} folder="alumni" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
@@ -275,7 +271,7 @@ export default function AdminAlumniPage() {
                 ) : alumni.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-[var(--color-ink-soft)]">
-                      Belum ada data alumni. Klik "Tambah Alumni" untuk membuat.
+                      Belum ada data alumni. Klik &quot;Tambah Alumni&quot; untuk membuat.
                     </td>
                   </tr>
                 ) : (
@@ -284,6 +280,7 @@ export default function AdminAlumniPage() {
                       <td className="p-4 flex items-center gap-3 !justify-start" data-label="Alumni">
                         <div className="w-10 h-10 rounded-full bg-[var(--color-paper-bg)] border border-[var(--color-line)] flex items-center justify-center overflow-hidden shrink-0">
                           {item.photo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={item.photo_url} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
                             <span className="font-bold text-[var(--color-ink-soft)]">{item.name.charAt(0)}</span>

@@ -26,11 +26,13 @@
 
 insert into public.site_settings (key, value)
 values
-  ('hero_title', '{"text": "Bridging Borders, Embracing The World!"}'),
-  ('hero_subtitle', '{"text": "Refa Learn adalah platform les privat Bahasa Inggris interaktif dengan sistem bayar setelah kelas. Tingkatkan kemampuan bahasa Inggris-mu untuk TOEFL, IELTS, atau komunikasi sehari-hari bersama tutor profesional."}'),
-  ('contact_email', '{"text": "hello@refalearn.com"}'),
-  ('contact_phone', '{"text": "6281234567890"}'),
-  ('contact_address', '{"text": "Jl. Pendidikan No. 123, Jakarta Selatan, 12345"}'),
+  -- Empty hero values = the homepage keeps its built-in headline.
+  ('hero_title', '{"text": ""}'),
+  ('hero_subtitle', '{"text": ""}'),
+  ('contact_email', '{"text": "info.refalearn@gmail.com"}'),
+  ('contact_phone', '{"text": "628135627087"}'),
+  ('contact_address', '{"text": "Tarakan, Kalimantan Utara"}'),
+  ('material_categories', '{"list": ["IELTS", "TOEFL", "Umum", "Mahasiswa", "SMA 12", "SMA 11"]}'),
   ('social_instagram', '{"text": "https://instagram.com/refalearn"}'),
   ('social_tiktok', '{"text": "https://tiktok.com/@refalearn"}'),
   ('bank_details', '{"bank_name": "Bank Central Asia (BCA)", "account_number": "1234567890", "account_name": "Refa Learn"}'),
@@ -40,8 +42,8 @@ values
   ('cofounder_bio', '{"name": "", "title": "", "text": ""}'),
   ('mission', '{"text": "Menyediakan sesi privat yang 100% dipersonalisasi berdasarkan tingkat kemampuan dan target siswa.|Membangun sistem pembayaran yang adil, transparan, dan berbasis kepercayaan penuh.|Menyediakan materi pembelajaran mandiri berkualitas (modul & latihan soal) yang mudah diakses."}'),
   ('vision', '{"text": "Menjadi katalis pembelajaran Bahasa Inggris yang adaptif dan terpercaya bagi generasi muda Indonesia, mempersiapkan mereka untuk kompetisi akademik global tanpa batas."}'),
-  ('cancellation_policy', '{"text": "Pembatalan sesi dapat dilakukan maksimal 12 jam sebelum jadwal dimulai tanpa dikenakan biaya. Pembatalan mendadak dapat memengaruhi ketersediaan jadwal berikutnya."}'),
-  ('late_payment_policy', '{"text": "Invoice bulanan jatuh tempo 7 hari setelah diterbitkan. Keterlambatan pembayaran dapat menunda penjadwalan sesi baru hingga pembayaran dikonfirmasi."}')
+  ('cancellation_policy', '{"text": "Pembatalan sesi dapat dilakukan maksimal 12 jam sebelum jadwal dimulai tanpa dikenakan biaya. Pembatalan sesi terjadwal kurang dari 12 jam sebelumnya dikenakan biaya Rp50.000 per tindakan pembatalan."}'),
+  ('late_payment_policy', '{"text": "Invoice bulanan jatuh tempo 7 hari setelah diterbitkan. Selama ada tagihan yang lewat jatuh tempo, booking sesi baru dijeda hingga pembayaran dikonfirmasi."}')
 on conflict (key) do update set value = excluded.value;
 
 -- ----------------------------------------------------------------------------
@@ -71,7 +73,7 @@ insert into public.contracts (id, version, content, effective_date)
 values (
   'aaaaaaaa-0000-0000-0000-000000000001',
   1,
-  '<h3>Ketentuan Sesi Les Privat Refa Learn</h3><p>Dengan mengajukan permintaan sesi ini, saya menyetujui hal-hal berikut:</p><ol><li>Sesi berdurasi sesuai slot yang dipilih dan dimulai tepat waktu.</li><li>Pembatalan dilakukan maksimal 12 jam sebelum jadwal, atau sesi tetap dapat ditagihkan.</li><li>Pembayaran dilakukan setelah sesi selesai (Bayar Setelah Kelas), melalui invoice bulanan.</li><li>Materi dan rekaman sesi (jika ada) hanya untuk penggunaan pribadi siswa.</li><li>Refa Learn berhak menolak atau menjadwalkan ulang permintaan sesi sesuai ketersediaan.</li></ol><p><em>Placeholder — ganti dengan teks kontrak final sebelum go-live.</em></p>',
+  '<h3>Ketentuan Sesi Les Privat Refa Learn</h3><p>Dengan mengajukan permintaan sesi ini, saya menyetujui hal-hal berikut:</p><ol><li>Sesi berdurasi sesuai slot yang dipilih dan dimulai tepat waktu.</li><li>Pembatalan dilakukan maksimal 12 jam sebelum jadwal, atau sesi tetap dapat ditagihkan.</li><li>Pembayaran dilakukan setelah sesi selesai (Bayar Setelah Kelas), melalui invoice bulanan.</li><li>Materi dan rekaman sesi (jika ada) hanya untuk penggunaan pribadi siswa.</li><li>Refa Learn berhak menolak atau menjadwalkan ulang permintaan sesi sesuai ketersediaan.</li></ol><p><em>Placeholder — di /admin/contracts klik Terbitkan Versi Baru, lalu Muat Template untuk perjanjian lengkap berbasis hukum Indonesia.</em></p>',
   current_date
 )
 on conflict (id) do nothing;
