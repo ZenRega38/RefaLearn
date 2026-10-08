@@ -10,13 +10,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { pin } = await params;
   const token = request.headers.get("x-live-token");
   const body = await readJson<{ index?: number; choice?: number }>(request);
-  if (!token || typeof body?.index !== "number" || typeof body.choice !== "number") return jsonError("Jawaban tidak valid.");
+  if (!token || typeof body?.index !== "number" || typeof body.choice !== "number") return jsonError("Invalid answer.");
 
   const admin = createAdminClient();
   const found = await sessionByPin(admin, pin);
-  if (!found) return jsonError("Kuis tidak ditemukan.", 404);
+  if (!found) return jsonError("Quiz not found.", 404);
   const { data: player } = await admin.from("live_players").select("id").eq("session_id", found.id).eq("token_hash", hashToken(token)).maybeSingle();
-  if (!player) return jsonError("Kamu belum masuk lobi ini.", 403);
+  if (!player) return jsonError("You haven't joined this lobby.", 403);
 
   const session = await advanceIfDue(admin, found);
   const error = await submitAnswer(admin, session, player.id, body.index, body.choice);

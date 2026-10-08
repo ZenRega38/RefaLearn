@@ -11,11 +11,14 @@ import { isAnswered } from "@/components/course/QuestionInput";
 import { ReviewList, type ReviewItem } from "@/components/course/ReviewList";
 import type { Passage, PublicQuestion, Response } from "@/lib/course/types";
 import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
 import { ArrowLeft, ArrowRight, RefreshCw, Trophy, RotateCcw, ClipboardCheck } from "lucide-react";
 
 type QuizPayload = {
   isPretest: boolean;
   mascot: string | null;
+  /** Self-paced course: the quiz has a target, not a gate. */
+  openOrder: boolean;
   /** Per-question time limit (seconds); null = untimed. */
   secondsPerQuestion: number | null;
   quiz: { id: string; title: string; passPercent: number; passages: Passage[]; questions: PublicQuestion[] };
@@ -25,6 +28,7 @@ type Result = { score: number; max: number; passed: boolean; isPretest: boolean;
 
 export default function LevelQuizPage() {
   const { slug, quizId } = useParams<{ slug: string; quizId: string }>();
+  const t = useCourseText();
   const [data, setData] = useState<QuizPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
@@ -76,7 +80,7 @@ export default function LevelQuizPage() {
           {error ? (
             <>
               <p className="text-[var(--color-danger-red)]">{error}</p>
-              <Button href={`/learn/${slug}`} variant="secondary">Kembali ke Kursus</Button>
+              <Button href={`/learn/${slug}`} variant="secondary">{t.backToCourse}</Button>
             </>
           ) : (
             <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--color-brand-blue)]" />
@@ -93,7 +97,7 @@ export default function LevelQuizPage() {
   const timeUp = !!limit && left === 0;
 
   const submit = async () => {
-    if (answered < quiz.questions.length && !window.confirm(`Masih ada ${quiz.questions.length - answered} soal kosong. Kumpulkan sekarang?`)) return;
+    if (answered < quiz.questions.length && !window.confirm(t.confirmBlank(quiz.questions.length - answered))) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/courses/${slug}/quiz/${quizId}`, {
@@ -105,7 +109,7 @@ export default function LevelQuizPage() {
       if (!res.ok) throw new Error(json.error);
       setResult(json);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengumpulkan quiz.");
+      alert(err instanceof Error ? err.message : t.submitFailed);
     } finally {
       setSubmitting(false);
     }
@@ -142,23 +146,23 @@ export default function LevelQuizPage() {
                 {Math.round((result.score / result.max) * 100)}%
               </p>
               <p className="font-[var(--font-inter)] text-[var(--color-ink)]">
-                {result.score} dari {result.max} benar ·{" "}
+                {t.correctOf(result.score, result.max)} ·{" "}
                 {result.isPretest ? (
-                  <strong className="text-[var(--color-brand-blue)]">Pretest selesai — materi bab ini sudah terbuka. Yuk mulai belajar!</strong>
+                  <strong className="text-[var(--color-brand-blue)]">{t.pretestDone}</strong>
                 ) : result.passed ? (
-                  <strong className="text-[var(--color-success-green)]">Lulus! Level berikutnya terbuka.</strong>
+                  <strong className="text-[var(--color-success-green)]">{data.openOrder ? t.passedOpen : t.passed}</strong>
                 ) : (
-                  <strong className="text-[var(--color-danger-red)]">Belum lulus (minimal {result.passPercent}%).</strong>
+                  <strong className="text-[var(--color-danger-red)]">{data.openOrder ? t.belowTarget(result.passPercent) : t.notPassed(result.passPercent)}</strong>
                 )}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 {!result.passed && !result.isPretest && (
-                  <Button onClick={retry}><RotateCcw className="w-4 h-4" /> Ulangi Quiz</Button>
+                  <Button onClick={retry}><RotateCcw className="w-4 h-4" /> {t.retryQuiz}</Button>
                 )}
-                <Button href={`/learn/${slug}`} variant={result.passed ? "primary" : "secondary"}>Kembali ke Kursus</Button>
+                <Button href={`/learn/${slug}`} variant={result.passed ? "primary" : "secondary"}>{t.backToCourse}</Button>
               </div>
             </Card>
-            <h2 className="text-2xl">Pembahasan</h2>
+            <h2 className="text-2xl">{t.review}</h2>
             <ReviewList items={result.review} passages={quiz.passages} />
           </div>
         ) : (
@@ -178,10 +182,10 @@ export default function LevelQuizPage() {
 
             <Card variant="sketch" className="p-5 md:p-8 space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Soal {index + 1} dari {quiz.questions.length}</p>
+                <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.questionOf(index + 1, quiz.questions.length)}</p>
                 {limit && (
                   <span className={`text-xs font-bold font-[var(--font-inter)] px-2.5 py-1 rounded-full ${timeUp ? "bg-[var(--color-danger-red)]/15 text-[var(--color-danger-red)]" : left <= 5 ? "bg-[var(--color-accent-coral)]/15 text-[var(--color-accent-coral)] animate-pulse" : "bg-[var(--color-paper-bg-alt)] text-[var(--color-ink-soft)]"}`}>
-                    {timeUp ? "Waktu habis" : `⏱ ${left} detik`}
+                    {timeUp ? t.timeUp : t.secondsLeft(left)}
                   </span>
                 )}
               </div>
@@ -202,12 +206,12 @@ export default function LevelQuizPage() {
 
             <div className="flex justify-between gap-3">
               <Button variant="ghost" onClick={() => setIndex((i) => Math.max(0, i - 1))} disabled={index === 0}>
-                <ArrowLeft className="w-4 h-4" /> Sebelumnya
+                <ArrowLeft className="w-4 h-4" /> {t.previous}
               </Button>
               {index < quiz.questions.length - 1 ? (
-                <Button onClick={() => setIndex((i) => i + 1)}>Lanjut <ArrowRight className="w-4 h-4" /></Button>
+                <Button onClick={() => setIndex((i) => i + 1)}>{t.next} <ArrowRight className="w-4 h-4" /></Button>
               ) : (
-                <Button onClick={submit} isLoading={submitting}>Kumpulkan ({answered}/{quiz.questions.length})</Button>
+                <Button onClick={submit} isLoading={submitting}>{t.submit(answered, quiz.questions.length)}</Button>
               )}
             </div>
           </>

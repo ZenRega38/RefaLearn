@@ -41,7 +41,7 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
           setState(json);
         }
       } catch {
-        if (!stop) setError("Koneksi terputus, mencoba lagi…");
+        if (!stop) setError("Connection lost, retrying…");
       }
       if (!stop) timer = window.setTimeout(tick, fast ? 700 : 1000);
     };
@@ -131,11 +131,11 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
 
   const q = state.question;
   const nextLabel =
-    state.status === "lobby" ? "Mulai Kuis" :
-    state.status === "question" ? "Tutup Soal" :
-    state.status === "reveal" ? "Papan Skor" :
-    state.status === "scoreboard" ? (state.index + 1 < state.total ? "Soal Berikutnya" : "Lihat Juara") :
-    state.status === "podium" ? "Selesai" : null;
+    state.status === "lobby" ? "Start Quiz" :
+    state.status === "question" ? "Close Question" :
+    state.status === "reveal" ? "Scoreboard" :
+    state.status === "scoreboard" ? (state.index + 1 < state.total ? "Next Question" : "Show Winners") :
+    state.status === "podium" ? "Finish" : null;
   const iconBtn = "p-2 rounded-full border-2 border-[var(--color-line)] bg-white text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] hover:border-[var(--color-brand-blue)] transition-colors";
 
   return (
@@ -156,19 +156,19 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
           onClick={() => { audio.unlock(); setSoundOn((s) => !s); }}
           className={soundOn ? "" : "animate-pulse"}
         >
-          {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} {soundOn ? "Suara on" : "Nyalakan suara"}
+          {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />} {soundOn ? "Sound on" : "Turn on sound"}
         </Button>
         {full ? (
-          <button type="button" onClick={toggleFull} className={iconBtn} aria-label="Keluar layar penuh" title="Keluar layar penuh">
+          <button type="button" onClick={toggleFull} className={iconBtn} aria-label="Exit full screen" title="Exit full screen">
             <Minimize2 className="w-5 h-5" />
           </button>
         ) : (
           <Button size="sm" variant="secondary" onClick={toggleFull}>
-            <Maximize2 className="w-4 h-4" /> Layar penuh
+            <Maximize2 className="w-4 h-4" /> Full screen
           </Button>
         )}
         {state.status !== "ended" && (
-          <button type="button" onClick={() => window.confirm("Akhiri Live Quiz sekarang?") && act("end")} className={iconBtn} aria-label="Akhiri kuis" title="Akhiri kuis">
+          <button type="button" onClick={() => window.confirm("End the Live Quiz now?") && act("end")} className={iconBtn} aria-label="End quiz" title="End quiz">
             <Square className="w-5 h-5" />
           </button>
         )}
@@ -180,38 +180,38 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
         {state.status === "lobby" && (
           <div className="grid lg:grid-cols-[1fr_auto] gap-8 items-start">
             <div className="sketch-card bg-white p-6 space-y-4">
-              <h2 className="text-3xl sm:text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Ayo gabung!</h2>
+              <h2 className="text-3xl sm:text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Join the quiz!</h2>
               <ol className="space-y-3 text-lg text-[var(--color-ink)]">
                 <li>
-                  <span className="text-[var(--color-ink-soft)]">1. Buka di HP:</span>{" "}
+                  <span className="text-[var(--color-ink-soft)]">1. On your phone, open:</span>{" "}
                   <strong className="text-2xl sm:text-3xl text-[var(--color-brand-blue)] break-all">{joinUrl.replace(/^https?:\/\//, "").replace(/\/live\/\d+$/, "/live")}</strong>
                 </li>
                 <li className="space-y-2">
-                  <span className="text-[var(--color-ink-soft)]">2. Masukkan PIN:</span>
+                  <span className="text-[var(--color-ink-soft)]">2. Enter the PIN:</span>
                   <div><PinBadge pin={state.pin} size="xl" /></div>
                 </li>
               </ol>
-              <p className="text-sm text-[var(--color-ink-soft)]">Atau scan QR, atau buka modulnya di website lalu klik <strong>Masuk Lobi</strong>.</p>
+              <p className="text-sm text-[var(--color-ink-soft)]">Or scan the QR code, or open the module on the website and tap <strong>Join Lobby</strong>.</p>
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={() => { navigator.clipboard?.writeText(joinUrl); setCopied(true); window.setTimeout(() => setCopied(false), 1500); }}
               >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Link disalin" : "Salin link"}
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Link copied" : "Copy link"}
               </Button>
             </div>
             {qr && <div className="sketch-card bg-white p-3 w-56 h-56 sm:w-64 sm:h-64 mx-auto [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: qr }} />}
             <div className="lg:col-span-2 space-y-3">
               <p className="font-semibold text-[var(--color-ink)]">
-                {state.playerCount === 0 ? "Menunggu pemain…" : `${state.playerCount} pemain siap!`}{" "}
-                <span className="text-sm font-normal text-[var(--color-ink-soft)]">(klik nama untuk mengeluarkan)</span>
+                {state.playerCount === 0 ? "Waiting for players…" : `${state.playerCount} player${state.playerCount === 1 ? "" : "s"} ready!`}{" "}
+                <span className="text-sm font-normal text-[var(--color-ink-soft)]">(click a name to remove that player)</span>
               </p>
               <div className="flex flex-wrap gap-2">
                 {state.lobby.map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => window.confirm(`Keluarkan ${p.nickname} dari lobi?`) && act("kick", p.id)}
+                    onClick={() => window.confirm(`Remove ${p.nickname} from the lobby?`) && act("kick", p.id)}
                     className="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-white border-2 border-[var(--color-line)] text-[var(--color-ink)] font-semibold shadow-[var(--shadow-sketch)] live-pop hover:line-through hover:border-[var(--color-danger-red)]"
                   >
                     <Picture name={p.avatar} className="w-9 h-9 live-float" /> {p.nickname}
@@ -228,7 +228,7 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
           ) : (
             <div className="space-y-5">
               <div className="flex items-center gap-4">
-                <span className="shrink-0 text-sm font-semibold text-[var(--color-ink-soft)]">Soal {state.index + 1}/{state.total}</span>
+                <span className="shrink-0 text-sm font-semibold text-[var(--color-ink-soft)]">Question {state.index + 1}/{state.total}</span>
                 <p className="flex-1 sketch-card bg-white px-5 py-4 text-2xl sm:text-4xl font-bold text-[var(--color-ink)] text-center leading-tight">{q.prompt}</p>
               </div>
               <div className="flex items-center justify-between gap-4">
@@ -238,7 +238,7 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
                 ) : <Picture name="owl-think" className="h-40 w-auto" />}
                 <div className="w-[110px] text-center">
                   <p className="text-5xl font-bold tabular-nums text-[var(--color-brand-blue)]">{state.answered}</p>
-                  <p className="text-sm font-semibold text-[var(--color-ink-soft)]">jawaban</p>
+                  <p className="text-sm font-semibold text-[var(--color-ink-soft)]">answers</p>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
@@ -272,18 +272,18 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
 
         {state.status === "scoreboard" && (
           <div className="max-w-2xl mx-auto space-y-5">
-            <h2 className="text-center text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Papan Skor</h2>
+            <h2 className="text-center text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Scoreboard</h2>
             <Scoreboard key={state.index} rows={state.board} limit={5} />
           </div>
         )}
 
         {(state.status === "podium" || state.status === "ended") && (
           <div className="space-y-6">
-            <h2 className="text-center text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">🏆 Juara Live Quiz 🏆</h2>
+            <h2 className="text-center text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">🏆 Live Quiz Winners 🏆</h2>
             <Podium rows={state.board} sound={soundOn && state.status === "podium"} />
             {state.status === "ended" && (
               <div className="max-w-xl mx-auto sketch-card bg-white p-5 space-y-3">
-                <p className="font-bold text-[var(--color-ink)]">Peringkat lengkap</p>
+                <p className="font-bold text-[var(--color-ink)]">Full ranking</p>
                 <ol className="space-y-1">
                   {state.board.map((r) => (
                     <li key={r.id} className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
@@ -295,7 +295,7 @@ export function LiveHost({ sessionId }: { sessionId: string }) {
                   ))}
                 </ol>
                 <Button href={`/learn/${state.courseSlug}`} variant="secondary" size="sm">
-                  <ArrowLeft className="w-4 h-4" /> Kembali ke halaman kursus
+                  <ArrowLeft className="w-4 h-4" /> Back to the course
                 </Button>
               </div>
             )}

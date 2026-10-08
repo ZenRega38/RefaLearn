@@ -23,7 +23,7 @@ export default function LiveJoinPage() {
       <form onSubmit={go} className="sketch-card w-full max-w-sm bg-white p-6 space-y-4 text-center">
         <Picture name="owl-wave" className="w-24 h-24 mx-auto live-float" />
         <h1 className="text-4xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Live Quiz</h1>
-        <p className="text-sm text-[var(--color-ink-soft)]">Masukkan PIN dari layar pengajar. Tidak perlu login.</p>
+        <p className="text-sm text-[var(--color-ink-soft)]">Enter the PIN from your teacher&apos;s screen. No sign-in needed.</p>
         <input
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -35,7 +35,7 @@ export default function LiveJoinPage() {
           autoFocus
         />
         <Button type="submit" size="lg" className="w-full" disabled={!valid}>
-          Masuk
+          Join
         </Button>
       </form>
     </div>

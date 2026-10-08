@@ -52,7 +52,7 @@ export function LiveQuizWidget({ courseSlug, levelId, compact = false }: { cours
     if (compact) return null;
     return (
       <p className="flex items-center gap-2 text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-        <Radio className="w-3.5 h-3.5" /> Live Quiz modul ini akan muncul di sini saat pengajar memulainya.
+        <Radio className="w-3.5 h-3.5" /> This module&apos;s Live Quiz will appear here when your teacher starts it.
       </p>
     );
   }
@@ -67,16 +67,16 @@ export function LiveQuizWidget({ courseSlug, levelId, compact = false }: { cours
               <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent-coral)] opacity-60 animate-ping" />
               <span className="relative inline-flex rounded-full w-2.5 h-2.5 bg-[var(--color-accent-coral)]" />
             </span>
-            Live sekarang
+            Live now
           </p>
           <p className="text-xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] leading-tight truncate">{active.title}</p>
           <p className="text-sm text-[var(--color-ink-soft)]">
-            {active.status === "lobby" ? "Lobi sudah dibuka pengajar. Yuk masuk sebelum kuis dimulai!" : "Kuis sedang berlangsung. Kamu masih bisa ikut!"} · PIN{" "}
+            {active.status === "lobby" ? "Your teacher has opened the lobby. Join before the quiz starts!" : "The quiz is running. You can still join!"} · PIN{" "}
             <strong className="tracking-wider text-[var(--color-brand-blue)]">{active.pin}</strong>
           </p>
         </div>
         <Button onClick={() => setOpen(true)} className="shrink-0">
-          Masuk Lobi
+          Join Lobby
         </Button>
       </div>
 

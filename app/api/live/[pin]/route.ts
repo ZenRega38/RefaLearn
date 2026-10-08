@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { pin } = await params;
   const admin = createAdminClient();
   const found = await sessionByPin(admin, pin);
-  if (!found) return jsonError("PIN tidak ditemukan. Cek lagi angkanya, ya.", 404);
+  if (!found) return jsonError("PIN not found. Please check the numbers.", 404);
   const session = await advanceIfDue(admin, found);
 
   let playerId: string | null = null;

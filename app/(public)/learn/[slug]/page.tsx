@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Picture } from "@/components/course/pictures";
 import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
 import { AdminLevelControls } from "@/components/course/AdminLevelControls";
-import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
+import { SkillIcon } from "@/components/course/skill";
+import { useCourseText } from "@/components/course/lang";
 import type { Skill } from "@/lib/course/types";
 import { formatPrice } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
@@ -55,6 +56,7 @@ type Outline = {
 
 export default function CourseHomePage() {
   const { slug } = useParams<{ slug: string }>();
+  const t = useCourseText();
   const [outline, setOutline] = useState<Outline | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +91,7 @@ export default function CourseHomePage() {
       <PaperBackground className="pt-24 pb-20 min-h-screen">
         <div className="text-center py-20 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-          Memuat kursus...
+          {t.loadingCourse}
         </div>
       </PaperBackground>
     );
@@ -114,8 +116,8 @@ export default function CourseHomePage() {
         <div className="text-center space-y-3">
           {outline.mascot && <Picture name={`${outline.mascot}-wave`} label="Maskot kursus" className="w-24 h-24 mx-auto" />}
           <div className="flex justify-center gap-2">
-            <Badge variant="blue">Kursus Interaktif</Badge>
-            {outline.free && <Badge variant="green">Gratis</Badge>}
+            <Badge variant="blue">{t.interactiveCourse}</Badge>
+            {outline.free && <Badge variant="green">{t.free}</Badge>}
           </div>
           <h1 className="text-4xl md:text-5xl">
             <SketchBox color="var(--color-accent-yellow)">{outline.title}</SketchBox>
@@ -138,8 +140,8 @@ export default function CourseHomePage() {
           {outline.access ? (
             <>
               <div className="flex items-center justify-between gap-4 font-[var(--font-inter)]">
-                <span className="font-semibold text-[var(--color-ink)]">Progres belajar</span>
-                <span className="text-sm text-[var(--color-ink-soft)]">{outline.progress.completed}/{outline.progress.total} modul · {pct}%</span>
+                <span className="font-semibold text-[var(--color-ink)]">{t.progress}</span>
+                <span className="text-sm text-[var(--color-ink-soft)]">{t.progressCount(outline.progress.completed, outline.progress.total, pct)}</span>
               </div>
               <div className="h-3 rounded-full bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] overflow-hidden">
                 <div className="h-full bg-[var(--color-success-green)] transition-all" style={{ width: `${pct}%` }} />
@@ -147,7 +149,7 @@ export default function CourseHomePage() {
               {nextLesson && (
                 <div className="flex justify-end">
                   <Button href={nextLesson.href}>
-                    <PlayCircle className="w-4 h-4" /> {outline.progress.completed === 0 ? "Mulai Belajar" : "Lanjutkan Belajar"}
+                    <PlayCircle className="w-4 h-4" /> {outline.progress.completed === 0 ? t.startLearning : t.continueLearning}
                   </Button>
                 </div>
               )}
@@ -155,27 +157,27 @@ export default function CourseHomePage() {
           ) : outline.free ? (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-[var(--font-inter)]">
               <div>
-                <p className="font-semibold text-[var(--color-ink)]">Kursus ini gratis</p>
-                <p className="text-sm text-[var(--color-ink-soft)]">Masuk atau daftar dulu (bisa pakai Google) supaya progres belajarmu tersimpan.</p>
+                <p className="font-semibold text-[var(--color-ink)]">{t.freeCourse}</p>
+                <p className="text-sm text-[var(--color-ink-soft)]">{t.freeCourseHint}</p>
               </div>
-              <Button href={`/login?next=/learn/${slug}`} className="shrink-0">Masuk untuk Mulai</Button>
+              <Button href={`/login?next=/learn/${slug}`} className="shrink-0">{t.signInToStart}</Button>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-[var(--font-inter)]">
               <div>
-                <p className="font-semibold text-[var(--color-ink)]">Buka seluruh materi, kuis, dan tryout</p>
+                <p className="font-semibold text-[var(--color-ink)]">{t.unlockAll}</p>
                 <p className="text-sm text-[var(--color-ink-soft)]">
                   {outline.pretest
-                    ? outline.loggedIn ? "Pretest gratis bisa langsung dikerjakan." : "Masuk dulu untuk mengerjakan pretest gratis."
-                    : "Lihat daftar bab dan materinya di bawah."}
+                    ? outline.loggedIn ? t.pretestNow : t.pretestSignIn
+                    : t.seeSyllabus}
                 </p>
               </div>
               {outline.store ? (
                 <Button href={`/materials/${outline.store.slug}`} className="shrink-0">
-                  <ShoppingBag className="w-4 h-4" /> Beli · {formatPrice(outline.store.price)}
+                  <ShoppingBag className="w-4 h-4" /> {t.buy} · {formatPrice(outline.store.price)}
                 </Button>
               ) : (
-                <Badge variant="outline">Segera hadir</Badge>
+                <Badge variant="outline">{t.comingSoon}</Badge>
               )}
             </div>
           )}
@@ -229,7 +231,7 @@ export default function CourseHomePage() {
             {level.locked ? (
               <Card className="flex items-center gap-3 border-dashed bg-white/60 font-[var(--font-inter)]">
                 <Lock className="w-5 h-5 text-[var(--color-ink-soft)] shrink-0" />
-                <p className="text-sm text-[var(--color-ink-soft)]">Modul ini belum dibuka. Pengajar akan membukanya saat kelasnya sudah sampai di topik ini.</p>
+                <p className="text-sm text-[var(--color-ink-soft)]">{t.levelLocked}</p>
               </Card>
             ) : (
             <Card className="p-0 overflow-hidden">
@@ -246,8 +248,8 @@ export default function CourseHomePage() {
                           <div className="flex-1">
                             <p className="font-bold text-[var(--color-ink)]">{p.title}</p>
                             <p className="text-xs text-[var(--color-ink-soft)]">
-                              {p.questions} soal · cek kemampuan awal sebelum belajar
-                              {p.score !== null && ` · skor ${p.score}/${p.maxScore}`}
+                              {t.questions(p.questions)} · {t.pretestRow}
+                              {p.score !== null && ` · ${t.score(p.score, p.maxScore)}`}
                             </p>
                           </div>
                         </div>
@@ -264,7 +266,7 @@ export default function CourseHomePage() {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-soft)]">
-                          <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {SKILL_LABEL[lesson.skill]}{lesson.minutes ? ` · ${lesson.minutes} menit` : ""}
+                          <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {t.skills[lesson.skill]}{lesson.minutes ? ` · ${t.minutes(lesson.minutes)}` : ""}
                         </div>
                         <p className="font-semibold text-[var(--color-ink)] truncate">{lesson.title}</p>
                         <p className="text-xs text-[var(--color-ink-soft)] line-clamp-1">{lesson.summary}</p>
@@ -284,8 +286,8 @@ export default function CourseHomePage() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--color-brand-blue)]">{q.title}</p>
                           <p className="text-xs text-[var(--color-ink-soft)]">
-                            {q.questions} soal{outline.quizSecondsPerQuestion ? ` · ${outline.quizSecondsPerQuestion} detik per soal` : ""} · {outline.openOrder ? `target ${q.passPercent}%` : `lulus minimal ${q.passPercent}% untuk lanjut`}
-                            {q.score !== null && ` · nilai terbaik ${q.score}/${q.maxScore}`}
+                            {t.questions(q.questions)}{outline.quizSecondsPerQuestion ? ` · ${t.secondsPerQuestion(outline.quizSecondsPerQuestion)}` : ""} · {outline.openOrder ? t.target(q.passPercent) : t.passToContinue(q.passPercent)}
+                            {q.score !== null && ` · ${t.bestScore(q.score, q.maxScore)}`}
                           </p>
                         </div>
                       </div>

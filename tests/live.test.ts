@@ -151,12 +151,12 @@ describe("a full live quiz", () => {
     expect(await control(client, await load(), "start")).toBeNull();
     let s = await load();
     expect(s.status).toBe("question");
-    expect(await submitAnswer(client, s, "Ani", 0, set.questions[0].answer)).toBe("Soal belum dimulai.");
+    expect(await submitAnswer(client, s, "Ani", 0, set.questions[0].answer)).toBe("The question hasn't started yet.");
 
     vi.advanceTimersByTime(1500 + 2000); // 2 s into the question
     const right0 = set.questions[0].answer;
     expect(await submitAnswer(client, s, "Ani", 0, right0)).toBeNull();
-    expect(await submitAnswer(client, s, "Ani", 0, right0)).toBe("Kamu sudah menjawab soal ini.");
+    expect(await submitAnswer(client, s, "Ani", 0, right0)).toBe("You already answered this question.");
     vi.advanceTimersByTime(8000); // 10 s in
     expect(await submitAnswer(client, s, "Budi", 0, right0)).toBeNull();
     expect(await submitAnswer(client, s, "Citra", 0, (right0 + 1) % 4)).toBeNull();
@@ -197,7 +197,7 @@ describe("a full live quiz", () => {
     expect(await submitAnswer(client, s, "Ani", 1, (right1 + 1) % 4)).toBeNull();
     // Citra doesn't answer; time runs out.
     vi.advanceTimersByTime(21_000);
-    expect(await submitAnswer(client, s, "Citra", 1, right1)).toBe("Waktu habis.");
+    expect(await submitAnswer(client, s, "Citra", 1, right1)).toBe("Time's up.");
     s = await advanceIfDue(client, s);
     expect(s.status).toBe("reveal");
     host = await buildState(client, s, { host: true });
@@ -220,7 +220,7 @@ describe("a full live quiz", () => {
     expect(podium.board.slice(0, 3).map((r) => r.id)).toEqual(["Budi", "Ani", "Citra"]);
     await control(client, await load(), "next");
     expect((await load()).status).toBe("ended");
-    expect(await control(client, await load(), "next")).toBe("Kuis sudah selesai.");
+    expect(await control(client, await load(), "next")).toBe("The quiz has ended.");
   });
 });
 

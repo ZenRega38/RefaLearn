@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
 import { ALL_COURSES, computeUnlocks, findLevelQuiz } from "@/lib/course/content";
-import { COURSES as REGISTRY } from "@/lib/course/registry";
+import { COURSES as REGISTRY, courseUiLang } from "@/lib/course/registry";
 import { convertedScore, isCorrect, normalizeAnswer, toPublicQuestion, totalScore } from "@/lib/course/grading";
 import type { Course, Passage, ProgressItem, Question, Response } from "@/lib/course/types";
 import { optionText, parsePicOption, parsePictureRef, PICTURE_NAMES } from "@/lib/course/pictures";
@@ -323,6 +323,45 @@ describe("admin-opened modules (English Day)", () => {
     expect(course.adminLocks && course.openOrder).toBe(true);
     expect(course.quizSecondsPerQuestion).toBeGreaterThan(0);
     for (const level of course.levels) for (const lesson of level.lessons) expect(lesson.minutes, lesson.id).toBeUndefined();
+  });
+
+  it("runs its quiz experience in English", () => {
+    expect(courseUiLang("english-day")).toBe("en");
+    expect(courseUiLang("toefl-itp")).toBe("id");
+  });
+
+  // Everything a learner answers or taps is English; only explanations
+  // (and phrase-table meanings / vocab meanings) may be Indonesian. Local
+  // dish names like nasi kuning or kepiting soka stay as they are.
+  it("has no Indonesian in titles, questions or options", () => {
+    const INDONESIAN = /\b(yang|dengan|saya|kamu|tidak|sudah|belum|akan|untuk|dari|ini|itu|dan|atau|adalah|di|ke|dengarkan|pasangkan|lengkapi|susun|pilih|artinya|gambar|jawaban|soal|teknisi|pantai|macet|lembur|tagihan|rumah|memasak|memancing|pelanggan|modul|kuis|bersepeda|lampu|sejak)\b/i;
+    // Quoting the Indonesian word you want to translate is the point of this one.
+    const allowed = new Set(["How do you say “pelanggan” in English?"]);
+    const texts: { where: string; text: string }[] = [];
+    const add = (where: string, text: string) => {
+      const shown = parsePicOption(text)?.caption ?? text;
+      if (!allowed.has(shown)) texts.push({ where, text: shown });
+    };
+    for (const level of course.levels) {
+      add(level.id, level.title);
+      add(level.id, level.targetScore);
+      add(level.quiz.id, level.quiz.title);
+      if (level.live) add(`${level.id}-live`, level.live.title);
+      for (const lesson of level.lessons) {
+        add(lesson.id, lesson.title);
+        for (const s of lesson.sections) add(lesson.id, s.title);
+      }
+      const questions = [...allQuestions(course).filter((x) => x.where.startsWith(level.id)).map((x) => x.q), ...(level.live?.questions ?? [])];
+      for (const q of questions) {
+        add(q.id, q.prompt ?? "");
+        if (q.type === "mc" || q.type === "ms") q.options.forEach((o) => add(q.id, o));
+        if (q.type === "match") q.pairs.flat().forEach((o) => add(q.id, o));
+        if (q.type === "fill") [q.before, q.after, ...q.accept].forEach((o) => add(q.id, o));
+        if (q.type === "order") add(q.id, q.answer[0].join(" "));
+      }
+    }
+    const indonesian = texts.filter((t) => INDONESIAN.test(t.text)).map((t) => `${t.where}: ${t.text}`);
+    expect(indonesian).toEqual([]);
   });
 });
 

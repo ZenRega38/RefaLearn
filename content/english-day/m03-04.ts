@@ -2,29 +2,30 @@ import "server-only";
 import type { Level } from "@/lib/course/types";
 import { arrange, dialog, fill, listenPick, live, pair, phrases, pick, pickMany, repeatAfterMe, say } from "./helpers";
 
-// Modul 3 — Makanan Favorit & Kuliner Tarakan · Modul 4 — Hobi & Akhir Pekan
+// Module 3 — Favorite Food & Tarakan Cuisine · Module 4 — Hobbies & Weekends
+// Questions, options and titles are all English; explanations stay Indonesian.
 
 export const M3: Level = {
   id: "ed-m3",
-  title: "Modul 3 — Makanan Favorit & Kuliner Tarakan",
+  title: "Module 3 — Favorite Food & Tarakan Cuisine",
   description: "Menyebut makanan favorit, mendeskripsikan rasa, dan merekomendasikan kuliner Tarakan.",
-  targetScore: "Fase 1 · Personal",
+  targetScore: "Phase 1 · Personal",
   cover: ["crab", "soup", "chili"],
   lessons: [
     {
       id: "ed-m3-l1",
       skill: "speaking",
-      title: "Key Phrases: Makanan & Rasa",
+      title: "Key Phrases: Food & Taste",
       summary: "My favorite food is…, It tastes…, You can find it at…, I recommend…",
       sections: [
         {
-          title: "Recall Modul 2",
+          title: "Module 2 Recall",
           blocks: [
-            { type: "try", question: pair("ed-m3-l1-recall", "Pasangkan kata Modul 2.", [["anak", "children"], ["orang tua", "parents"], ["lembur", "overtime"], ["macet", "traffic jam"]], "Bagus, ingatanmu kuat!") },
+            { type: "try", question: pair("ed-m3-l1-recall", "Module 2 words: match each meaning with its word.", [["sons and daughters", "children"], ["your mother and father", "parents"], ["working after normal hours", "overtime"], ["too many cars on the road", "traffic jam"]], "Bagus, ingatanmu kuat!") },
           ],
         },
         {
-          title: "Frasa kunci",
+          title: "Key Phrases",
           blocks: [
             phrases([
               ["My favorite food is ___.", "Makanan favorit saya ___."],
@@ -37,48 +38,48 @@ export const M3: Level = {
           ],
         },
         {
-          title: "Kata rasa",
+          title: "Taste Words",
           blocks: [
             { type: "pictures", items: [{ pic: "candy", label: "sweet" }, { pic: "salt", label: "salty" }, { pic: "chili", label: "spicy" }, { pic: "lemon", label: "sour" }, { pic: "coffee", label: "bitter" }, { pic: "yum", label: "delicious" }] },
             { type: "text", md: "Spicy? → *Sambal!* Sweet? → *Es teh manis!* Coba sebutkan makanan lain untuk setiap rasa." },
-            { type: "try", question: pick("ed-m3-l1-try", "Sambal rasanya…", ["sweet", "spicy", "sour", "bitter"], 1, "Sambal = spicy (pedas).", { image: "chili" }) },
+            { type: "try", question: pick("ed-m3-l1-try", "How does sambal taste?", ["sweet", "spicy", "sour", "bitter"], 1, "Sambal = spicy (pedas).", { image: "chili" }) },
           ],
         },
       ],
       checkpoint: [
-        pick("ed-m3-l1-c1", "“Rasanya manis.”", ["It tastes sweet.", "It taste sweets.", "It is taste sweet.", "Sweet is taste."], 0, "It tastes + rasa."),
-        pair("ed-m3-l1-c2", "Pasangkan rasa dengan gambarnya.", [["pic:chili", "spicy"], ["pic:lemon", "sour"], ["pic:candy", "sweet"], ["pic:salt", "salty"]], "Lidahmu sudah bilingual!"),
-        fill("ed-m3-l1-c3", "Lengkapi.", "My", "food is nasi kuning.", ["favorite", "favourite"], "Makanan favorit = favorite food."),
-        listenPick("ed-m3-l1-c4", say(["woman", "I recommend soto. It tastes warm and spicy."]), "Dengarkan. Apa yang ia rekomendasikan?", ["pic:soup|Soto", "pic:crab|Kepiting", "pic:grilled-fish|Ikan bakar", "pic:cake|Kue"], 0, "I recommend soto."),
-        pick("ed-m3-l1-c5", "Tamu dari Jakarta tidak suka pedas. Rekomendasi yang paling pas…", ["I recommend sambal. It's very spicy!", "I recommend grilled fish. It's savory, not spicy.", "I recommend chili.", "I don't recommend food."], 1, "Pilih makanan yang tidak pedas, lalu jelaskan rasanya.", { hots: true }),
+        pick("ed-m3-l1-c1", "The cake has a lot of sugar. You say…", ["It tastes sweet.", "It taste sweets.", "It is taste sweet.", "Sweet is taste."], 0, "It tastes + rasa."),
+        pair("ed-m3-l1-c2", "Match each picture with its taste.", [["pic:chili", "spicy"], ["pic:lemon", "sour"], ["pic:candy", "sweet"], ["pic:salt", "salty"]], "Lidahmu sudah bilingual!"),
+        fill("ed-m3-l1-c3", "Complete the sentence.", "My", "food is nasi kuning. I eat it every week!", ["favorite", "favourite"], "Makanan favorit = favorite food."),
+        listenPick("ed-m3-l1-c4", say(["woman", "I recommend soto. It tastes warm and spicy."]), "Listen. What does she recommend?", ["pic:soup|Soto", "pic:crab|Crab", "pic:grilled-fish|Grilled fish", "pic:cake|Cake"], 0, "I recommend soto."),
+        pick("ed-m3-l1-c5", "A guest from Jakarta doesn't like spicy food. What is the best recommendation?", ["I recommend sambal. It's very spicy!", "I recommend grilled fish. It's savory, not spicy.", "I recommend chili.", "I don't recommend food."], 1, "Pilih makanan yang tidak pedas, lalu jelaskan rasanya.", { hots: true }),
       ],
     },
     {
       id: "ed-m3-l2",
       skill: "listening",
-      title: "Ayo Ngobrol: Kuliner Tarakan",
+      title: "Let's Talk: Tarakan Cuisine",
       summary: "Dialog makanan favorit, menjelaskan makanan lokal yang tidak punya padanan Inggris.",
       sections: [
         {
-          title: "Dengarkan dialognya",
+          title: "Listen to the Dialogue",
           blocks: [
             dialog("What's your favorite food?", say(
               ["woman", "What's your favorite food?"],
               ["man", "My favorite food is crab. It tastes sweet and a little salty. You can find it at the seafood restaurant near the harbor."],
               ["woman", "Sounds good! I recommend soto. It tastes warm and spicy."],
             )),
-            { type: "try", question: pick("ed-m3-l2-try", "Di mana bisa makan kepiting menurut si pria?", ["Di warung dekat kantor", "Di restoran seafood dekat pelabuhan", "Di rumah", "Di pasar"], 1, "“…at the seafood restaurant near the harbor.” Harbor = pelabuhan.") },
+            { type: "try", question: pick("ed-m3-l2-try", "Where can you eat crab, according to the man?", ["At a food stall near the office", "At the seafood restaurant near the harbor", "At home", "At the market"], 1, "“…at the seafood restaurant near the harbor.” Harbor = pelabuhan.") },
           ],
         },
         {
-          title: "Makanan lokal? Jelaskan saja!",
+          title: "Local Food? Just Explain It!",
           blocks: [
             { type: "text", md: "Banyak makanan Tarakan tidak punya nama Inggris. Tidak apa-apa! Pakai nama aslinya, lalu **jelaskan**:\n\n- *Nasi kuning* — **It's a rice dish with turmeric.**\n- *Kepiting soka* — **It's a soft-shell crab. You can eat the shell!**\n- *Soto* — **It's a warm soup with chicken and spices.**" },
             { type: "tip", md: "Kalau ada yang tidak makan sesuatu: **I don't eat ___.** Contoh: *I don't eat shrimp.*" },
           ],
         },
         {
-          title: "Pertanyaan pemandu",
+          title: "Conversation Questions",
           blocks: [
             phrases([
               ["What's your favorite food?", "My favorite food is grilled fish."],
@@ -87,26 +88,26 @@ export const M3: Level = {
               ["What Tarakan food would you recommend to a visitor?", "I recommend kepiting soka."],
               ["Do you like spicy food? How spicy?", "Yes, very spicy!"],
               ["Can you cook? What can you cook?", "Yes, I can cook fried rice."],
-            ], ["Pertanyaan", "Contoh jawaban"]),
+            ], ["Question", "Sample answer"]),
           ],
         },
       ],
       checkpoint: [
-        listenPick("ed-m3-l2-c1", say(["man", "My favorite food is crab. It tastes sweet and a little salty."]), "Dengarkan. Makanan favoritnya…", ["pic:crab", "pic:soup", "pic:drumstick", "pic:rice"], 0, "Crab = kepiting."),
-        pick("ed-m3-l2-c2", "Cara menjelaskan nasi kuning ke tamu asing…", ["It's a rice dish with turmeric.", "It's yellow nasi.", "It's a sweet cake.", "I don't know."], 0, "Turmeric = kunyit."),
-        fill("ed-m3-l2-c3", "Lengkapi: “Saya tidak makan udang.”", "I don't", "shrimp.", ["eat"], "I don't eat ___."),
-        pair("ed-m3-l2-c4", "Pasangkan pertanyaan dan jawaban.", [["What does it taste like?", "It tastes savory."], ["Where do you eat it?", "At a food stall."], ["Can you cook?", "Yes, I can cook fried rice."], ["Do you like spicy food?", "Yes, very spicy!"]], "Nyambung semua!"),
-        pick("ed-m3-l2-c5", "Teman bertanya “What does it taste like?”. Jawaban yang menjawab pertanyaannya…", ["I eat it at home.", "It tastes sweet and sour.", "My favorite food is soto.", "I can cook it."], 1, "Pertanyaannya tentang rasa → jawab dengan rasa.", { hots: true }),
+        listenPick("ed-m3-l2-c1", say(["man", "My favorite food is crab. It tastes sweet and a little salty."]), "Listen. What is his favorite food?", ["pic:crab", "pic:soup", "pic:drumstick", "pic:rice"], 0, "Crab = kepiting."),
+        pick("ed-m3-l2-c2", "A foreign guest asks about nasi kuning. How do you explain it?", ["It's a rice dish with turmeric.", "It's yellow nasi.", "It's a sweet cake.", "I don't know."], 0, "Turmeric = kunyit."),
+        fill("ed-m3-l2-c3", "You never eat shrimp. Complete the sentence.", "I don't", "shrimp.", ["eat"], "I don't eat ___ = saya tidak makan ___."),
+        pair("ed-m3-l2-c4", "Match each question with its answer.", [["What does it taste like?", "It tastes savory."], ["Where do you eat it?", "At a food stall."], ["Can you cook?", "Yes, I can cook fried rice."], ["Do you like spicy food?", "Yes, very spicy!"]], "Nyambung semua!"),
+        pick("ed-m3-l2-c5", "Your friend asks, “What does it taste like?” Which answer really answers the question?", ["I eat it at home.", "It tastes sweet and sour.", "My favorite food is soto.", "I can cook it."], 1, "Pertanyaannya tentang rasa → jawab dengan rasa.", { hots: true }),
       ],
     },
     {
       id: "ed-m3-l3",
       skill: "vocabulary",
-      title: "Vocab of the Day: Rasa & Kuliner",
+      title: "Vocab of the Day: Taste & Cuisine",
       summary: "Spicy, savory, delicious, crab, grilled fish, spices, raw/cooked, food stall, portion.",
       sections: [
         {
-          title: "Kosakata hari ini",
+          title: "Today's Words",
           blocks: [
             {
               type: "vocab",
@@ -123,100 +124,100 @@ export const M3: Level = {
                 { emoji: "🍚", pic: "rice", word: "portion", meaning: "porsi", example: "The portion is big." },
               ],
             },
-            phrases([["vegetable", "“VEJ-tuh-bul”, bukan “vegetabel”", "Tiga suku kata saja"]], ["Kata", "Lebih tepat", "Catatan"]),
+            phrases([["vegetable", "“VEJ-tuh-bul”, bukan “vegetabel”", "Tiga suku kata saja"]], ["Word", "Say it like", "Note"]),
             repeatAfterMe(["vegetable", "delicious", "savory", "seasoning"]),
           ],
         },
       ],
       checkpoint: [
-        pick("ed-m3-l3-c1", "“Gurih” dalam bahasa Inggris…", ["sweet", "savory", "sour", "spicy"], 1, "Gurih = savory."),
-        listenPick("ed-m3-l3-c2", say(["woman", "The fish is not cooked yet."]), "Dengarkan. Bagaimana ikannya?", ["Sudah matang", "Belum matang", "Terlalu asin", "Sangat enak"], 1, "Not cooked yet = belum matang."),
-        fill("ed-m3-l3-c3", "Lengkapi.", "I eat at a food", "near my house. (warung)", ["stall"], "Warung = food stall."),
-        pickMany("ed-m3-l3-c4", "Pilih SEMUA kata rasa.", ["sweet", "portion", "sour", "spicy", "crab"], [0, 2, 3], "Sweet, sour, spicy = rasa."),
-        pick("ed-m3-l3-c5", "“The portion is big.” Kamu ingin bilang porsinya kecil. Ubah jadi…", ["The portion is small.", "The portion is spicy.", "The small is portion.", "The portion is cooked."], 0, "Big ↔ small.", { hots: true }),
+        pick("ed-m3-l3-c1", "The soup is salty and rich, like chicken broth. It tastes…", ["sweet", "savory", "sour", "spicy"], 1, "Gurih = savory."),
+        listenPick("ed-m3-l3-c2", say(["woman", "The fish is not cooked yet."]), "Listen. What is wrong with the fish?", ["It's already cooked.", "It's still raw.", "It's too salty.", "Nothing — it's delicious."], 1, "Not cooked yet = belum matang (masih mentah)."),
+        fill("ed-m3-l3-c3", "Complete the sentence about a small, simple place to eat.", "I eat at a food", "near my house.", ["stall"], "Warung = food stall."),
+        pickMany("ed-m3-l3-c4", "Choose ALL the taste words.", ["sweet", "portion", "sour", "spicy", "crab"], [0, 2, 3], "Sweet, sour, spicy = rasa."),
+        pick("ed-m3-l3-c5", "“The portion is big.” You want to say the opposite. You say…", ["The portion is small.", "The portion is spicy.", "The small is portion.", "The portion is cooked."], 0, "Big ↔ small.", { hots: true }),
       ],
     },
   ],
   quiz: {
     id: "ed-m3-quiz",
-    title: "Kuis Modul 3",
+    title: "Module 3 Quiz",
     passPercent: 70,
     questions: [
-      pick("ed-m3-q1", "Gambar ini…", ["crab", "fish", "chicken", "shrimp"], 0, "Crab = kepiting.", { image: "crab" }),
-      listenPick("ed-m3-q2", say(["man", "It tastes very spicy!"]), "Dengarkan. Rasanya…", ["pic:chili|Pedas", "pic:candy|Manis", "pic:lemon|Asam", "pic:salt|Asin"], 0, "Spicy = pedas."),
-      arrange("ed-m3-q3", "Susun.", "I usually eat it with rice", "I usually eat it with + makanan pendamping."),
-      pick("ed-m3-q4", "“It's delicious!” artinya…", ["Enak sekali!", "Pedas sekali!", "Mahal sekali!", "Panas sekali!"], 0, "Delicious = enak."),
-      fill("ed-m3-q5", "Lengkapi.", "I", "kepiting soka. It's a soft-shell crab. (saya rekomendasikan)", ["recommend"], "Saya rekomendasikan = I recommend."),
-      pair("ed-m3-q6", "Pasangkan.", [["mentah", "raw"], ["matang", "cooked"], ["bumbu", "spices"], ["porsi", "portion"]], "Mantap!"),
-      pick("ed-m3-q7", "“Where do you usually eat it?” — jawaban yang tepat…", ["It tastes sweet.", "At a seafood restaurant.", "Yes, I can cook.", "I like it."], 1, "Where = di mana → jawab tempat."),
-      listenPick("ed-m3-q8", say(["woman", "Grilled fish is my favorite. It's savory."]), "Dengarkan. Bagaimana rasanya?", ["Manis", "Gurih", "Asam", "Pahit"], 1, "Savory = gurih."),
-      pick("ed-m3-q9", "Kopi tanpa gula rasanya…", ["sweet", "salty", "bitter", "spicy"], 2, "Pahit = bitter.", { image: "coffee" }),
-      pick("ed-m3-q10", "Kamu ingin menjelaskan “es teh manis” ke turis. Kalimat terbaik…", ["It's sweet iced tea.", "It's tea salty.", "It is hot coffee.", "Es teh is es teh."], 0, "Iced tea = es teh, sweet = manis.", { hots: true }),
+      pick("ed-m3-q1", "What is in the picture?", ["crab", "fish", "chicken", "shrimp"], 0, "Crab = kepiting.", { image: "crab" }),
+      listenPick("ed-m3-q2", say(["man", "It tastes very spicy!"]), "Listen. How does it taste?", ["pic:chili|Spicy", "pic:candy|Sweet", "pic:lemon|Sour", "pic:salt|Salty"], 0, "Spicy = pedas."),
+      arrange("ed-m3-q3", "Put the words in order.", "I usually eat it with rice", "I usually eat it with + makanan pendamping."),
+      pick("ed-m3-q4", "Your friend tastes the food and says, “It's delicious!” What does she mean?", ["The food is very good.", "The food is very spicy.", "The food is very expensive.", "The food is very hot."], 0, "Delicious = enak."),
+      fill("ed-m3-q5", "Complete the sentence to suggest a dish to a visitor.", "I", "kepiting soka. It's a soft-shell crab.", ["recommend"], "Saya rekomendasikan = I recommend."),
+      pair("ed-m3-q6", "Match each word with its meaning.", [["raw", "not cooked"], ["cooked", "ready to eat after heating"], ["spices", "things that give food flavor"], ["portion", "the amount of food on your plate"]], "Mantap! Raw = mentah, cooked = matang, spices = bumbu, portion = porsi."),
+      pick("ed-m3-q7", "“Where do you usually eat it?” — which answer is right?", ["It tastes sweet.", "At a seafood restaurant.", "Yes, I can cook.", "I like it."], 1, "Where = di mana → jawab tempat."),
+      listenPick("ed-m3-q8", say(["woman", "Grilled fish is my favorite. It's savory."]), "Listen. How does the grilled fish taste?", ["Sweet", "Savory", "Sour", "Bitter"], 1, "Savory = gurih."),
+      pick("ed-m3-q9", "Coffee with no sugar tastes…", ["sweet", "salty", "bitter", "spicy"], 2, "Pahit = bitter.", { image: "coffee" }),
+      pick("ed-m3-q10", "A tourist asks about “es teh manis”. What is the best explanation?", ["It's sweet iced tea.", "It's tea salty.", "It is hot coffee.", "Es teh is es teh."], 0, "Iced tea = es teh, sweet = manis.", { hots: true }),
     ],
   },
   live: {
-    title: "Live Quiz Modul 3 — Food Battle!",
+    title: "Module 3 Live Quiz — Food Battle!",
     questions: [
-      live("ed-m3-live1", "Rasa makanan ini?", ["sweet", "spicy", "sour", "bitter"], 1, "chili"),
-      live("ed-m3-live2", "“Kepiting” = …", ["crab", "shrimp", "squid", "lobster"], 0, "crab"),
-      live("ed-m3-live3", "“Gurih” = …", ["salty", "savory", "spicy", "sweet"], 1, "soup"),
-      live("ed-m3-live4", "Rasa lemon?", ["sweet", "salty", "sour", "spicy"], 2, "lemon"),
-      live("ed-m3-live5", "“Warung” = …", ["restaurant hall", "food stall", "food house", "market"], 1, "food-stall"),
-      live("ed-m3-live6", "“Enak!” = …", ["Delicious!", "Dangerous!", "Different!", "Difficult!"], 0, "yum"),
+      live("ed-m3-live1", "How does this taste?", ["sweet", "spicy", "sour", "bitter"], 1, "chili"),
+      live("ed-m3-live2", "What is this seafood?", ["crab", "shrimp", "squid", "lobster"], 0, "crab"),
+      live("ed-m3-live3", "Chicken soup is salty and rich. It tastes…", ["salty only", "savory", "spicy", "sweet"], 1, "soup"),
+      live("ed-m3-live4", "How does a lemon taste?", ["sweet", "salty", "sour", "spicy"], 2, "lemon"),
+      live("ed-m3-live5", "A small, simple place to eat by the road is a…", ["restaurant hall", "food stall", "food house", "market"], 1, "food-stall"),
+      live("ed-m3-live6", "The food is very good! You say…", ["Delicious!", "Dangerous!", "Different!", "Difficult!"], 0, "yum"),
       live("ed-m3-live7", "It ___ sweet and salty.", ["taste", "tastes", "tasting", "is taste"], 1, "crab"),
-      live("ed-m3-live8", "“Ikan bakar” = …", ["fried fish", "grilled fish", "boiled fish", "raw fish"], 1, "grilled-fish"),
-      live("ed-m3-live9", "“Mentah” = …", ["raw", "row", "cooked", "rare"], 0, "drumstick"),
-      live("ed-m3-live10", "Saya rekomendasikan soto:", ["I recommend soto.", "I recommendation soto.", "I am recommend soto.", "Soto recommend me."], 0, "soup"),
+      live("ed-m3-live8", "Fish cooked over fire is…", ["fried fish", "grilled fish", "boiled fish", "raw fish"], 1, "grilled-fish"),
+      live("ed-m3-live9", "Meat that is not cooked is…", ["raw", "row", "cooked", "rare"], 0, "drumstick"),
+      live("ed-m3-live10", "Suggest soto to a visitor:", ["I recommend soto.", "I recommendation soto.", "I am recommend soto.", "Soto recommend me."], 0, "soup"),
     ],
   },
 };
 
 export const M4: Level = {
   id: "ed-m4",
-  title: "Modul 4 — Hobi & Akhir Pekan",
+  title: "Module 4 — Hobbies & Weekends",
   description: "Bercerita tentang hobi, akhir pekan lalu, dan rencana akhir pekan ini. Ada mini review Modul 1–3.",
-  targetScore: "Fase 1 · Personal",
+  targetScore: "Phase 1 · Personal",
   cover: ["fishing", "bicycle", "gamepad"],
   lessons: [
     {
       id: "ed-m4-l1",
       skill: "speaking",
-      title: "Perasaan & Mini Review",
+      title: "Feelings & Mini Review",
       summary: "Variasi jawaban “How are you?” dan review kosakata Modul 1–3.",
       sections: [
         {
-          title: "How are you? Jawabannya bisa macam-macam",
+          title: "“How are you?” — Many Answers",
           blocks: [
             { type: "pictures", items: [{ pic: "feel-great", label: "I'm great!" }, { pic: "feel-tired", label: "I'm tired." }, { pic: "feel-sleepy", label: "I'm a little sleepy." }, { pic: "feel-hungry", label: "I'm hungry." }] },
             repeatAfterMe(["I'm great!", "I'm tired.", "I'm a little sleepy.", "I'm hungry."]),
-            { type: "try", question: pick("ed-m4-l1-try", "Kamu kurang tidur semalam. Jawab “How are you?”…", ["I'm a little sleepy.", "I'm hungry.", "I'm fishing.", "I'm delicious."], 0, "Kurang tidur → sleepy (ngantuk).", { image: "feel-sleepy" }) },
+            { type: "try", question: pick("ed-m4-l1-try", "You didn't sleep well last night. Someone asks, “How are you?” You say…", ["I'm a little sleepy.", "I'm hungry.", "I'm fishing.", "I'm delicious."], 0, "Kurang tidur → sleepy (ngantuk).", { image: "feel-sleepy" }) },
           ],
         },
         {
-          title: "Mini review Modul 1–3",
+          title: "Mini Review: Modules 1–3",
           blocks: [
-            { type: "text", md: "Seperti main **Charades Vocab** di kelas: lihat kata Indonesia, tebak bahasa Inggrisnya." },
-            { type: "try", question: pair("ed-m4-l1-review1", "Review Modul 1–2.", [["rekan kerja", "colleague"], ["atasan", "supervisor"], ["sarapan", "breakfast"], ["lembur", "overtime"]], "Ingatanmu mantap!") },
-            { type: "try", question: pair("ed-m4-l1-review2", "Review Modul 3.", [["pedas", "spicy"], ["gurih", "savory"], ["kepiting", "crab"], ["warung", "food stall"]], "Pedas = spicy, gurih = savory, kepiting = crab, warung = food stall.") },
+            { type: "text", md: "Seperti main **Charades Vocab** di kelas: baca petunjuknya, tebak kata bahasa Inggrisnya." },
+            { type: "try", question: pair("ed-m4-l1-review1", "Review Modules 1–2: match each clue with its word.", [["a person you work with", "colleague"], ["the person who leads your team", "supervisor"], ["the first meal of the day", "breakfast"], ["working after normal hours", "overtime"]], "Ingatanmu mantap!") },
+            { type: "try", question: pair("ed-m4-l1-review2", "Review Module 3: match each clue with its word.", [["hot, like sambal", "spicy"], ["salty and rich, like broth", "savory"], ["seafood with claws", "crab"], ["a small place to eat by the road", "food stall"]], "Pedas = spicy, gurih = savory, kepiting = crab, warung = food stall.") },
           ],
         },
       ],
       checkpoint: [
-        pick("ed-m4-l1-c1", "“I'm hungry.” artinya…", ["Saya lapar.", "Saya marah.", "Saya capek.", "Saya senang."], 0, "Hungry = lapar."),
-        listenPick("ed-m4-l1-c2", say(["man", "I'm tired."]), "Dengarkan. Bagaimana perasaannya?", ["pic:feel-tired|Capek", "pic:feel-great|Senang sekali", "pic:feel-hungry|Lapar", "pic:feel-sleepy|Ngantuk"], 0, "Tired = capek."),
-        pick("ed-m4-l1-c3", "“Pelanggan” = …", ["customer", "colleague", "supervisor", "costume"], 0, "Review Modul 1."),
-        fill("ed-m4-l1-c4", "Review Modul 2: “macet” = traffic …", "traffic", "", ["jam"], "Traffic jam."),
-        pick("ed-m4-l1-c5", "Jam 12 siang dan kamu belum makan. Jawaban paling jujur untuk “How are you?”…", ["I'm great, thanks!", "I'm hungry!", "I'm sleepy.", "I'm cooked."], 1, "Belum makan siang → hungry.", { hots: true }),
+        pick("ed-m4-l1-c1", "Your colleague says, “I'm hungry.” What does he need?", ["Some food", "A nap", "A day off", "A doctor"], 0, "Hungry = lapar, jadi ia butuh makan."),
+        listenPick("ed-m4-l1-c2", say(["man", "I'm tired."]), "Listen. How does he feel?", ["pic:feel-tired|Tired", "pic:feel-great|Great", "pic:feel-hungry|Hungry", "pic:feel-sleepy|Sleepy"], 0, "Tired = capek."),
+        pick("ed-m4-l1-c3", "Module 1 review: a person who uses our service is a…", ["customer", "colleague", "supervisor", "costume"], 0, "Customer = pelanggan."),
+        fill("ed-m4-l1-c4", "Module 2 review: too many cars on the road is a traffic…", "traffic", "", ["jam"], "Traffic jam = macet."),
+        pick("ed-m4-l1-c5", "It's 12 noon and you haven't eaten. What is the most honest answer to “How are you?”", ["I'm great, thanks!", "I'm hungry!", "I'm sleepy.", "I'm cooked."], 1, "Belum makan siang → hungry.", { hots: true }),
       ],
     },
     {
       id: "ed-m4-l2",
       skill: "speaking",
-      title: "Key Phrases: Hobi & Akhir Pekan",
+      title: "Key Phrases: Hobbies & Weekends",
       summary: "On weekends I usually…, I enjoy…, Last weekend I…, This weekend I'm going to…",
       sections: [
         {
-          title: "Frasa kunci",
+          title: "Key Phrases",
           blocks: [
             phrases([
               ["On weekends, I usually ___.", "Di akhir pekan, saya biasanya ___."],
@@ -230,10 +231,10 @@ export const M4: Level = {
           ],
         },
         {
-          title: "Cerita yang sudah lewat",
+          title: "Talking About the Past",
           blocks: [
             { type: "text", md: "Untuk cerita yang **sudah lewat**, kata kerjanya sering berubah. Hafalkan saja 6 yang paling sering:" },
-            phrases([["go → went", "pergi"], ["eat → ate", "makan"], ["watch → watched", "menonton"], ["play → played", "bermain"], ["visit → visited", "mengunjungi"], ["stay → stayed", "tinggal/diam di"]], ["Sekarang → Lampau", "Arti"]),
+            phrases([["go → went", "pergi"], ["eat → ate", "makan"], ["watch → watched", "menonton"], ["play → played", "bermain"], ["visit → visited", "mengunjungi"], ["stay → stayed", "tinggal/diam di"]], ["Now → Past", "Meaning"]),
             dialog("What do you do on weekends?", say(
               ["woman", "What do you do on weekends?"],
               ["man", "I usually go fishing with my friends. I've been doing this since 2015. Last weekend, I caught three fish!"],
@@ -244,21 +245,21 @@ export const M4: Level = {
         },
       ],
       checkpoint: [
-        listenPick("ed-m4-l2-c1", say(["man", "Last weekend, I caught three fish!"]), "Dengarkan. Apa yang ia lakukan akhir pekan lalu?", ["pic:fishing|Memancing", "pic:bicycle|Bersepeda", "pic:tv|Nonton film", "pic:gamepad|Main game"], 0, "Caught fish = menangkap ikan (memancing)."),
-        pick("ed-m4-l2-c2", "“Akhir pekan ini saya akan bersih-bersih rumah.”", ["This weekend, I'm going to clean the house.", "Last weekend, I cleaned the house.", "On weekends, I clean the house.", "I clean house weekend."], 0, "Rencana → I'm going to + kegiatan."),
-        fill("ed-m4-l2-c3", "Lengkapi (lampau dari watch).", "Last weekend, I", "a movie.", ["watched"], "Watch → watched."),
-        arrange("ed-m4-l2-c4", "Susun.", "I enjoy cycling with my friends", "I enjoy + kegiatan -ing."),
-        pick("ed-m4-l2-c5", "Mana yang membicarakan RENCANA?", ["Last weekend, I stayed at home.", "This weekend, I'm going to visit my parents.", "I usually play games.", "I've been doing this since 2015."], 1, "I'm going to = rencana yang akan datang.", { hots: true }),
+        listenPick("ed-m4-l2-c1", say(["man", "Last weekend, I caught three fish!"]), "Listen. What did he do last weekend?", ["pic:fishing|Went fishing", "pic:bicycle|Went cycling", "pic:tv|Watched a movie", "pic:gamepad|Played games"], 0, "Caught fish = menangkap ikan (memancing)."),
+        pick("ed-m4-l2-c2", "Your plan for Saturday is to clean your home. You say…", ["This weekend, I'm going to clean the house.", "Last weekend, I cleaned the house.", "On weekends, I clean the house.", "I clean house weekend."], 0, "Rencana → I'm going to + kegiatan."),
+        fill("ed-m4-l2-c3", "Complete with the past form of “watch”.", "Last weekend, I", "a movie.", ["watched"], "Watch → watched."),
+        arrange("ed-m4-l2-c4", "Put the words in order.", "I enjoy cycling with my friends", "I enjoy + kegiatan -ing."),
+        pick("ed-m4-l2-c5", "Which sentence talks about a PLAN?", ["Last weekend, I stayed at home.", "This weekend, I'm going to visit my parents.", "I usually play games.", "I've been doing this since 2015."], 1, "I'm going to = rencana yang akan datang.", { hots: true }),
       ],
     },
     {
       id: "ed-m4-l3",
       skill: "vocabulary",
-      title: "Vocab of the Day: Waktu Luang",
+      title: "Vocab of the Day: Free Time",
       summary: "Fishing, exercise, cycling, play games, family gathering, hang out, plan, boring.",
       sections: [
         {
-          title: "Kosakata hari ini",
+          title: "Today's Words",
           blocks: [
             {
               type: "vocab",
@@ -280,43 +281,43 @@ export const M4: Level = {
         },
       ],
       checkpoint: [
-        pick("ed-m4-l3-c1", "“Nongkrong” = …", ["hang out", "hang up", "go out work", "sit down"], 0, "Nongkrong = hang out."),
-        listenPick("ed-m4-l3-c2", say(["woman", "We go cycling near the beach."]), "Dengarkan. Apa kegiatannya?", ["pic:bicycle", "pic:fishing", "pic:gamepad", "pic:tv"], 0, "Cycling = bersepeda."),
-        fill("ed-m4-l3-c3", "Lengkapi.", "I have no", "this weekend. (rencana)", ["plans", "plan"], "Rencana = plan(s)."),
-        pair("ed-m4-l3-c4", "Pasangkan.", [["olahraga", "exercise"], ["kumpul keluarga", "family gathering"], ["membosankan", "boring"], ["santai", "relax"]], "Keren!"),
-        pick("ed-m4-l3-c5", "“The weekend was boring.” Kenapa kira-kira?", ["Karena banyak kegiatan seru.", "Karena tidak ada kegiatan dan hanya diam.", "Karena ia memenangkan lomba.", "Karena ia pergi berlibur."], 1, "Boring = membosankan, biasanya karena tidak ada yang dilakukan.", { hots: true }),
+        pick("ed-m4-l3-c1", "You spend relaxed time with friends at a cafe. You…", ["hang out", "hang up", "go out work", "sit down"], 0, "Nongkrong = hang out."),
+        listenPick("ed-m4-l3-c2", say(["woman", "We go cycling near the beach."]), "Listen. What do they do?", ["pic:bicycle", "pic:fishing", "pic:gamepad", "pic:tv"], 0, "Cycling = bersepeda."),
+        fill("ed-m4-l3-c3", "Complete the sentence. Your weekend is empty.", "I have no", "this weekend.", ["plans", "plan"], "Rencana = plan(s)."),
+        pair("ed-m4-l3-c4", "Match each word with its meaning.", [["exercise", "moving your body to stay healthy"], ["family gathering", "a meeting of many relatives"], ["boring", "not interesting at all"], ["relax", "rest and feel calm"]], "Keren! Exercise = olahraga, family gathering = kumpul keluarga, boring = membosankan, relax = santai."),
+        pick("ed-m4-l3-c5", "“The weekend was boring.” What probably happened?", ["He did many fun activities.", "He had nothing to do and stayed at home.", "He won a competition.", "He went on holiday."], 1, "Boring = membosankan, biasanya karena tidak ada yang dilakukan.", { hots: true }),
       ],
     },
   ],
   quiz: {
     id: "ed-m4-quiz",
-    title: "Kuis Modul 4",
+    title: "Module 4 Quiz",
     passPercent: 70,
     questions: [
-      pick("ed-m4-q1", "Gambar ini…", ["fishing", "cycling", "swimming", "running"], 1, "Cycling = bersepeda.", { image: "bicycle" }),
-      listenPick("ed-m4-q2", say(["man", "This weekend, I'm going to visit my parents."]), "Dengarkan. Kapan ia mengunjungi orang tuanya?", ["Akhir pekan lalu", "Akhir pekan ini", "Setiap hari", "Tidak pernah"], 1, "This weekend + I'm going to = akhir pekan ini."),
-      pick("ed-m4-q3", "Lampau dari “eat”…", ["eated", "ate", "eaten", "eats"], 1, "Eat → ate."),
-      arrange("ed-m4-q4", "Susun.", "Last weekend I stayed at home", "Last weekend + kata kerja lampau."),
-      fill("ed-m4-q5", "Lengkapi.", "On weekends, I", "go fishing. (biasanya)", ["usually"], "Usually = biasanya."),
-      pair("ed-m4-q6", "Pasangkan perasaan.", [["pic:feel-great", "great"], ["pic:feel-tired", "tired"], ["pic:feel-sleepy", "sleepy"], ["pic:feel-hungry", "hungry"]], "Great = senang sekali, tired = capek, sleepy = ngantuk, hungry = lapar."),
-      pick("ed-m4-q7", "“I've been doing this since 2015.” artinya…", ["Saya akan melakukan ini tahun 2015.", "Saya sudah melakukan ini sejak 2015.", "Saya berhenti melakukan ini tahun 2015.", "Saya tidak pernah melakukan ini."], 1, "Since = sejak."),
-      listenPick("ed-m4-q8", say(["woman", "I just relax at home."]), "Dengarkan. Apa yang ia lakukan?", ["Santai di rumah", "Bersih-bersih rumah", "Pergi nongkrong", "Olahraga"], 0, "Relax at home = santai di rumah."),
-      pick("ed-m4-q9", "Mana kalimat yang BENAR?", ["Last weekend, I go to the beach.", "Last weekend, I went to the beach.", "Last weekend, I going to the beach.", "Last weekend, I will go to the beach."], 1, "Last weekend → went."),
-      pick("ed-m4-q10", "Main “Two Truths and a Lie”: “I went fishing. I ate crab. I visited the moon.” Mana yang bohong?", ["I went fishing.", "I ate crab.", "I visited the moon.", "Semuanya benar"], 2, "Tidak ada yang mengunjungi bulan akhir pekan lalu!", { hots: true }),
+      pick("ed-m4-q1", "What activity is in the picture?", ["fishing", "cycling", "swimming", "running"], 1, "Cycling = bersepeda.", { image: "bicycle" }),
+      listenPick("ed-m4-q2", say(["man", "This weekend, I'm going to visit my parents."]), "Listen. When will he visit his parents?", ["Last weekend", "This weekend", "Every day", "Never"], 1, "This weekend + I'm going to = akhir pekan ini."),
+      pick("ed-m4-q3", "What is the past form of “eat”?", ["eated", "ate", "eaten", "eats"], 1, "Eat → ate."),
+      arrange("ed-m4-q4", "Put the words in order.", "Last weekend I stayed at home", "Last weekend + kata kerja lampau."),
+      fill("ed-m4-q5", "Complete the sentence. You do this most weekends.", "On weekends, I", "go fishing.", ["usually"], "Usually = biasanya."),
+      pair("ed-m4-q6", "Match each picture with the feeling.", [["pic:feel-great", "great"], ["pic:feel-tired", "tired"], ["pic:feel-sleepy", "sleepy"], ["pic:feel-hungry", "hungry"]], "Great = senang sekali, tired = capek, sleepy = ngantuk, hungry = lapar."),
+      pick("ed-m4-q7", "“I've been doing this since 2015.” What does this mean?", ["He will start in 2015.", "He started in 2015 and still does it.", "He stopped in 2015.", "He has never done it."], 1, "Since = sejak. Dimulai 2015 dan masih dilakukan sampai sekarang."),
+      listenPick("ed-m4-q8", say(["woman", "I just relax at home."]), "Listen. What does she do?", ["She rests at home.", "She cleans the house.", "She hangs out at a cafe.", "She exercises."], 0, "Relax at home = santai di rumah."),
+      pick("ed-m4-q9", "Which sentence is CORRECT?", ["Last weekend, I go to the beach.", "Last weekend, I went to the beach.", "Last weekend, I going to the beach.", "Last weekend, I will go to the beach."], 1, "Last weekend → went."),
+      pick("ed-m4-q10", "Two Truths and a Lie: “I went fishing. I ate crab. I visited the moon.” Which one is the lie?", ["I went fishing.", "I ate crab.", "I visited the moon.", "They are all true."], 2, "Tidak ada yang mengunjungi bulan akhir pekan lalu!", { hots: true }),
     ],
   },
   live: {
-    title: "Live Quiz Modul 4 — Weekend Fun",
+    title: "Module 4 Live Quiz — Weekend Fun",
     questions: [
-      live("ed-m4-live1", "Kegiatan di gambar?", ["cycling", "fishing", "camping", "swimming"], 1, "fishing"),
-      live("ed-m4-live2", "Lampau dari “go”?", ["goed", "gone", "went", "going"], 2, "plane"),
-      live("ed-m4-live3", "“Nongkrong” = …", ["hang out", "hang on", "go home", "stay up"], 0, "coffee"),
-      live("ed-m4-live4", "Perasaan di gambar?", ["hungry", "sleepy", "great", "angry"], 1, "feel-sleepy"),
+      live("ed-m4-live1", "What activity is in the picture?", ["cycling", "fishing", "camping", "swimming"], 1, "fishing"),
+      live("ed-m4-live2", "What is the past form of “go”?", ["goed", "gone", "went", "going"], 2, "plane"),
+      live("ed-m4-live3", "Spend relaxed time with friends at a cafe:", ["hang out", "hang on", "go home", "stay up"], 0, "coffee"),
+      live("ed-m4-live4", "How does he feel?", ["hungry", "sleepy", "great", "angry"], 1, "feel-sleepy"),
       live("ed-m4-live5", "This weekend, I'm going ___ visit my parents.", ["to", "for", "at", "on"], 0, "calendar"),
-      live("ed-m4-live6", "“Membosankan” = …", ["bored", "boring", "bore", "busy"], 1, "feel-tired"),
-      live("ed-m4-live7", "Kegiatan di gambar?", ["play games", "watch TV", "cook", "read"], 0, "gamepad"),
-      live("ed-m4-live8", "Lampau dari “watch”?", ["watched", "watcht", "wotch", "watching"], 0, "tv"),
-      live("ed-m4-live9", "“Olahraga” = …", ["exercise", "excuse", "extra", "exit"], 0, "run"),
+      live("ed-m4-live6", "The movie is not interesting at all. It is…", ["bored", "boring", "bore", "busy"], 1, "feel-tired"),
+      live("ed-m4-live7", "What activity is in the picture?", ["play games", "watch TV", "cook", "read"], 0, "gamepad"),
+      live("ed-m4-live8", "What is the past form of “watch”?", ["watched", "watcht", "wotch", "watching"], 0, "tv"),
+      live("ed-m4-live9", "Running and swimming are kinds of…", ["exercise", "excuse", "extra", "exit"], 0, "run"),
       live("ed-m4-live10", "I enjoy ___.", ["cycle", "cycling", "to cycling", "cycled"], 1, "bicycle"),
     ],
   },

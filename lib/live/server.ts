@@ -148,13 +148,13 @@ export async function control(admin: SupabaseClient, session: SessionRow, action
 
   let patch: Record<string, unknown> | null = null;
   if (action === "kick") {
-    if (!playerId) return "Pemain tidak ditemukan.";
+    if (!playerId) return "Player not found.";
     await admin.from("live_players").delete().eq("id", playerId).eq("session_id", session.id);
     return null;
   }
   if (action === "end") patch = { status: "ended", ended_at: new Date(now).toISOString() };
   else if (action === "start") {
-    if (session.status !== "lobby") return "Kuis sudah dimulai.";
+    if (session.status !== "lobby") return "The quiz has already started.";
     patch = openQuestion(0);
   } else if (action === "next") {
     switch (session.status) {
@@ -174,9 +174,9 @@ export async function control(admin: SupabaseClient, session: SessionRow, action
         patch = { status: "ended", ended_at: new Date(now).toISOString() };
         break;
       default:
-        return "Kuis sudah selesai.";
+        return "The quiz has ended.";
     }
-  } else return "Aksi tidak dikenal.";
+  } else return "Unknown action.";
 
   const { error } = await admin.from("live_sessions").update(patch).eq("id", session.id).eq("status", session.status).eq("current_index", session.current_index);
   return error ? "Gagal memperbarui kuis." : null;
@@ -247,14 +247,14 @@ export async function buildState(admin: SupabaseClient, session: SessionRow, opt
 
 /** Records one answer for the current question. */
 export async function submitAnswer(admin: SupabaseClient, session: SessionRow, playerId: string, index: number, choice: number): Promise<string | null> {
-  if (session.status !== "question" || index !== session.current_index) return "Soal ini sudah ditutup.";
+  if (session.status !== "question" || index !== session.current_index) return "This question is closed.";
   const q = questionAt(session);
-  if (!q || !Number.isInteger(choice) || choice < 0 || choice >= q.options.length) return "Jawaban tidak valid.";
+  if (!q || !Number.isInteger(choice) || choice < 0 || choice >= q.options.length) return "Invalid answer.";
   const started = Date.parse(session.question_started_at ?? "");
   const ends = Date.parse(session.question_ends_at ?? "");
   const now = Date.now();
-  if (now < started - GRACE_MS) return "Soal belum dimulai.";
-  if (now > ends + GRACE_MS) return "Waktu habis.";
+  if (now < started - GRACE_MS) return "The question hasn't started yet.";
+  if (now > ends + GRACE_MS) return "Time's up.";
 
   const { data: previous } = await admin.from("live_answers").select("player_id, q_index, choice, correct, points").eq("player_id", playerId).lt("q_index", index);
   const streakBefore = streakOf((previous || []) as AnswerRow[], playerId, index - 1);
@@ -269,6 +269,6 @@ export async function submitAnswer(admin: SupabaseClient, session: SessionRow, p
     points: scoreAnswer(correct, elapsed, session.seconds * 1000, streakBefore),
     elapsed_ms: Math.min(elapsed, 2_000_000_000),
   });
-  if (error) return error.code === "23505" ? "Kamu sudah menjawab soal ini." : "Gagal menyimpan jawaban.";
+  if (error) return error.code === "23505" ? "You already answered this question." : "Gagal menyimpan jawaban.";
   return null;
 }

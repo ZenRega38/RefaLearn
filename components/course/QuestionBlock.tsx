@@ -6,6 +6,7 @@ import { PassageView } from "@/components/course/PassageView";
 import { QuestionInput } from "@/components/course/QuestionInput";
 import { Md } from "@/components/course/Md";
 import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
 
 /** Prompt + audio/passage + answer area for one question. */
 export function QuestionBlock({
@@ -31,6 +32,7 @@ export function QuestionBlock({
   onAudioEnded?: () => void;
   showTranscript?: boolean;
 }) {
+  const t = useCourseText();
   const passage = question.passageId ? passages.find((p) => p.id === question.passageId) : undefined;
 
   return (
@@ -53,7 +55,7 @@ export function QuestionBlock({
         )}
         {question.hots && (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-[var(--color-accent-coral)]/15 text-[var(--color-accent-coral)] font-[var(--font-inter)]">
-            🧠 HOTS · Ayo berpikir!
+            {t.hots}
           </span>
         )}
         {question.image && (

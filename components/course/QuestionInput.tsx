@@ -6,6 +6,7 @@ import type { PublicQuestion, Question, Response } from "@/lib/course/types";
 import { seedOf, shuffle } from "@/lib/course/grading";
 import { optionText, parsePicOption } from "@/lib/course/pictures";
 import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
 
 type AnyQuestion = Question | PublicQuestion;
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
@@ -165,6 +166,7 @@ function MsInput({ q, value, onChange, disabled, reveal }: { q: { options: strin
 }
 
 function FillInput({ q, value, onChange, disabled }: { q: { before: string; after: string }; value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const t = useCourseText();
   return (
     <p className="text-base md:text-lg leading-loose font-[var(--font-inter)] text-[var(--color-ink)]">
       {q.before}{" "}
@@ -172,7 +174,7 @@ function FillInput({ q, value, onChange, disabled }: { q: { before: string; afte
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        aria-label="Jawaban"
+        aria-label={t.answerAria}
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
@@ -184,6 +186,7 @@ function FillInput({ q, value, onChange, disabled }: { q: { before: string; afte
 }
 
 function OrderInput({ q, value, onChange, disabled }: { q: { id: string; tiles: string[] }; value: string[]; onChange: (v: string[]) => void; disabled: boolean }) {
+  const t = useCourseText();
   // Tiles are identified by index so repeated words work.
   const bank = useMemo(() => shuffle(q.tiles.map((t, i) => ({ t, i })), seedOf(q.id)), [q.id, q.tiles]);
   const [placed, setPlaced] = useState<number[]>(() => {
@@ -216,7 +219,7 @@ function OrderInput({ q, value, onChange, disabled }: { q: { id: string; tiles: 
         onDrop={() => { if (dragIndex !== null && !disabled) add(dragIndex); setDragIndex(null); }}
         className="min-h-[60px] p-3 flex flex-wrap gap-2 border-b-2 border-dashed border-[var(--color-brand-blue)]/50 bg-[var(--color-brand-blue)]/5 rounded-t-[var(--radius-card)]"
       >
-        {placed.length === 0 && <span className="text-sm text-[var(--color-ink-soft)] italic self-center">Ketuk atau seret kata ke sini…</span>}
+        {placed.length === 0 && <span className="text-sm text-[var(--color-ink-soft)] italic self-center">{t.orderHint}</span>}
         {placed.map((i, pos) => (
           <button
             key={i}
@@ -251,6 +254,7 @@ function OrderInput({ q, value, onChange, disabled }: { q: { id: string; tiles: 
 const PAIR_COLORS = ["#2B4C7E", "#E8734A", "#4C8C6B", "#D9A441", "#8B5CF6", "#0EA5E9"];
 
 function MatchInput({ q, value, onChange, disabled, reveal }: { q: AnyQuestion; value: [string, string][]; onChange: (v: [string, string][]) => void; disabled: boolean; reveal?: [string, string][] }) {
+  const t = useCourseText();
   const { left, right } = useMemo(() => matchSides(q), [q]);
   const [active, setActive] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
@@ -270,7 +274,7 @@ function MatchInput({ q, value, onChange, disabled, reveal }: { q: AnyQuestion; 
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Ketuk item kiri lalu pasangannya di kanan (atau seret).</p>
+      <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.matchHint}</p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           {left.map((l) => {

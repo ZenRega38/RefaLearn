@@ -12,16 +12,18 @@ import { answerText, isAnswered } from "@/components/course/QuestionInput";
 import { Button } from "@/components/ui/Button";
 import { speak, speechSupported } from "@/components/course/speech";
 import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
 
 /** Inline "Coba sekarang" question inside the lesson material. */
 function TryIt({ question }: { question: Question }) {
+  const t = useCourseText();
   const [response, setResponse] = useState<Response | null>(null);
   const [checked, setChecked] = useState<boolean | null>(null);
   const [round, setRound] = useState(0);
 
   return (
     <div className="rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-accent-coral)]/60 bg-white p-4 md:p-5 space-y-4">
-      <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent-coral)] font-[var(--font-inter)]">Coba sekarang</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent-coral)] font-[var(--font-inter)]">{t.tryNow}</p>
       <QuestionBlock
         key={round}
         question={question}
@@ -33,17 +35,17 @@ function TryIt({ question }: { question: Question }) {
       />
       {checked === null ? (
         <div className="flex justify-end">
-          <Button size="sm" onClick={() => setChecked(isCorrect(question, response))} disabled={!isAnswered(question, response)}>Periksa</Button>
+          <Button size="sm" onClick={() => setChecked(isCorrect(question, response))} disabled={!isAnswered(question, response)}>{t.check}</Button>
         </div>
       ) : (
         <div className={`rounded-[var(--radius-sketch)] p-3 text-sm font-[var(--font-inter)] ${checked ? "bg-[var(--color-success-green)]/10" : "bg-[var(--color-danger-red)]/10"}`}>
           <p className={`font-bold flex items-center gap-1.5 ${checked ? "text-[var(--color-success-green)]" : "text-[var(--color-danger-red)]"}`}>
-            {checked ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} {checked ? "Tepat!" : `Jawaban: ${answerText(question)}`}
+            {checked ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} {checked ? t.correctShort : `${t.answerIs} ${answerText(question)}`}
           </p>
           <div className="mt-1 text-[var(--color-ink)]"><Md text={question.explanation} /></div>
           {!checked && (
             <button className="mt-2 text-xs font-semibold text-[var(--color-brand-blue)] underline" onClick={() => { setChecked(null); setResponse(null); setRound((r) => r + 1); }}>
-              Coba lagi
+              {t.tryAgain}
             </button>
           )}
         </div>
@@ -54,6 +56,7 @@ function TryIt({ question }: { question: Question }) {
 
 /** Picture-word cards: tap to hear the English word (and its example). */
 function VocabCards({ title, items }: { title?: string; items: VocabItem[] }) {
+  const t = useCourseText();
   const [active, setActive] = useState<string | null>(null);
   const [canSpeak] = useState(() => speechSupported());
 
@@ -86,7 +89,7 @@ function VocabCards({ title, items }: { title?: string; items: VocabItem[] }) {
           </button>
         ))}
       </div>
-      {canSpeak && <p className="text-xs text-[var(--color-ink-soft)]">Ketuk kartu untuk mendengar cara mengucapkannya.</p>}
+      {canSpeak && <p className="text-xs text-[var(--color-ink-soft)]">{t.tapCards}</p>}
     </div>
   );
 }

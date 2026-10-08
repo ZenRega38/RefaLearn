@@ -26,9 +26,9 @@ const balancedLive = (set: LiveQuizSet): LiveQuizSet => ({ ...set, questions: se
 
 export const ENGLISH_DAY: Course = {
   slug: "english-day",
-  title: "English Day — Ngobrol Bahasa Inggris untuk Kerja",
-  subtitle: "10 modul percakapan sehari-hari dan layanan pelanggan. Berani ngomong dulu, sempurna belakangan.",
-  labels: { level: "Modul", quiz: "Kuis Modul" },
+  title: "English Day — Everyday English for Work",
+  subtitle: "10 conversation modules for daily life and customer service. Speak first, perfect later.",
+  labels: { level: "Module", quiz: "Module Quiz" },
   mascot: "owl",
   adminLocks: true,
   openOrder: true,
@@ -38,5 +38,5 @@ export const ENGLISH_DAY: Course = {
     quiz: balanced(m.quiz),
     live: m.live && balancedLive(m.live),
   })),
-  comingSoon: "Setelah Modul 10: Customer Service Lanjutan, Email & WhatsApp Bisnis, dan Telepon Lanjutan. Usulkan topikmu ke pengajar!",
+  comingSoon: "After Module 10: Advanced Customer Service, Business Email & WhatsApp, and Advanced Phone Calls. Suggest a topic to your teacher!",
 };

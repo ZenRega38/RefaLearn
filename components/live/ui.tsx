@@ -12,10 +12,10 @@ import { liveAudio } from "@/components/live/audio";
 // stay bright so players can match them at a glance.
 
 export const ANSWER_STYLES = [
-  { bg: "#E21B3C", shape: "triangle", label: "Merah" },
-  { bg: "#1368CE", shape: "diamond", label: "Biru" },
-  { bg: "#D89E00", shape: "circle", label: "Kuning" },
-  { bg: "#26890C", shape: "square", label: "Hijau" },
+  { bg: "#E21B3C", shape: "triangle", label: "Red" },
+  { bg: "#1368CE", shape: "diamond", label: "Blue" },
+  { bg: "#D89E00", shape: "circle", label: "Yellow" },
+  { bg: "#26890C", shape: "square", label: "Green" },
 ] as const;
 
 export function Shape({ shape, className = "w-7 h-7" }: { shape: (typeof ANSWER_STYLES)[number]["shape"]; className?: string }) {
@@ -116,14 +116,14 @@ export function GetReady({ startsAt, now, index, total, sound }: { startsAt: num
   }, [sound]);
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-10">
-      <p className="text-base font-semibold text-[var(--color-ink-soft)]">Soal {index + 1} dari {total}</p>
+      <p className="text-base font-semibold text-[var(--color-ink-soft)]">Question {index + 1} of {total}</p>
       <div
         key={left}
         className="w-32 h-32 rounded-full bg-white border-4 border-[var(--color-brand-blue)] text-[var(--color-brand-blue)] shadow-[var(--shadow-sketch)] flex items-center justify-center text-6xl font-bold live-pop"
       >
         {left}
       </div>
-      <p className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Siap-siap!</p>
+      <p className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Get ready!</p>
     </div>
   );
 }
@@ -185,7 +185,7 @@ export function Scoreboard({ rows, highlightId, limit = 5 }: { rows: LiveBoardRo
             <Picture name={r.avatar} className="w-10 h-10 shrink-0" />
             <span className="flex-1 truncate text-lg font-semibold">{r.nickname}</span>
             {r.streak >= 2 && (
-              <span className="flex items-center gap-0.5 text-sm font-semibold text-[var(--color-accent-coral)]" title="Streak jawaban benar">
+              <span className="flex items-center gap-0.5 text-sm font-semibold text-[var(--color-accent-coral)]" title="Correct answers in a row">
                 <Flame className="w-4 h-4" /> {r.streak}
               </span>
             )}
