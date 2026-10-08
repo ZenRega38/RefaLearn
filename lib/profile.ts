@@ -115,3 +115,9 @@ export function parseCoordinates(text: string): { latitude: number; longitude: n
 export function googleMapsUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
+
+/** Case- and spacing-insensitive name match, used for typed e-signatures. */
+export function sameName(a: string | null | undefined, b: string | null | undefined): boolean {
+  const norm = (s: string | null | undefined) => (s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+  return norm(a).length > 0 && norm(a) === norm(b);
+}

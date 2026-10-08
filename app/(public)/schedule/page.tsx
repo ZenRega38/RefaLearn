@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { SESSION_COUNT_OPTIONS } from "@/lib/policy";
 import { dateStrToLocalDate, localDateToDateStr, todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
 import { formatDateStr } from "@/lib/format";
-import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, type ProfileCompletion } from "@/lib/profile";
+import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, needsGuardian, type ProfileCompletion } from "@/lib/profile";
 import { AlertCircle, Repeat, Wallet, Landmark } from "lucide-react";
 
 type ActiveContract = {
@@ -494,6 +494,8 @@ export default function SchedulePage() {
         onAccept={handleContractAccept}
         contractHtml={activeContract?.content || ""}
         expectedName={userProfile?.full_name || ""}
+        requireGuardian={needsGuardian(userProfile?.birth_date, todayStr())}
+        guardianName={userProfile?.guardian_name || ""}
       />
 
       {prepaymentToPay && (

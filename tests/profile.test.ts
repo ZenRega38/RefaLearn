@@ -6,6 +6,7 @@ import {
   missingProfileFields,
   needsGuardian,
   parseCoordinates,
+  sameName,
   type ProfileCompletion,
 } from "@/lib/profile";
 
@@ -93,5 +94,17 @@ describe("parseCoordinates", () => {
     expect(parseCoordinates("Jl. Mulawarman")).toBeNull();
     expect(parseCoordinates("95, 117")).toBeNull();
     expect(parseCoordinates("")).toBeNull();
+  });
+});
+
+describe("sameName", () => {
+  it("ignores case and extra spaces", () => {
+    expect(sameName("Siti  Aminah ", "siti aminah")).toBe(true);
+  });
+
+  it("rejects different or empty names", () => {
+    expect(sameName("Siti Aminah", "Siti Amina")).toBe(false);
+    expect(sameName("", "")).toBe(false);
+    expect(sameName(null, "Siti")).toBe(false);
   });
 });
