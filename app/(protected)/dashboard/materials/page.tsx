@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { PaymentInstructions, type BankDetails, type EwalletDetails } from "@/components/ui/PaymentInstructions";
-import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock } from "lucide-react";
+import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock, GraduationCap } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { uploadPaymentProof } from "@/lib/storage";
 import { formatTimestamp } from "@/lib/format";
@@ -28,6 +28,7 @@ type Material = {
   title: string;
   category: string;
   cover_image_url: string | null;
+  course_slug: string | null;
 };
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
@@ -77,7 +78,7 @@ export default function StudentMaterialsDashboard() {
       // catalog, so a confirmed purchase never disappears from here.
       const { data: materialsData } = await supabase
         .from('materials')
-        .select('id, title, category, cover_image_url')
+        .select('id, title, category, cover_image_url, course_slug')
         .in('id', allMaterialIds);
 
       const materialsMap = new Map<string, Material>();
@@ -253,7 +254,11 @@ export default function StudentMaterialsDashboard() {
                       </div>
 
                       <div className="mt-2 sm:mt-0 w-full sm:w-auto flex justify-end">
-                        {order.status === 'confirmed' ? (
+                        {order.status === 'confirmed' && material.course_slug ? (
+                          <Button href={`/learn/${material.course_slug}`} className="w-full sm:w-auto">
+                            <GraduationCap className="w-4 h-4 mr-2" /> Buka Kursus
+                          </Button>
+                        ) : order.status === 'confirmed' ? (
                           <Button
                             variant="secondary"
                             onClick={() => window.open(`/api/materials/download?materialId=${material.id}`, '_blank', 'noopener')}

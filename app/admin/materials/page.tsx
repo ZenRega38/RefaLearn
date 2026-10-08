@@ -11,6 +11,7 @@ import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen, FileUp, FileCheck, Tag, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { slugify } from "@/lib/format";
+import { COURSES } from "@/lib/course/registry";
 import { formatPrice } from "@/lib/pricing";
 import { uploadMaterialFile } from "@/lib/storage";
 
@@ -47,6 +48,7 @@ export default function AdminMaterialsPage() {
   const [newFile, setNewFile] = useState<File | null>(null);   // a freshly picked file, not yet uploaded
   const [coverUrl, setCoverUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [courseSlug, setCourseSlug] = useState("");
   const [saving, setSaving] = useState(false);
 
   const fetchMaterials = useCallback(async () => {
@@ -112,6 +114,7 @@ export default function AdminMaterialsPage() {
       setNewFile(null);
       setCoverUrl(data.cover_image_url || "");
       setIsActive(data.is_active);
+      setCourseSlug(data.course_slug || "");
       setIsEditing(true);
     }
   };
@@ -127,6 +130,7 @@ export default function AdminMaterialsPage() {
     setNewFile(null);
     setCoverUrl("");
     setIsActive(true);
+    setCourseSlug("");
     setIsEditing(true);
   };
 
@@ -168,6 +172,7 @@ export default function AdminMaterialsPage() {
         file_url: finalFileUrl,
         cover_image_url: coverUrl,
         is_active: isActive,
+        course_slug: courseSlug || null,
       };
 
       let error;
@@ -302,12 +307,31 @@ export default function AdminMaterialsPage() {
                   <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1">
                     <FileUp className="w-3.5 h-3.5" /> Sudah ada file tersimpan. Pilih file baru untuk menggantinya.
                   </p>
+                ) : courseSlug ? (
+                  <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                    Opsional — produk ini membuka kursus interaktif.
+                  </p>
                 ) : (
                   <p className="text-xs text-[var(--color-danger-red)] font-[var(--font-inter)]">
                     Belum ada file — siswa tidak akan bisa mengunduh sampai file diunggah.
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+                Kursus Interaktif (Opsional)
+              </label>
+              <select className="input-field" value={courseSlug} onChange={(e) => setCourseSlug(e.target.value)}>
+                <option value="">Tidak ada — materi file biasa</option>
+                {COURSES.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.title}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                Pembeli yang pembayarannya dikonfirmasi otomatis mendapat akses ke kursus ini di /learn.
+              </p>
             </div>
 
             <div>

@@ -179,5 +179,16 @@ check(selfRead.rows.length === 0, "sender cannot mark own message read", "update
 await expectOk("admin (recipient) marks it read", () => as("authenticated", ADMIN, `update chat_messages set is_read=true where id=$1`, [msg]));
 await expectFail("recipient cannot rewrite content", () => as("authenticated", ADMIN, `update chat_messages set content='edited' where id=$1`, [msg]), /read flag/);
 
+console.log("\nCourses:");
+await expectOk("materials.course_slug exists", () => db.query(`update materials set course_slug='toefl-itp' where id=$1`, [mat]));
+await expectFail("student cannot mark a lesson done directly", () => as("authenticated", S1,
+  `insert into course_progress (student_id, course_slug, item_id, kind, passed) values ($1,'toefl-itp','l1-lis-1','lesson',true)`, [S1]), /row-level security/);
+await expectFail("student cannot record a tryout score directly", () => as("authenticated", S1,
+  `insert into course_attempts (student_id, course_slug, kind, total_score) values ($1,'toefl-itp','tryout',677)`, [S1]), /row-level security/);
+await as("service_role", null, `insert into course_progress (student_id, course_slug, item_id, kind, passed) values ($1,'toefl-itp','l1-lis-1','lesson',true)`, [S1]);
+const ownProgress = await as("authenticated", S1, `select item_id from course_progress`);
+const otherProgress = await as("authenticated", S2, `select item_id from course_progress`);
+check(ownProgress.rows.length === 1 && otherProgress.rows.length === 0, "students see only their own progress", `${ownProgress.rows.length}/${otherProgress.rows.length}`);
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

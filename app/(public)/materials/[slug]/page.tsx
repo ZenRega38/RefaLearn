@@ -7,7 +7,7 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { BookOpen, ShoppingBag, ArrowLeft, CheckCircle2, ShieldCheck, ShoppingCart } from "lucide-react";
+import { BookOpen, ShoppingBag, ArrowLeft, CheckCircle2, ShieldCheck, ShoppingCart, GraduationCap, Target } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
 import { addToCart, useCart } from "@/lib/cart";
@@ -23,6 +23,7 @@ type Material = {
   description: string | null;
   created_at: string;
   updated_at: string | null;
+  course_slug: string | null;
 };
 
 type Ownership = "none" | "pending" | "owned";
@@ -175,12 +176,12 @@ export default function MaterialDetailPage() {
                         : "Selesaikan pembayaran dari dashboard untuk membuka akses."}
                     </p>
                     <Button
-                      href="/dashboard/materials"
+                      href={ownership === "owned" && material.course_slug ? `/learn/${material.course_slug}` : "/dashboard/materials"}
                       variant="secondary"
                       size="sm"
                       className="mt-3 w-full bg-white border-[var(--color-success-green)] text-[var(--color-success-green)] hover:bg-[var(--color-success-green)] hover:text-white"
                     >
-                      Buka di Dashboard
+                      {ownership === "owned" && material.course_slug ? "Buka Kursus" : "Buka di Dashboard"}
                     </Button>
                   </div>
                 </div>
@@ -232,6 +233,23 @@ export default function MaterialDetailPage() {
                 <span>Kategori: {material.category}</span>
               </div>
             </div>
+
+            {material.course_slug && (
+              <Card variant="sketch" className="p-6 bg-[var(--color-brand-blue)]/5 space-y-3">
+                <h2 className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)] flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5" /> Kursus interaktif
+                </h2>
+                <ul className="text-sm font-[var(--font-inter)] text-[var(--color-ink)] space-y-1.5 list-disc pl-5">
+                  <li>Materi bertahap per level dengan contoh audio dan latihan langsung</li>
+                  <li>Checkpoint ala Duolingo di setiap materi: isian, susun kata, pasangkan, pilihan ganda</li>
+                  <li>Big Quiz untuk naik level</li>
+                  <li>Tryout full-length dengan waktu, urutan, dan jenis soal seperti tes asli</li>
+                </ul>
+                <Button href={`/learn/${material.course_slug}`} variant="secondary" size="sm">
+                  <Target className="w-4 h-4" /> Lihat silabus & coba pretest gratis
+                </Button>
+              </Card>
+            )}
 
             <Card variant="sketch" className="p-6 md:p-8 bg-white">
               <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-6 border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
