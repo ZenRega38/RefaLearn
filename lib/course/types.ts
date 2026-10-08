@@ -85,7 +85,8 @@ export type Lesson = {
   skill: Skill;
   title: string;
   summary: string;
-  minutes: number;
+  /** Estimated minutes; omit to show no duration (self-paced review courses). */
+  minutes?: number;
   sections: LessonSection[];
   /** Mini quiz at the end of the lesson; wrong answers come back until right. */
   checkpoint: Question[];
@@ -113,6 +114,16 @@ export type Level = {
   lessons: Lesson[];
   /** End-of-level quiz / chapter posttest; passing opens the next level. */
   quiz: LevelQuiz;
+  /** Question set the teacher can host as a live (Kahoot-style) quiz. */
+  live?: LiveQuizSet;
+};
+
+/** A live quiz: single-answer questions played together, hosted by the admin. */
+export type LiveQuizSet = {
+  title: string;
+  /** Seconds to answer each question (default 20). */
+  seconds?: number;
+  questions: McQuestion[];
 };
 
 // ---------------------------------------------------------------------------
@@ -152,6 +163,14 @@ export type Course = {
   tryout?: Exam;
   /** Shown under the last level, e.g. upcoming levels. */
   comingSoon?: string;
+  /** Free for every signed-in user (no purchase needed). */
+  free?: boolean;
+  /** Levels stay locked until the admin opens them (course_level_access). */
+  adminLocks?: boolean;
+  /** Inside an open level every lesson and the quiz are open at once (no sequential unlocking). */
+  openOrder?: boolean;
+  /** Per-question time limit for level quizzes, in seconds. */
+  quizSecondsPerQuestion?: number;
   /** Mascot picture family (e.g. "owl" → owl-cheer, owl-think…) that cheers students on. */
   mascot?: string;
 };

@@ -29,6 +29,8 @@ export const PICTURE_NAMES = [
   "rice", "bread", "egg", "grilled-fish", "drumstick", "vegetables", "milk", "water", "juice", "tea",
   "apple", "mango", "banana", "orange-fruit", "tomato", "leaf", "cloud", "cake", "ball", "basket", "stall", "lunch",
   "yum", "yuck", "heart",
+  // work, daily life, travel (English Day)
+  "staff", "headset", "customer", "customer-angry", "technician", "meeting", "smartphone", "phone-call", "laptop", "modem", "modem-red", "wifi", "cable", "signal", "download", "upload", "video-app", "chat", "question", "bill", "money", "receipt", "calendar", "clock", "alarm", "target", "report", "office", "house", "coffee", "motorcycle", "traffic", "shower", "tv", "gamepad", "fishing", "bicycle", "beach", "mountain", "island", "plane", "suitcase", "passport", "souvenir", "crab", "soup", "chili", "lemon", "candy", "salt", "food-stall", "feel-great", "feel-tired", "feel-sleepy", "feel-hungry", "trophy", "thumbs-up", "pin",
   // mascot
   "owl", "owl-wave", "owl-cheer", "owl-think", "owl-read",
 ] as const;

@@ -2,8 +2,9 @@ import "server-only";
 import type { Course, ExamKind, Lesson, Level, LevelQuiz, ProgressItem } from "@/lib/course/types";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
+import { ENGLISH_DAY } from "@/content/english-day";
 
-const COURSES: Record<string, Course> = { [TOEFL_ITP.slug]: TOEFL_ITP, [ENGLISH_SD_3.slug]: ENGLISH_SD_3 };
+const COURSES: Record<string, Course> = { [TOEFL_ITP.slug]: TOEFL_ITP, [ENGLISH_SD_3.slug]: ENGLISH_SD_3, [ENGLISH_DAY.slug]: ENGLISH_DAY };
 
 export const ALL_COURSES = Object.values(COURSES);
 
@@ -37,12 +38,25 @@ export function getExam(course: Course, kind: ExamKind) {
  * opens when its lessons are done; the next level opens when the previous
  * quiz is passed; the tryout opens when every level quiz is passed.
  */
-export function computeUnlocks(course: Course, progress: ProgressItem[]) {
+export function computeUnlocks(course: Course, progress: ProgressItem[], openLevels?: ReadonlySet<string>) {
   const done = new Set(progress.filter((p) => p.passed).map((p) => p.itemId));
   const unlocked = new Set<string>();
   let previousOk = true;
+  // Levels the admin hasn't opened yet (only for courses with admin locks).
+  const lockedLevels = new Set(course.adminLocks ? course.levels.filter((l) => !openLevels?.has(l.id)).map((l) => l.id) : []);
 
   for (const level of course.levels) {
+    if (lockedLevels.has(level.id)) {
+      previousOk = false;
+      continue;
+    }
+    if (course.openOrder) {
+      // Self-paced review course: everything in an open level is open.
+      if (level.pretest) unlocked.add(level.pretest.id);
+      for (const lesson of level.lessons) unlocked.add(lesson.id);
+      unlocked.add(level.quiz.id);
+      continue;
+    }
     // A chapter pretest opens with the chapter and must be taken (any score)
     // before its lessons.
     if (level.pretest) {
@@ -67,5 +81,5 @@ export function computeUnlocks(course: Course, progress: ProgressItem[]) {
     0
   );
 
-  return { unlocked, done, tryoutUnlocked: previousOk, totalItems, completedItems };
+  return { unlocked, done, lockedLevels, tryoutUnlocked: previousOk, totalItems, completedItems };
 }

@@ -16,6 +16,8 @@ import { ArrowLeft, ArrowRight, RefreshCw, Trophy, RotateCcw, ClipboardCheck } f
 type QuizPayload = {
   isPretest: boolean;
   mascot: string | null;
+  /** Per-question time limit (seconds); null = untimed. */
+  secondsPerQuestion: number | null;
   quiz: { id: string; title: string; passPercent: number; passages: Passage[]; questions: PublicQuestion[] };
   level: { id: string; title: string };
 };
@@ -30,6 +32,8 @@ export default function LevelQuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Seconds used per question (timed quizzes only). A question whose time is up is locked.
+  const [used, setUsed] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch(`/api/courses/${slug}/quiz/${quizId}`, { cache: "no-store" })
@@ -44,6 +48,26 @@ export default function LevelQuizPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [index, result]);
+
+  // Per-question countdown: runs only on the open question; at zero the
+  // question locks and the quiz moves on to the next question still open.
+  const limit = data?.secondsPerQuestion ?? null;
+  const currentId = data?.quiz.questions[index]?.id;
+  useEffect(() => {
+    if (!limit || !currentId || result) return;
+    const timer = window.setInterval(() => {
+      setUsed((prev) => {
+        const spent = (prev[currentId] ?? 0) + 1;
+        if (spent >= limit && data) {
+          const qs = data.quiz.questions;
+          const next = qs.findIndex((x, i) => i > index && (prev[x.id] ?? 0) < limit);
+          if (next !== -1) window.setTimeout(() => setIndex(next), 600);
+        }
+        return { ...prev, [currentId]: Math.min(spent, limit) };
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [limit, currentId, result, index, data]);
 
   if (error || !data) {
     return (
@@ -65,6 +89,8 @@ export default function LevelQuizPage() {
   const { quiz } = data;
   const q = quiz.questions[index];
   const answered = quiz.questions.filter((x) => isAnswered(x, responses[x.id])).length;
+  const left = limit ? Math.max(0, limit - (used[q.id] ?? 0)) : 0;
+  const timeUp = !!limit && left === 0;
 
   const submit = async () => {
     if (answered < quiz.questions.length && !window.confirm(`Masih ada ${quiz.questions.length - answered} soal kosong. Kumpulkan sekarang?`)) return;
@@ -86,6 +112,7 @@ export default function LevelQuizPage() {
   };
 
   const retry = () => {
+    setUsed({});
     setResponses({});
     setIndex(0);
     setResult(null);
@@ -150,13 +177,26 @@ export default function LevelQuizPage() {
             </div>
 
             <Card variant="sketch" className="p-5 md:p-8 space-y-4">
-              <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Soal {index + 1} dari {quiz.questions.length}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Soal {index + 1} dari {quiz.questions.length}</p>
+                {limit && (
+                  <span className={`text-xs font-bold font-[var(--font-inter)] px-2.5 py-1 rounded-full ${timeUp ? "bg-[var(--color-danger-red)]/15 text-[var(--color-danger-red)]" : left <= 5 ? "bg-[var(--color-accent-coral)]/15 text-[var(--color-accent-coral)] animate-pulse" : "bg-[var(--color-paper-bg-alt)] text-[var(--color-ink-soft)]"}`}>
+                    {timeUp ? "Waktu habis" : `⏱ ${left} detik`}
+                  </span>
+                )}
+              </div>
+              {limit && (
+                <div className="h-1.5 rounded-full bg-[var(--color-paper-bg-alt)] overflow-hidden">
+                  <div className="h-full bg-[var(--color-accent-coral)] transition-all duration-1000 ease-linear" style={{ width: `${(left / limit) * 100}%` }} />
+                </div>
+              )}
               <QuestionBlock
                 key={`${q.id}-${attempt}`}
                 question={q}
                 passages={quiz.passages}
                 value={responses[q.id] ?? null}
                 onChange={(r) => setResponses((prev) => ({ ...prev, [q.id]: r }))}
+                disabled={timeUp}
               />
             </Card>
 

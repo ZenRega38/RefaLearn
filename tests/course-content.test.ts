@@ -296,3 +296,38 @@ describe("unlocking", () => {
     expect(u.totalItems).toBe(6 * 5);
   });
 });
+
+describe("admin-opened modules (English Day)", () => {
+  const course = getCourseOrThrow("english-day");
+
+  it("locks every module the admin hasn't opened", () => {
+    const u = computeUnlocks(course, [], new Set(["ed-m1", "ed-m2"]));
+    expect([...u.lockedLevels]).toEqual(course.levels.slice(2).map((l) => l.id));
+    expect(u.unlocked.has(course.levels[2].lessons[0].id)).toBe(false);
+    expect(u.unlocked.has(course.levels[2].quiz.id)).toBe(false);
+  });
+
+  it("opens every lesson and the quiz of an open module at once (free order, re-readable)", () => {
+    const u = computeUnlocks(course, [], new Set(["ed-m1", "ed-m2"]));
+    for (const level of course.levels.slice(0, 2)) {
+      for (const lesson of level.lessons) expect(u.unlocked.has(lesson.id), lesson.id).toBe(true);
+      expect(u.unlocked.has(level.quiz.id)).toBe(true);
+    }
+  });
+
+  it("treats a missing access list as everything locked", () => {
+    expect(computeUnlocks(course, []).unlocked.size).toBe(0);
+  });
+
+  it("is free, untimed per lesson, and timed per quiz question", () => {
+    expect(course.free && course.adminLocks && course.openOrder).toBe(true);
+    expect(course.quizSecondsPerQuestion).toBeGreaterThan(0);
+    for (const level of course.levels) for (const lesson of level.lessons) expect(lesson.minutes, lesson.id).toBeUndefined();
+  });
+});
+
+function getCourseOrThrow(slug: string): Course {
+  const c = ALL_COURSES.find((x) => x.slug === slug);
+  if (!c) throw new Error(`missing course ${slug}`);
+  return c;
+}

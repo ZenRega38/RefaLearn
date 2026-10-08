@@ -30,6 +30,7 @@ export async function GET(_req: Request, { params }: Params) {
     nextIsQuiz: found.index + 1 >= lessons.length,
     done: ctx.unlocks.done.has(lessonId),
     mascot: ctx.course.mascot ?? null,
+    hasLive: !!found.level.live,
   });
 }
 

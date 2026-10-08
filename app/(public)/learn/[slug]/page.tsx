@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Picture } from "@/components/course/pictures";
+import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
 import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
 import type { Skill } from "@/lib/course/types";
 import { formatPrice } from "@/lib/pricing";
@@ -24,6 +25,8 @@ type Outline = {
   labels: { level: string; quiz: string };
   comingSoon: string | null;
   mascot: string | null;
+  free: boolean;
+  quizSecondsPerQuestion: number | null;
   loggedIn: boolean;
   access: boolean;
   store: { slug: string; price: number } | null;
@@ -34,8 +37,10 @@ type Outline = {
     description: string;
     targetScore: string;
     cover: string[];
+    locked: boolean;
+    hasLive: boolean;
     pretest: QuizInfo | null;
-    lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number; unlocked: boolean; done: boolean }[];
+    lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number | null; unlocked: boolean; done: boolean }[];
     quiz: QuizInfo;
   }[];
   pretest: { title: string; description: string; minutes: number; questions: number; attempts: Attempt[] } | null;
@@ -96,7 +101,10 @@ export default function CourseHomePage() {
         {/* Header */}
         <div className="text-center space-y-3">
           {outline.mascot && <Picture name={`${outline.mascot}-wave`} label="Maskot kursus" className="w-24 h-24 mx-auto" />}
-          <Badge variant="blue" className="mx-auto">Kursus Interaktif</Badge>
+          <div className="flex justify-center gap-2">
+            <Badge variant="blue">Kursus Interaktif</Badge>
+            {outline.free && <Badge variant="green">Gratis</Badge>}
+          </div>
           <h1 className="text-4xl md:text-5xl">
             <SketchBox color="var(--color-accent-yellow)">{outline.title}</SketchBox>
           </h1>
@@ -122,6 +130,14 @@ export default function CourseHomePage() {
                 </div>
               )}
             </>
+          ) : outline.free ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-[var(--font-inter)]">
+              <div>
+                <p className="font-semibold text-[var(--color-ink)]">Kursus ini gratis</p>
+                <p className="text-sm text-[var(--color-ink-soft)]">Masuk atau daftar dulu (bisa pakai Google) supaya progres belajarmu tersimpan.</p>
+              </div>
+              <Button href={`/login?next=/learn/${slug}`} className="shrink-0">Masuk untuk Mulai</Button>
+            </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-[var(--font-inter)]">
               <div>
@@ -188,6 +204,12 @@ export default function CourseHomePage() {
             </div>
             <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">{level.description}</p>
 
+            {level.locked ? (
+              <Card className="flex items-center gap-3 border-dashed bg-white/60 font-[var(--font-inter)]">
+                <Lock className="w-5 h-5 text-[var(--color-ink-soft)] shrink-0" />
+                <p className="text-sm text-[var(--color-ink-soft)]">Modul ini belum dibuka. Pengajar akan membukanya saat kelasnya sudah sampai di topik ini.</p>
+              </Card>
+            ) : (
             <Card className="p-0 overflow-hidden">
               <ul className="divide-y divide-[var(--color-line)]">
                 {level.pretest && (
@@ -220,7 +242,7 @@ export default function CourseHomePage() {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-soft)]">
-                          <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {SKILL_LABEL[lesson.skill]} · {lesson.minutes} menit
+                          <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {SKILL_LABEL[lesson.skill]}{lesson.minutes ? ` · ${lesson.minutes} menit` : ""}
                         </div>
                         <p className="font-semibold text-[var(--color-ink)] truncate">{lesson.title}</p>
                         <p className="text-xs text-[var(--color-ink-soft)] line-clamp-1">{lesson.summary}</p>
@@ -240,7 +262,7 @@ export default function CourseHomePage() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--color-brand-blue)]">{q.title}</p>
                           <p className="text-xs text-[var(--color-ink-soft)]">
-                            {q.questions} soal · lulus minimal {q.passPercent}% untuk lanjut
+                            {q.questions} soal{outline.quizSecondsPerQuestion ? ` · ${outline.quizSecondsPerQuestion} detik per soal` : ""} · {outline.free ? `target ${q.passPercent}%` : `lulus minimal ${q.passPercent}% untuk lanjut`}
                             {q.score !== null && ` · nilai terbaik ${q.score}/${q.maxScore}`}
                           </p>
                         </div>
@@ -251,6 +273,8 @@ export default function CourseHomePage() {
                 </li>
               </ul>
             </Card>
+            )}
+            {!level.locked && level.hasLive && <LiveQuizWidget courseSlug={slug} levelId={level.id} />}
           </div>
         ))}
 

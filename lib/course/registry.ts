@@ -4,6 +4,13 @@
 export const COURSES = [
   { slug: "toefl-itp", title: "TOEFL ITP Mastery — dari Nol sampai Skor Tinggi" },
   { slug: "english-sd-3", title: "Bahasa Inggris Kelas 3 SD — Kurikulum Merdeka" },
+  {
+    slug: "english-day",
+    title: "English Day — Ngobrol Bahasa Inggris untuk Kerja",
+    free: true,
+    pic: "headset",
+    blurb: "10 modul percakapan sehari-hari dan layanan pelanggan, lengkap dengan kuis dan Live Quiz.",
+  },
 ] as const;
 
 export type CourseSlug = (typeof COURSES)[number]["slug"];

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import Link from "next/link";
+import { FreeCourses } from "@/components/course/FreeCourses";
 
 type Material = {
   id: string;
@@ -77,6 +78,8 @@ export default function MaterialsCatalogPage() {
             </Button>
           )}
         </div>
+
+        <FreeCourses title="Kursus Interaktif Gratis" />
 
         {/* Filters & Search */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 p-4 rounded-xl border border-[var(--color-line)] shadow-sm">

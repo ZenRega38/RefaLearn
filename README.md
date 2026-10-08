@@ -45,6 +45,9 @@ Migrations live in `supabase/migrations/` and apply in filename order:
 | `…000003_reschedule_cancellation.sql` | Reschedule requests, cancellation fees, prepayments |
 | `…000004_series_fee_and_invoice_breakdown.sql` | `invoices.fee_amount`, auto-closing weekly series |
 | `…000005_security_and_integrity.sql` | Role lock-down, server-only write paths, overlap constraint, atomic booking/invoicing functions, chat read receipts + attachments, public image bucket |
+| `…000006_interactive_courses.sql` | Course progress and exam attempts for interactive courses |
+| `…000007_chapter_pretests_and_grants.sql` | Chapter pretests, admin-granted materials |
+| `…000008_module_locks_and_live_quiz.sql` | Admin-opened course modules (English Day starts with modules 1–2 open) and live-quiz tables |
 
 ```bash
 npx supabase link --project-ref <your-project-ref>
@@ -60,6 +63,12 @@ Or paste each file into the SQL Editor, in order.
 ```sql
 update public.profiles set role = 'admin' where id = '<auth user id>';
 ```
+
+### English Day & Live Quiz
+
+- **English Day** (`/learn/english-day`) is free for every signed-in user. Modules stay locked until the admin opens them in **Admin → Modul & Live Quiz**; inside an open module every lesson and the quiz are open, and lessons can be re-read anytime. Module quizzes have a 45-second timer per question.
+- **Live Quiz**: in **Admin → Modul & Live Quiz**, click **Mulai Live Quiz** on an open module. The host screen (best in full screen on a projector) shows the PIN and a QR code. Players join without an account at `/live` (or by scanning the QR), or straight from the module page, where a “Live sekarang” banner appears. Click **Nyalakan suara** on the host screen for music and sound effects.
+- Live-quiz state is polled about once a second; no Supabase Realtime setup is needed.
 
 ### Supabase Auth settings
 

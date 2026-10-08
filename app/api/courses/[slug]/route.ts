@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeUnlocks, getCourse } from "@/lib/course/content";
-import { examMinutes, hasCourseAccess, loadProgress } from "@/lib/course/server";
+import { examMinutes, hasCourseAccess, loadOpenLevels, loadProgress } from "@/lib/course/server";
 import type { ProgressItem } from "@/lib/course/types";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     attempts = data || [];
   }
 
-  const unlocks = computeUnlocks(course, progress);
+  const openLevels = course.adminLocks ? await loadOpenLevels(admin, slug) : undefined;
+  const unlocks = computeUnlocks(course, progress, openLevels);
   const byId = new Map(progress.map((p) => [p.itemId, p]));
   const { data: material } = await admin
     .from("materials")
@@ -72,6 +73,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     labels: course.labels,
     comingSoon: course.comingSoon ?? null,
     mascot: course.mascot ?? null,
+    free: !!course.free,
+    quizSecondsPerQuestion: course.quizSecondsPerQuestion ?? null,
     loggedIn,
     access,
     store: material ? { slug: material.slug, price: material.price } : null,
@@ -82,13 +85,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       description: level.description,
       targetScore: level.targetScore,
       cover: level.cover ?? [],
+      locked: unlocks.lockedLevels.has(level.id),
+      hasLive: !!level.live,
       pretest: level.pretest ? quizInfo(level.pretest) : null,
       lessons: level.lessons.map((l) => ({
         id: l.id,
         title: l.title,
         skill: l.skill,
         summary: l.summary,
-        minutes: l.minutes,
+        minutes: l.minutes ?? null,
         unlocked: access && unlocks.unlocked.has(l.id),
         done: unlocks.done.has(l.id),
       })),

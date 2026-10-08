@@ -13,6 +13,7 @@ import { formatPrice } from "@/lib/pricing";
 import { uploadPaymentProof } from "@/lib/storage";
 import { formatTimestamp } from "@/lib/format";
 import { useRouter } from "next/navigation";
+import { FreeCourses } from "@/components/course/FreeCourses";
 
 type Order = {
   id: string;
@@ -151,6 +152,8 @@ export default function StudentMaterialsDashboard() {
             </Button>
           </div>
         </div>
+
+        <FreeCourses />
 
         {uploadingOrder && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
