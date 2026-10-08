@@ -9,6 +9,8 @@
 //   `"pic:cat|cat"` shows the picture with a caption.
 
 const NUMBERS = Array.from({ length: 20 }, (_, i) => `num-${i + 1}` as const);
+/** Clock faces: "time-7" (seven o'clock) and "time-7-30" (half past seven). */
+const CLOCKS = Array.from({ length: 12 }, (_, i) => [`time-${i + 1}` as const, `time-${i + 1}-30` as const]).flat();
 
 export const PICTURE_NAMES = [
   // people
@@ -42,6 +44,20 @@ export const PICTURE_NAMES = [
   "rain", "windy", "hot", "cold", "rainbow",
   "happy", "sad", "angry", "scared", "surprised",
   "in", "on", "under", "next-to",
+  // town & world: jobs, places, transport, clocks, directions, celebrations
+  "doctor", "nurse", "police", "farmer", "chef", "pilot", "firefighter", "driver",
+  "hospital", "library", "police-station", "post-office", "supermarket", "restaurant", "museum", "park", "mailbox", "cart",
+  "car", "taxi", "bus", "train", "ship",
+  ...CLOCKS,
+  "turn-left", "turn-right", "go-straight", "map", "traffic-light",
+  "flag", "fireworks", "ketupat", "lantern", "christmas-tree", "envelope", "card", "graduation",
+  // nature, sports, hobbies, health, environment, cooking
+  "tiger", "monkey", "orangutan", "komodo", "turtle", "butterfly", "snake", "frog", "giraffe", "crocodile", "mouse-deer",
+  "football", "badminton", "basketball",
+  "guitar", "piano", "drum", "palette", "microphone", "camera",
+  "medicine", "thermometer", "sick", "headache", "toothache", "cough", "stomachache",
+  "recycle", "trash", "earth", "tap", "sprout", "factory",
+  "pan", "bowl", "spoon", "knife",
   // mascot
   "owl", "owl-wave", "owl-cheer", "owl-think", "owl-read",
 ] as const;
