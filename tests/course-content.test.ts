@@ -5,6 +5,7 @@ import { ALL_COURSES, computeUnlocks, findLevelQuiz } from "@/lib/course/content
 import { COURSES as REGISTRY } from "@/lib/course/registry";
 import { convertedScore, isCorrect, normalizeAnswer, toPublicQuestion, totalScore } from "@/lib/course/grading";
 import type { Course, Passage, ProgressItem, Question, Response } from "@/lib/course/types";
+import { optionText, parsePicOption, parsePictureRef, PICTURE_NAMES } from "@/lib/course/pictures";
 
 type Located = { q: Question; passages: Passage[]; where: string };
 
@@ -181,6 +182,60 @@ describe("Grade 3 module (Kurikulum Merdeka)", () => {
     const bab = ENGLISH_SD_3.levels[0];
     expect(findLevelQuiz(ENGLISH_SD_3, bab.pretest!.id)?.isPretest).toBe(true);
     expect(findLevelQuiz(ENGLISH_SD_3, bab.quiz.id)?.isPretest).toBe(false);
+  });
+
+  it("illustrates every chapter: cover, picture vocab cards, and picture questions", () => {
+    for (const bab of ENGLISH_SD_3.levels) {
+      expect(bab.cover?.length, bab.id).toBeGreaterThan(0);
+      const blocks = bab.lessons.flatMap((l) => l.sections.flatMap((s) => s.blocks));
+      for (const b of blocks) if (b.type === "vocab") for (const it of b.items) expect(it.pic, `${bab.id} ${it.word}`).toBeTruthy();
+      expect(blocks.some((b) => b.type === "pictures"), bab.id).toBe(true);
+      const questions = allQuestions({ ...ENGLISH_SD_3, levels: [bab] }).map((x) => x.q);
+      const pictured = questions.filter((q) => pictureRefs(q).length > 0);
+      expect(pictured.length, bab.id).toBeGreaterThanOrEqual(6);
+    }
+  });
+});
+
+/** Every picture reference a question uses (image, picture options, match items). */
+function pictureRefs(q: Question): string[] {
+  const texts = q.type === "mc" || q.type === "ms" ? q.options : q.type === "match" ? q.pairs.flat() : [];
+  return [...(q.image ? [q.image] : []), ...texts.flatMap((t) => parsePicOption(t)?.ref ?? [])];
+}
+
+describe("pictures", () => {
+  it.each(ALL_COURSES.map((c) => [c.slug, c] as const))("every picture referenced by %s exists", (_slug, course) => {
+    const refs: string[] = [];
+    for (const level of course.levels) {
+      refs.push(...(level.cover ?? []));
+      for (const lesson of level.lessons) {
+        for (const p of lesson.passages ?? []) if (p.pic) refs.push(p.pic);
+        for (const b of lesson.sections.flatMap((s) => s.blocks)) {
+          if (b.type === "vocab") refs.push(...b.items.flatMap((it) => it.pic ?? []));
+          if (b.type === "pictures") refs.push(...b.items.map((it) => it.pic));
+          if (b.type === "passage" && b.passage.pic) refs.push(b.passage.pic);
+        }
+      }
+      for (const quiz of [level.quiz, ...(level.pretest ? [level.pretest] : [])]) for (const p of quiz.passages ?? []) if (p.pic) refs.push(p.pic);
+    }
+    for (const { q } of allQuestions(course)) refs.push(...pictureRefs(q));
+    if (course.mascot) refs.push(...["wave", "cheer", "think"].map((pose) => `${course.mascot}-${pose}`));
+    const missing = refs.filter((r) => !parsePictureRef(r));
+    expect(missing).toEqual([]);
+  });
+
+  it("parses picture options and repeat counts", () => {
+    expect(parsePicOption("pic:cat|kucing")).toEqual({ ref: "cat", caption: "kucing" });
+    expect(parsePicOption("cat")).toBeNull();
+    expect(parsePictureRef("apple*4")).toEqual({ name: "apple", count: 4 });
+    expect(parsePictureRef("unicorn")).toBeNull();
+    expect(optionText("pic:num-7")).toBe("7");
+    expect(optionText("pic:color-red")).toBe("red");
+    expect(optionText("pic:banana|banana")).toBe("banana");
+  });
+
+  it("names are unique", () => {
+    expect(new Set(PICTURE_NAMES).size).toBe(PICTURE_NAMES.length);
   });
 });
 

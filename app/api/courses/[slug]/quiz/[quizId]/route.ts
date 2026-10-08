@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     isPretest: found.isPretest,
     labels: ctx.course.labels,
+    mascot: ctx.course.mascot ?? null,
     quiz: {
       id: found.quiz.id,
       title: found.quiz.title,

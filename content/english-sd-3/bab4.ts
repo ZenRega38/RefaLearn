@@ -5,6 +5,7 @@ import { arrange, fill, listenPick, pair, pick, pickMany, say } from "./helpers"
 const MARKET: Passage = {
   id: "sd3-b4-market",
   title: "At the Fruit Stall",
+  pic: "stall",
   lines: [
     "Bu Tini sells fruit at the market.",
     "She has twelve mangoes.",
@@ -19,6 +20,7 @@ export const BAB4: Level = {
   title: "Bab 4 — Let's Count!",
   description: "Angka 11–20, bertanya “How many…?”, dan bentuk jamak dengan akhiran -s.",
   targetScore: "Menyimak–Berbicara · Membaca",
+  cover: ["num-12", "mango", "banana"],
   pretest: {
     id: "sd3-b4-pre",
     title: "Pretest Bab 4",
@@ -46,16 +48,16 @@ export const BAB4: Level = {
             {
               type: "vocab",
               items: [
-                { emoji: "1️⃣1️⃣", word: "eleven", meaning: "sebelas" },
-                { emoji: "1️⃣2️⃣", word: "twelve", meaning: "dua belas" },
-                { emoji: "1️⃣3️⃣", word: "thirteen", meaning: "tiga belas" },
-                { emoji: "1️⃣4️⃣", word: "fourteen", meaning: "empat belas" },
-                { emoji: "1️⃣5️⃣", word: "fifteen", meaning: "lima belas" },
-                { emoji: "1️⃣6️⃣", word: "sixteen", meaning: "enam belas" },
-                { emoji: "1️⃣7️⃣", word: "seventeen", meaning: "tujuh belas" },
-                { emoji: "1️⃣8️⃣", word: "eighteen", meaning: "delapan belas" },
-                { emoji: "1️⃣9️⃣", word: "nineteen", meaning: "sembilan belas" },
-                { emoji: "2️⃣0️⃣", word: "twenty", meaning: "dua puluh" },
+                { emoji: "1️⃣1️⃣", pic: "num-11", word: "eleven", meaning: "sebelas" },
+                { emoji: "1️⃣2️⃣", pic: "num-12", word: "twelve", meaning: "dua belas" },
+                { emoji: "1️⃣3️⃣", pic: "num-13", word: "thirteen", meaning: "tiga belas" },
+                { emoji: "1️⃣4️⃣", pic: "num-14", word: "fourteen", meaning: "empat belas" },
+                { emoji: "1️⃣5️⃣", pic: "num-15", word: "fifteen", meaning: "lima belas" },
+                { emoji: "1️⃣6️⃣", pic: "num-16", word: "sixteen", meaning: "enam belas" },
+                { emoji: "1️⃣7️⃣", pic: "num-17", word: "seventeen", meaning: "tujuh belas" },
+                { emoji: "1️⃣8️⃣", pic: "num-18", word: "eighteen", meaning: "delapan belas" },
+                { emoji: "1️⃣9️⃣", pic: "num-19", word: "nineteen", meaning: "sembilan belas" },
+                { emoji: "2️⃣0️⃣", pic: "num-20", word: "twenty", meaning: "dua puluh" },
               ],
             },
             { type: "tip", md: "Lihat polanya: 13–19 berakhiran **-teen** (thir**teen**, four**teen**…). Seperti kata *belas* di bahasa Indonesia! Hanya 11 (**eleven**) dan 12 (**twelve**) yang punya nama sendiri." },
@@ -71,11 +73,11 @@ export const BAB4: Level = {
         },
       ],
       checkpoint: [
-        pair("sd3-b4-l1-c1", "Pasangkan.", [["11", "eleven"], ["14", "fourteen"], ["18", "eighteen"], ["20", "twenty"]], "Eleven, fourteen, eighteen, twenty!"),
+        pair("sd3-b4-l1-c1", "Pasangkan.", [["pic:num-11", "eleven"], ["pic:num-14", "fourteen"], ["pic:num-18", "eighteen"], ["pic:num-20", "twenty"]], "Eleven, fourteen, eighteen, twenty!"),
         listenPick("sd3-b4-l1-c2", say(["woman", "Nineteen."]), "Dengarkan. Angka berapa?", ["9", "90", "19", "17"], 2, "Nineteen = 19."),
         fill("sd3-b4-l1-c3", "Tulis angka 16 dalam bahasa Inggris.", "16 =", "", ["sixteen"], "16 = sixteen."),
         pick("sd3-b4-l1-c4", "Angka setelah twelve adalah…", ["eleven", "thirteen", "twenty", "fourteen"], 1, "12 → 13 = thirteen."),
-        pick("sd3-b4-l1-c5", "Ten + ten = …", ["eleven", "twelve", "twenty", "ten"], 2, "10 + 10 = 20 = twenty.", { hots: true }),
+        pick("sd3-b4-l1-c5", "Ten + ten = …", ["eleven", "twelve", "twenty", "ten"], 2, "10 + 10 = 20 = twenty.", { hots: true, image: "num-10*2" }),
       ],
     },
     {
@@ -89,6 +91,7 @@ export const BAB4: Level = {
           title: "Satu atau banyak?",
           blocks: [
             { type: "text", md: "Kalau bendanya **lebih dari satu**, kita tambahkan **-s** di belakangnya." },
+            { type: "pictures", items: [{ pic: "cat", label: "one cat" }, { pic: "cat*3", label: "three cats" }] },
             { type: "examples", items: [{ right: "one **cat** 🐱 → three **cats** 🐱🐱🐱" }, { right: "one **apple** 🍎 → five **apples** 🍎🍎🍎🍎🍎" }, { right: "one **book** 📕 → twelve **books**" }] },
             { type: "text", md: "Untuk bertanya jumlah: **How many …?** Contoh: *How many pencils?* — *Twelve pencils.*" },
           ],
@@ -96,17 +99,18 @@ export const BAB4: Level = {
         {
           title: "Dengarkan di kantin",
           blocks: [
+            { type: "pictures", items: [{ pic: "cake*5" }], caption: "Banyak kue di kantin!" },
             { type: "audio", caption: "Di kantin sekolah", showTranscript: true, script: say(["man", "How many cakes do you have?"], ["woman", "I have eleven cakes."], ["man", "Wow! Can I have one, please?"], ["woman", "Sure!"]) },
             { type: "try", question: arrange("sd3-b4-l2-try", "Susun pertanyaannya.", "How many books", "How many + benda jamak (books).") },
           ],
         },
       ],
       checkpoint: [
-        pick("sd3-b4-l2-c1", "🍎🍎🍎🍎 = four …", ["apple", "apples", "an apple", "applees"], 1, "Lebih dari satu → apples."),
+        pick("sd3-b4-l2-c1", "Lihat gambarnya. four …", ["apple", "apples", "an apple", "applees"], 1, "Ada empat apel, lebih dari satu → apples.", { image: "apple*4" }),
         listenPick("sd3-b4-l2-c2", say(["woman", "How many cats?"], ["man", "Seventeen cats."]), "Dengarkan. Ada berapa kucing?", ["7", "17", "70", "11"], 1, "Seventeen = 17."),
         fill("sd3-b4-l2-c3", "Lengkapi pertanyaannya.", "How", "pencils do you have?", ["many"], "How many = berapa banyak."),
         pickMany("sd3-b4-l2-c4", "Pilih SEMUA yang benar.", ["two bags", "one cats", "ten balls", "a books"], [0, 2], "Two bags dan ten balls benar. One cat (tanpa -s), a book (tanpa -s)."),
-        pick("sd3-b4-l2-c5", "Ada 3 kucing. Setiap kucing punya 4 kaki. How many legs?", ["seven", "twelve", "four", "three"], 1, "3 × 4 = 12 = twelve legs. Kamu pintar berhitung!", { hots: true }),
+        pick("sd3-b4-l2-c5", "Ada 3 kucing. Setiap kucing punya 4 kaki. How many legs?", ["seven", "twelve", "four", "three"], 1, "3 × 4 = 12 = twelve legs. Kamu pintar berhitung!", { hots: true, image: "cat*3" }),
       ],
     },
     {
@@ -121,7 +125,7 @@ export const BAB4: Level = {
           title: "Di kios buah Bu Tini",
           blocks: [
             { type: "passage", passage: MARKET },
-            { type: "vocab", items: [{ emoji: "🥭", word: "mango", meaning: "mangga" }, { emoji: "🍌", word: "banana", meaning: "pisang" }, { emoji: "🍊", word: "orange", meaning: "jeruk" }, { emoji: "🛒", word: "buy", meaning: "membeli" }] },
+            { type: "vocab", items: [{ emoji: "🥭", pic: "mango", word: "mango", meaning: "mangga" }, { emoji: "🍌", pic: "banana", word: "banana", meaning: "pisang" }, { emoji: "🍊", pic: "orange-fruit", word: "orange", meaning: "jeruk" }, { emoji: "🛒", pic: "basket", word: "buy", meaning: "membeli" }] },
             { type: "try", question: pick("sd3-b4-l3-try", "Bu Tini punya berapa pisang?", ["eleven", "twelve", "fifteen", "two"], 2, "Baris 3: She has fifteen bananas.", { passageId: MARKET.id }) },
           ],
         },
@@ -143,9 +147,9 @@ export const BAB4: Level = {
     questions: [
       listenPick("sd3-b4-post1", say(["man", "Eighteen."]), "Dengarkan. Angka berapa?", ["8", "18", "80", "16"], 1, "Eighteen = 18."),
       pick("sd3-b4-post2", "14 dalam bahasa Inggris…", ["forty", "fourteen", "four", "fourty"], 1, "14 = fourteen."),
-      pick("sd3-b4-post3", "📕📕📕 = three …", ["book", "books", "a book", "bookes"], 1, "Banyak → books."),
+      pick("sd3-b4-post3", "Lihat gambarnya. three …", ["book", "books", "a book", "bookes"], 1, "Ada tiga buku, banyak → books.", { image: "book*3" }),
       arrange("sd3-b4-post4", "Susun kalimatnya.", "I have twenty crayons", "I have + jumlah + benda jamak."),
-      pair("sd3-b4-post5", "Pasangkan.", [["twelve", "12"], ["fifteen", "15"], ["seventeen", "17"], ["twenty", "20"]], "Mantap!"),
+      pair("sd3-b4-post5", "Pasangkan.", [["twelve", "pic:num-12"], ["fifteen", "pic:num-15"], ["seventeen", "pic:num-17"], ["twenty", "pic:num-20"]], "Mantap!"),
       fill("sd3-b4-post6", "Tulis jawabannya dalam bahasa Inggris.", "Five + six =", "", ["eleven"], "5 + 6 = 11 = eleven."),
       pick("sd3-b4-post7", "Berapa jumlah semua buah di kios Bu Tini sebelum Dodi membeli?", ["28", "38", "30", "20"], 1, "12 + 15 + 11 = 38. Soal ini menantang, hebat kalau kamu bisa!", { passageId: MARKET.id, hots: true }),
       pick("sd3-b4-post8", "Kamu mendengar “fifty” padahal temanmu bilang ada 15 kelereng. Apa yang sebenarnya ia ucapkan?", ["fifty", "fifteen", "five", "fifty-five"], 1, "15 = fifteen (ada -teen di belakang).", { hots: true }),

@@ -10,10 +10,12 @@ import { QuestionBlock } from "@/components/course/QuestionBlock";
 import { isAnswered } from "@/components/course/QuestionInput";
 import { ReviewList, type ReviewItem } from "@/components/course/ReviewList";
 import type { Passage, PublicQuestion, Response } from "@/lib/course/types";
+import { Picture } from "@/components/course/pictures";
 import { ArrowLeft, ArrowRight, RefreshCw, Trophy, RotateCcw, ClipboardCheck } from "lucide-react";
 
 type QuizPayload = {
   isPretest: boolean;
+  mascot: string | null;
   quiz: { id: string; title: string; passPercent: number; passages: Passage[]; questions: PublicQuestion[] };
   level: { id: string; title: string };
 };
@@ -104,7 +106,11 @@ export default function LevelQuizPage() {
         {result ? (
           <div className="space-y-6">
             <Card variant="sketch" className="text-center space-y-4 py-8">
-              <Trophy className={`w-14 h-14 mx-auto ${result.passed ? "text-[var(--color-accent-yellow)]" : "text-[var(--color-line)]"}`} />
+              {data?.mascot ? (
+                <Picture name={`${data.mascot}-${result.passed ? "cheer" : "think"}`} className="w-32 h-32 mx-auto" />
+              ) : (
+                <Trophy className={`w-14 h-14 mx-auto ${result.passed ? "text-[var(--color-accent-yellow)]" : "text-[var(--color-line)]"}`} />
+              )}
               <p className="text-5xl font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
                 {Math.round((result.score / result.max) * 100)}%
               </p>

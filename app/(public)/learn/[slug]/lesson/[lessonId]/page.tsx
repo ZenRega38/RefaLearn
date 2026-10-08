@@ -19,6 +19,7 @@ type LessonPayload = {
   nextId: string;
   nextIsQuiz: boolean;
   done: boolean;
+  mascot: string | null;
 };
 
 export default function LessonPage() {
@@ -129,6 +130,7 @@ export default function LessonPage() {
                   passages={lesson.passages}
                   onComplete={complete}
                   completing={saving}
+                  mascot={data.mascot ?? undefined}
                 />
               ) : (
                 <div className="space-y-6">

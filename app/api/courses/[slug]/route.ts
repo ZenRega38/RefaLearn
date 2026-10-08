@@ -71,6 +71,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     subtitle: course.subtitle,
     labels: course.labels,
     comingSoon: course.comingSoon ?? null,
+    mascot: course.mascot ?? null,
     loggedIn,
     access,
     store: material ? { slug: material.slug, price: material.price } : null,
@@ -80,6 +81,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       title: level.title,
       description: level.description,
       targetScore: level.targetScore,
+      cover: level.cover ?? [],
       pretest: level.pretest ? quizInfo(level.pretest) : null,
       lessons: level.lessons.map((l) => ({
         id: l.id,

@@ -8,6 +8,7 @@ import { isCorrect } from "@/lib/course/grading";
 import { QuestionBlock } from "@/components/course/QuestionBlock";
 import { answerText, isAnswered } from "@/components/course/QuestionInput";
 import { Md } from "@/components/course/Md";
+import { Picture } from "@/components/course/pictures";
 
 /**
  * Duolingo-style mini quiz: one question at a time, instant feedback, and
@@ -19,12 +20,15 @@ export function Checkpoint({
   passages = [],
   onComplete,
   completing = false,
+  mascot,
 }: {
   title: string;
   questions: Question[];
   passages?: Passage[];
   onComplete: (stats: { firstTry: number; total: number }) => void;
   completing?: boolean;
+  /** Picture family (e.g. "owl") that reacts to answers; trophy/icons when absent. */
+  mascot?: string;
 }) {
   const [queue, setQueue] = useState<Question[]>(questions);
   const [round, setRound] = useState(0);
@@ -68,7 +72,7 @@ export function Checkpoint({
 
       {finished ? (
         <div className="text-center py-8 space-y-4">
-          <Trophy className="w-14 h-14 mx-auto text-[var(--color-accent-yellow)]" />
+          {mascot ? <Picture name={`${mascot}-cheer`} className="w-32 h-32 mx-auto" /> : <Trophy className="w-14 h-14 mx-auto text-[var(--color-accent-yellow)]" />}
           <h4 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Checkpoint selesai!</h4>
           <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             Benar di percobaan pertama: <strong>{questions.length - missed.size}/{questions.length}</strong>
@@ -102,7 +106,13 @@ export function Checkpoint({
               className={`rounded-[var(--radius-card)] p-4 border-2 font-[var(--font-inter)] ${checked ? "bg-[var(--color-success-green)]/10 border-[var(--color-success-green)]" : "bg-[var(--color-danger-red)]/10 border-[var(--color-danger-red)]"}`}
             >
               <div className="flex items-start gap-3">
-                {checked ? <CheckCircle2 className="w-6 h-6 text-[var(--color-success-green)] shrink-0" /> : <XCircle className="w-6 h-6 text-[var(--color-danger-red)] shrink-0" />}
+                {mascot ? (
+                  <Picture name={checked ? `${mascot}-cheer` : `${mascot}-think`} className="w-16 h-16 shrink-0 -my-1" />
+                ) : checked ? (
+                  <CheckCircle2 className="w-6 h-6 text-[var(--color-success-green)] shrink-0" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-[var(--color-danger-red)] shrink-0" />
+                )}
                 <div className="flex-1 space-y-1 text-sm text-[var(--color-ink)]">
                   <p className={`font-bold ${checked ? "text-[var(--color-success-green)]" : "text-[var(--color-danger-red)]"}`}>
                     {checked ? "Benar!" : "Belum tepat."}

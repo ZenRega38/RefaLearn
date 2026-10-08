@@ -26,6 +26,7 @@ export const ENGLISH_SD_3: Course = {
   title: "Bahasa Inggris Kelas 3 SD",
   subtitle: "Kurikulum Merdeka Fase B — belajar sambil bermain lewat gambar, suara, dan kuis seru.",
   labels: { level: "Bab", quiz: "Posttest" },
+  mascot: "owl",
   levels: [BAB1, BAB2, BAB3, BAB4, BAB5, BAB6].map((bab) => ({
     ...bab,
     pretest: bab.pretest && balanced(bab.pretest),

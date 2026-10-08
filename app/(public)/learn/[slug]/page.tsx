@@ -8,6 +8,7 @@ import { SketchBox } from "@/components/sketch/SketchBox";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Picture } from "@/components/course/pictures";
 import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
 import type { Skill } from "@/lib/course/types";
 import { formatPrice } from "@/lib/pricing";
@@ -22,6 +23,7 @@ type Outline = {
   subtitle: string;
   labels: { level: string; quiz: string };
   comingSoon: string | null;
+  mascot: string | null;
   loggedIn: boolean;
   access: boolean;
   store: { slug: string; price: number } | null;
@@ -31,6 +33,7 @@ type Outline = {
     title: string;
     description: string;
     targetScore: string;
+    cover: string[];
     pretest: QuizInfo | null;
     lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number; unlocked: boolean; done: boolean }[];
     quiz: QuizInfo;
@@ -92,6 +95,7 @@ export default function CourseHomePage() {
 
         {/* Header */}
         <div className="text-center space-y-3">
+          {outline.mascot && <Picture name={`${outline.mascot}-wave`} label="Maskot kursus" className="w-24 h-24 mx-auto" />}
           <Badge variant="blue" className="mx-auto">Kursus Interaktif</Badge>
           <h1 className="text-4xl md:text-5xl">
             <SketchBox color="var(--color-accent-yellow)">{outline.title}</SketchBox>
@@ -167,8 +171,19 @@ export default function CourseHomePage() {
         {/* Levels */}
         {outline.levels.map((level) => (
           <div key={level.id} className="space-y-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-2xl md:text-3xl">{level.title}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                {level.cover.length > 0 && (
+                  <div className="flex -space-x-3 shrink-0">
+                    {level.cover.map((pic) => (
+                      <span key={pic} className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white border-2 border-[var(--color-line)] flex items-center justify-center">
+                        <Picture name={pic} className="w-11 h-11 md:w-12 md:h-12" />
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <h2 className="text-2xl md:text-3xl">{level.title}</h2>
+              </div>
               <Badge variant="amber">{level.targetScore}</Badge>
             </div>
             <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">{level.description}</p>

@@ -5,6 +5,7 @@ import { AudioPlayer } from "@/components/course/AudioPlayer";
 import { PassageView } from "@/components/course/PassageView";
 import { QuestionInput } from "@/components/course/QuestionInput";
 import { Md } from "@/components/course/Md";
+import { Picture } from "@/components/course/pictures";
 
 /** Prompt + audio/passage + answer area for one question. */
 export function QuestionBlock({
@@ -54,6 +55,11 @@ export function QuestionBlock({
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider bg-[var(--color-accent-coral)]/15 text-[var(--color-accent-coral)] font-[var(--font-inter)]">
             🧠 HOTS · Ayo berpikir!
           </span>
+        )}
+        {question.image && (
+          <div className="flex justify-center rounded-[var(--radius-card)] bg-[var(--color-accent-yellow)]/10 border-2 border-dashed border-[var(--color-accent-yellow)]/60 p-3">
+            <Picture name={question.image} className="h-28 md:h-32 w-auto max-w-full" />
+          </div>
         )}
         {question.prompt && (
           <div className="text-base md:text-lg font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">

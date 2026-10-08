@@ -21,6 +21,8 @@ type QuestionBase = {
   explanation: string;
   /** Higher-Order Thinking Skills item (analyse / evaluate / create). */
   hots?: boolean;
+  /** Illustration shown above the prompt, e.g. "cat" or "apple*4" (see lib/course/pictures). */
+  image?: string;
 };
 
 /** Single answer, four (or more) options. */
@@ -54,7 +56,7 @@ export type Response =
   | { type: "error"; mark: "A" | "B" | "C" | "D" };
 
 /** Reading passage. Each entry of `lines` is one numbered line, as on the ITP paper. */
-export type Passage = { id: string; title?: string; lines: string[] };
+export type Passage = { id: string; title?: string; lines: string[]; /** Illustration beside the title. */ pic?: string };
 
 // ---------------------------------------------------------------------------
 // Lessons
@@ -69,8 +71,12 @@ export type Block =
   | { type: "audio"; caption?: string; script: AudioScript; showTranscript?: boolean }
   | { type: "passage"; passage: Passage }
   | { type: "try"; question: Question }
-  /** Picture-word cards; tapping one speaks the English word. */
-  | { type: "vocab"; title?: string; items: { emoji: string; word: string; meaning: string; example?: string }[] };
+  /** Picture-word cards; tapping one speaks the English word. `pic` (an illustration name) wins over `emoji`. */
+  | { type: "vocab"; title?: string; items: VocabItem[] }
+  /** A row of illustrations with optional captions (scenes, story characters). */
+  | { type: "pictures"; items: { pic: string; label?: string }[]; caption?: string };
+
+export type VocabItem = { emoji: string; pic?: string; word: string; meaning: string; example?: string };
 
 export type LessonSection = { title: string; blocks: Block[] };
 
@@ -100,6 +106,8 @@ export type Level = {
   description: string;
   /** Short goal badge, e.g. "Target 400–450" or "Tujuan pembelajaran". */
   targetScore: string;
+  /** Illustrations shown beside the level title on the course page. */
+  cover?: string[];
   /** Optional diagnostic at the start of the level/chapter (any score passes). */
   pretest?: LevelQuiz;
   lessons: Lesson[];
@@ -144,6 +152,8 @@ export type Course = {
   tryout?: Exam;
   /** Shown under the last level, e.g. upcoming levels. */
   comingSoon?: string;
+  /** Mascot picture family (e.g. "owl" → owl-cheer, owl-think…) that cheers students on. */
+  mascot?: string;
 };
 
 // ---------------------------------------------------------------------------
