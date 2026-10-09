@@ -599,6 +599,14 @@ body {
   margin: 1.5rem 0;
 }
 
+/* Gambar di isi story selalu di tengah secara horizontal. */
+.story-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.5rem auto;
+}
+
 @layer components {
 
   /* Tabel yang dikasih class ini otomatis jadi kartu bertumpuk di layar

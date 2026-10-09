@@ -133,7 +133,7 @@ export default async function NewsDetailPage({ params }: Props) {
           </div>
 
           <div
-            className="prose-content prose-lg max-w-none"
+            className="prose-content story-content prose-lg max-w-none"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
