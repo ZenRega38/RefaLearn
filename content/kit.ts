@@ -4,6 +4,7 @@ import type {
   Block,
   Course,
   FillQuestion,
+  Lesson,
   Level,
   LevelQuiz,
   LiveQuizSet,
@@ -155,23 +156,44 @@ export const live = (id: string, prompt: string, options: [string, string, strin
 
 // --- Course assembly ------------------------------------------------------------
 
-function balance<Q extends Question>(q: Q): Q {
-  if (q.type !== "mc") return q;
-  const order = shuffle(q.options.map((_, i) => i), seedOf(q.id));
-  return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) };
+// Options are authored with the key first; a fixed per-question shuffle
+// spreads keys across positions so learners can't "always pick A".
+export function balance<Q extends Question>(q: Q): Q {
+  if (q.type === "mc") {
+    const order = shuffle(q.options.map((_, i) => i), seedOf(q.id));
+    return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) };
+  }
+  if (q.type === "ms") {
+    const order = shuffle(q.options.map((_, i) => i), seedOf(q.id));
+    return { ...q, options: order.map((i) => q.options[i]), answers: q.answers.map((a) => order.indexOf(a)).sort((a, b) => a - b) };
+  }
+  return q;
 }
 const balanceQuiz = (quiz: LevelQuiz): LevelQuiz => ({ ...quiz, questions: quiz.questions.map(balance) });
 const balanceLive = (set: LiveQuizSet): LiveQuizSet => ({ ...set, questions: set.questions.map(balance) });
 
+/** Balances checkpoint and "try it" questions inside a lesson. */
+export function balanceLesson(lesson: Lesson): Lesson {
+  return {
+    ...lesson,
+    sections: lesson.sections.map((s) => ({
+      ...s,
+      blocks: s.blocks.map((b) => (b.type === "try" ? { ...b, question: balance(b.question) } : b)),
+    })),
+    checkpoint: lesson.checkpoint.map(balance),
+  };
+}
+
 /**
- * Spreads answer keys in pretests, posttests and live quizzes so the right
- * answer isn't always in the same place. Lessons keep authored order.
+ * Spreads answer keys in lessons, pretests, posttests and live quizzes so
+ * the right answer isn't always in the same place.
  */
 export function assemble(course: Course): Course {
   return {
     ...course,
     levels: course.levels.map((l: Level) => ({
       ...l,
+      lessons: l.lessons.map(balanceLesson),
       pretest: l.pretest && balanceQuiz(l.pretest),
       quiz: balanceQuiz(l.quiz),
       live: l.live && balanceLive(l.live),
