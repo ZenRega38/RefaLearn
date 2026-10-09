@@ -8,8 +8,8 @@ export const L1_STRUCTURE: Lesson[] = [
   {
     id: "l1-str-1",
     skill: "structure",
-    title: "Format Structure & Subjek–Kata Kerja",
-    summary: "Dua jenis soal Structure dan aturan nomor satu: setiap klausa butuh subjek dan kata kerja.",
+    title: "Structure Format & Subjects and Verbs",
+    summary: "The two Structure question types and rule number one: every clause needs a subject and a verb.",
     minutes: 14,
     sections: [
       {
@@ -31,7 +31,7 @@ export const L1_STRUCTURE: Lesson[] = [
         ],
       },
       {
-        title: "Aturan #1: subjek + kata kerja",
+        title: "Rule #1: subject + verb",
         blocks: [
           {
             type: "text",
@@ -98,12 +98,12 @@ export const L1_STRUCTURE: Lesson[] = [
   {
     id: "l1-str-2",
     skill: "structure",
-    title: "Objek Preposisi",
-    summary: "Kata benda setelah preposisi bukan subjek — jangan tertipu.",
+    title: "Objects of Prepositions",
+    summary: "A noun after a preposition is not the subject — don't be fooled.",
     minutes: 12,
     sections: [
       {
-        title: "Preposisi + objek",
+        title: "Preposition + object",
         blocks: [
           {
             type: "text",
@@ -162,11 +162,11 @@ export const L1_STRUCTURE: Lesson[] = [
     id: "l1-str-3",
     skill: "structure",
     title: "Appositive",
-    summary: "Frasa benda yang menjelaskan kata benda lain, diapit koma.",
+    summary: "Noun phrases that explain another noun, set off by commas.",
     minutes: 12,
     sections: [
       {
-        title: "Mengenali appositive",
+        title: "Recognising appositives",
         blocks: [
           {
             type: "text",
@@ -224,8 +224,8 @@ export const L1_STRUCTURE: Lesson[] = [
   {
     id: "l1-str-4",
     skill: "structure",
-    title: "Written Expression: Kesesuaian Subjek–Kata Kerja & Bentuk Jamak",
-    summary: "Kesalahan paling umum di soal 16–40: subjek tunggal/jamak tidak cocok dengan kata kerja atau kata benda.",
+    title: "Written Expression: Subject–Verb Agreement & Plurals",
+    summary: "The most common error in questions 16–40: singular/plural subjects that don't match the verb or noun.",
     minutes: 15,
     sections: [
       {
@@ -246,7 +246,7 @@ export const L1_STRUCTURE: Lesson[] = [
         ],
       },
       {
-        title: "Kata benda tunggal/jamak",
+        title: "Singular and plural nouns",
         blocks: [
           {
             type: "text",

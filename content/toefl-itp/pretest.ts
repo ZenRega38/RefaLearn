@@ -37,9 +37,9 @@ const SLEEP: Passage = {
 
 export const PRETEST: Exam = {
   kind: "pretest",
-  title: "Pretest TOEFL ITP",
+  title: "TOEFL ITP Pretest",
   description:
-    "Tes diagnostik 40 soal (±40 menit) dengan format yang sama seperti TOEFL ITP. Hasilnya berupa estimasi skor dan peta kekuatan-kelemahan Anda — gratis.",
+    "A 40-question diagnostic test (about 40 minutes) in the same format as TOEFL ITP. You get an estimated score and a map of your strengths and weaknesses — free.",
   sections: [
     {
       skill: "listening",

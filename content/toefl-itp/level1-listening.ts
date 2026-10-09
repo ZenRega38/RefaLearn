@@ -8,13 +8,14 @@ export const L1_LISTENING: Lesson[] = [
   {
     id: "l1-lis-1",
     skill: "listening",
-    title: "Kenalan dengan Listening TOEFL ITP",
-    summary: "Format tiga bagian Listening, cara kerja audionya, dan strategi dasar Part A.",
+    title: "Getting to Know TOEFL ITP Listening",
+    summary: "The three parts of Listening, how the audio works, and basic Part A strategies.",
     minutes: 12,
     sections: [
       {
         title: "Format Listening Comprehension",
         blocks: [
+          { type: "pictures", items: [{ pic: "headset", label: "Listening" }, { pic: "pencil", label: "Structure" }, { pic: "open-book", label: "Reading" }, { pic: "clock", label: "115 minutes" }], caption: "Three sections, one test" },
           {
             type: "text",
             md: "Listening adalah bagian **pertama** TOEFL ITP: **50 soal dalam ±35 menit**. Audio hanya diputar **satu kali** dan tidak bisa diulang. Soal juga **tidak tertulis** — Anda hanya membaca empat pilihan jawaban.",
@@ -35,7 +36,7 @@ export const L1_LISTENING: Lesson[] = [
         ],
       },
       {
-        title: "Seperti apa soal Part A?",
+        title: "What does a Part A question look like?",
         blocks: [
           {
             type: "text",
@@ -43,7 +44,7 @@ export const L1_LISTENING: Lesson[] = [
           },
           {
             type: "audio",
-            caption: "Contoh Part A",
+            caption: "Part A example",
             showTranscript: true,
             script: say(
               ["woman", "Have you finished the report for Professor Lane?"],
@@ -58,7 +59,7 @@ export const L1_LISTENING: Lesson[] = [
         ],
       },
       {
-        title: "Tiga strategi dasar Part A",
+        title: "Three basic Part A strategies",
         blocks: [
           {
             type: "text",
@@ -141,12 +142,12 @@ export const L1_LISTENING: Lesson[] = [
   {
     id: "l1-lis-2",
     skill: "listening",
-    title: "Restatement: Jawaban yang Menyatakan Ulang",
-    summary: "Mengenali jawaban benar yang memakai sinonim dan struktur berbeda dari audio.",
+    title: "Restatement: Answers That Say It Differently",
+    summary: "Recognising correct answers that use synonyms and different structures from the audio.",
     minutes: 12,
     sections: [
       {
-        title: "Apa itu restatement?",
+        title: "What is a restatement?",
         blocks: [
           {
             type: "text",
@@ -154,7 +155,7 @@ export const L1_LISTENING: Lesson[] = [
           },
           {
             type: "examples",
-            title: "Audio → Jawaban benar",
+            title: "Audio → correct answer",
             items: [
               { right: "“The lecture was postponed.” → The class was moved to a later time.", note: "postponed = moved to a later time" },
               { right: "“I'm exhausted.” → She is very tired.", note: "exhausted = very tired" },
@@ -179,11 +180,11 @@ export const L1_LISTENING: Lesson[] = [
         ],
       },
       {
-        title: "Latihan mendengar restatement",
+        title: "Listening for restatements",
         blocks: [
           {
             type: "audio",
-            caption: "Dengarkan, lalu tebak restatement-nya.",
+            caption: "Listen, then predict the restatement.",
             showTranscript: true,
             script: say(
               ["man", "Is the library open this weekend?"],
@@ -272,12 +273,12 @@ export const L1_LISTENING: Lesson[] = [
   {
     id: "l1-lis-3",
     skill: "listening",
-    title: "Jebakan Bunyi Mirip",
-    summary: "Menghindari pilihan yang berisi kata yang bunyinya mirip dengan audio.",
+    title: "Similar-Sound Traps",
+    summary: "Avoiding options that contain words that sound like words in the audio.",
     minutes: 10,
     sections: [
       {
-        title: "Mengapa bunyi mirip berbahaya?",
+        title: "Why are similar sounds dangerous?",
         blocks: [
           {
             type: "text",
@@ -285,7 +286,7 @@ export const L1_LISTENING: Lesson[] = [
           },
           {
             type: "examples",
-            title: "Pasangan bunyi mirip yang sering dipakai",
+            title: "Common similar-sound pairs",
             items: [
               { note: "glass / class / grass" },
               { note: "fifteen / fifty" },
@@ -301,7 +302,7 @@ export const L1_LISTENING: Lesson[] = [
         ],
       },
       {
-        title: "Latihan",
+        title: "Practice",
         blocks: [
           {
             type: "try",
@@ -375,12 +376,12 @@ export const L1_LISTENING: Lesson[] = [
   {
     id: "l1-lis-4",
     skill: "listening",
-    title: "Ungkapan Negatif",
-    summary: "Memahami negatif, negatif ganda, dan kata yang bermakna hampir-tidak.",
+    title: "Negative Expressions",
+    summary: "Understanding negatives, double negatives and “almost not” words.",
     minutes: 12,
     sections: [
       {
-        title: "Negatif biasa dan restatement-nya",
+        title: "Simple negatives and their restatements",
         blocks: [
           {
             type: "text",
@@ -397,7 +398,7 @@ export const L1_LISTENING: Lesson[] = [
         ],
       },
       {
-        title: "Negatif ganda dan kata ‘hampir tidak’",
+        title: "Double negatives and “almost not” words",
         blocks: [
           {
             type: "text",

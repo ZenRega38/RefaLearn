@@ -51,8 +51,8 @@ export const L1_READING: Lesson[] = [
   {
     id: "l1-rea-1",
     skill: "reading",
-    title: "Format Reading & Main Idea",
-    summary: "Format Reading Comprehension dan cara cepat menemukan gagasan utama.",
+    title: "Reading Format & Main Idea",
+    summary: "The Reading Comprehension format and a fast way to find the main idea.",
     minutes: 14,
     passages: [MANGROVE],
     sections: [
@@ -70,7 +70,7 @@ export const L1_READING: Lesson[] = [
         ],
       },
       {
-        title: "Menemukan main idea",
+        title: "Finding the main idea",
         blocks: [
           {
             type: "text",
@@ -137,12 +137,12 @@ export const L1_READING: Lesson[] = [
     id: "l1-rea-2",
     skill: "reading",
     title: "Stated Detail Questions",
-    summary: "Menjawab soal detail dengan memindai kata kunci dan mencari restatement.",
+    summary: "Answering detail questions by scanning for key words and restatements.",
     minutes: 12,
     passages: [COFFEE],
     sections: [
       {
-        title: "Strategi soal detail",
+        title: "Detail question strategy",
         blocks: [
           {
             type: "text",
@@ -198,12 +198,12 @@ export const L1_READING: Lesson[] = [
     id: "l1-rea-3",
     skill: "reading",
     title: "Vocabulary in Context",
-    summary: "Menebak arti kata dari konteks kalimat — tanpa kamus.",
+    summary: "Guessing word meaning from context — without a dictionary.",
     minutes: 12,
     passages: [MANGROVE],
     sections: [
       {
-        title: "Gunakan konteks, bukan hafalan",
+        title: "Use context, not memory",
         blocks: [
           {
             type: "text",
@@ -211,7 +211,7 @@ export const L1_READING: Lesson[] = [
           },
           {
             type: "examples",
-            title: "Satu kata, makna berbeda sesuai konteks",
+            title: "One word, different meanings in context",
             items: [
               { right: "The **stands** of trees were cut down. → groups", note: "di bacaan tentang hutan" },
               { right: "The audience **stands** to applaud. → rises", note: "sebagai kata kerja" },
@@ -266,12 +266,12 @@ export const L1_READING: Lesson[] = [
     id: "l1-rea-4",
     skill: "reading",
     title: "Reference Questions",
-    summary: "Menentukan kata yang dirujuk oleh pronoun seperti it, they, which, this.",
+    summary: "Finding what pronouns such as it, they, which and this refer to.",
     minutes: 10,
     passages: [LIBRARY],
     sections: [
       {
-        title: "Pronoun merujuk ke belakang",
+        title: "Pronouns refer back",
         blocks: [
           {
             type: "text",

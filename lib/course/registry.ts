@@ -9,7 +9,7 @@
 type Entry = { slug: string; title: string; uiLang?: "id" | "en"; readAloud?: boolean };
 
 export const COURSES = [
-  { slug: "toefl-itp", title: "TOEFL ITP Mastery — dari Nol sampai Skor Tinggi" },
+  { slug: "toefl-itp", title: "TOEFL ITP Mastery — Levels 1–3, Pretest and Full Tryout", uiLang: "en" },
   { slug: "english-sd-1", title: "English Grade 1 (SD) — Kurikulum Merdeka", uiLang: "en", readAloud: true },
   { slug: "english-sd-2", title: "English Grade 2 (SD) — Kurikulum Merdeka", uiLang: "en", readAloud: true },
   { slug: "english-sd-3", title: "English Grade 3 (SD) — Kurikulum Merdeka", uiLang: "en", readAloud: true },

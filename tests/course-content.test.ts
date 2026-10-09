@@ -298,13 +298,21 @@ describe("grading", () => {
 describe("unlocking", () => {
   const pass = (itemId: string): ProgressItem => ({ itemId, kind: "lesson", score: null, maxScore: null, passed: true });
 
-  it("TOEFL: opens only the first lesson, then quiz, then tryout", () => {
+  it("TOEFL: level pretest first, then lessons one by one, then quiz, then tryout", () => {
     const level = TOEFL_ITP.levels[0];
-    expect([...computeUnlocks(TOEFL_ITP, []).unlocked]).toEqual([level.lessons[0].id]);
-    const lessons = level.lessons.map((l) => pass(l.id));
+    expect([...computeUnlocks(TOEFL_ITP, []).unlocked]).toEqual([level.pretest!.id]);
+    expect(computeUnlocks(TOEFL_ITP, [pass(level.pretest!.id)]).unlocked.has(level.lessons[0].id)).toBe(true);
+    const lessons = [pass(level.pretest!.id), ...level.lessons.map((l) => pass(l.id))];
     expect(computeUnlocks(TOEFL_ITP, lessons).unlocked.has(level.quiz.id)).toBe(true);
     expect(computeUnlocks(TOEFL_ITP, lessons).tryoutUnlocked).toBe(false);
+    // The tryout still opens after Level 1, as it did before Levels 2–3 existed.
     expect(computeUnlocks(TOEFL_ITP, [...lessons, pass(level.quiz.id)]).tryoutUnlocked).toBe(true);
+  });
+
+  it("TOEFL: learners who started lessons before the level pretest existed keep their place", () => {
+    const level = TOEFL_ITP.levels[0];
+    const u = computeUnlocks(TOEFL_ITP, [pass(level.lessons[0].id)]);
+    expect(u.unlocked.has(level.lessons[1].id)).toBe(true);
   });
 
   it("Grade 3: chapter pretest comes first, posttest opens the next chapter", () => {
@@ -354,7 +362,7 @@ describe("admin-opened modules (English Day)", () => {
 
   it("runs its quiz experience in English", () => {
     expect(courseUiLang("english-day")).toBe("en");
-    expect(courseUiLang("toefl-itp")).toBe("id");
+    expect(courseUiLang("toefl-itp")).toBe("en");
   });
 
   // Everything a learner answers or taps is English; only explanations

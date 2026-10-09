@@ -197,6 +197,8 @@ export type Course = {
   /** Course-wide diagnostic and final test (e.g. TOEFL pretest & tryout). */
   pretest?: Exam;
   tryout?: Exam;
+  /** The tryout also opens once this level's quiz is passed (default: after every level). */
+  tryoutAfterLevel?: string;
   /** Shown under the last level, e.g. upcoming levels. */
   comingSoon?: string;
   /** Levels stay locked until the admin opens them (course_level_access). */

@@ -73,9 +73,12 @@ export function computeUnlocks(course: Course, progress: ProgressItem[], openLev
     }
     // A chapter pretest opens with the chapter and must be taken (any score)
     // before its lessons.
+    // Learners who already started the lessons (e.g. before the pretest was
+    // added) aren't sent back to it.
     if (level.pretest) {
       if (previousOk) unlocked.add(level.pretest.id);
-      previousOk = previousOk && done.has(level.pretest.id);
+      const started = level.lessons.some((l) => done.has(l.id));
+      previousOk = previousOk && (done.has(level.pretest.id) || started);
     }
     for (const lesson of level.lessons) {
       if (previousOk) unlocked.add(lesson.id);
@@ -95,5 +98,9 @@ export function computeUnlocks(course: Course, progress: ProgressItem[], openLev
     0
   );
 
-  return { unlocked, done, lockedLevels, tryoutUnlocked: previousOk, totalItems, completedItems };
+  // Some courses open the full tryout earlier than "every level passed".
+  const tryoutGate = course.tryoutAfterLevel ? course.levels.find((l) => l.id === course.tryoutAfterLevel) : undefined;
+  const tryoutUnlocked = previousOk || (!!tryoutGate && done.has(tryoutGate.quiz.id));
+
+  return { unlocked, done, lockedLevels, tryoutUnlocked, totalItems, completedItems };
 }

@@ -81,7 +81,9 @@ describe.each(CATALOG.map((c) => [c.slug, c] as const))("all-English course: %s"
   });
 
   it("is a full course: chapters with a pretest, at least three lessons, checkpoints, a posttest and a live quiz", () => {
-    expect(course.levels.length).toBeGreaterThanOrEqual(6);
+    // School courses have at least six chapters; exam-prep courses have fewer,
+    // larger levels plus a full tryout.
+    expect(course.levels.length).toBeGreaterThanOrEqual(course.tryout ? 3 : 6);
     for (const level of course.levels) {
       expect(level.pretest?.questions.length ?? 0, level.id).toBeGreaterThanOrEqual(5);
       expect(level.lessons.length, level.id).toBeGreaterThanOrEqual(3);
