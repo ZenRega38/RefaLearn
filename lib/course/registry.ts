@@ -24,6 +24,7 @@ export const COURSES = [
   { slug: "english-sma-12", title: "English Grade 12 (SMA) — Kurikulum Merdeka", uiLang: "en" },
   { slug: "english-lanjut", title: "Bahasa Inggris Tingkat Lanjut (Advanced) — Kelas 11–12", uiLang: "en" },
   { slug: "ielts-academic", title: "IELTS Academic — Band by Band (4.5 → 7.5+)", uiLang: "en" },
+  { slug: "toefl-ibt", title: "TOEFL iBT — New 2026 Format (Band 1–6)", uiLang: "en" },
   // English Day runs its whole quiz experience in English (see ui-text.ts).
   { slug: "english-day", title: "English Day — Everyday English for Work", uiLang: "en" },
 ] as const satisfies readonly Entry[];
