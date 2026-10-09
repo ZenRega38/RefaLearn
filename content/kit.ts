@@ -96,6 +96,14 @@ export const match = (id: string, prompt: string, pairs: [string, string][], exp
   ...extra(e),
 });
 
+/** IELTS-style True / False / Not Given (options stay in this order). */
+export const tfng = (id: string, statement: string, answer: "TRUE" | "FALSE" | "NOT GIVEN", explanation: string, e: Extra = {}): McQuestion =>
+  pick(id, statement, ["TRUE", "FALSE", "NOT GIVEN"], ["TRUE", "FALSE", "NOT GIVEN"].indexOf(answer), explanation, e);
+
+/** IELTS-style Yes / No / Not Given for the writer's views (options stay in this order). */
+export const ynng = (id: string, statement: string, answer: "YES" | "NO" | "NOT GIVEN", explanation: string, e: Extra = {}): McQuestion =>
+  pick(id, statement, ["YES", "NO", "NOT GIVEN"], ["YES", "NO", "NOT GIVEN"].indexOf(answer), explanation, e);
+
 // Translation items: the only questions that may show Indonesian.
 export const trPick = (id: string, prompt: string, options: string[], answer: number, explanation: string, e: Extra = {}) =>
   pick(id, prompt, options, answer, explanation, { ...e, translate: true });
@@ -158,7 +166,10 @@ export const live = (id: string, prompt: string, options: [string, string, strin
 
 // Options are authored with the key first; a fixed per-question shuffle
 // spreads keys across positions so learners can't "always pick A".
+const FIXED_ORDER = new Set(["TRUE|FALSE|NOT GIVEN", "YES|NO|NOT GIVEN"]);
+
 export function balance<Q extends Question>(q: Q): Q {
+  if (q.type === "mc" && FIXED_ORDER.has(q.options.join("|"))) return q;
   if (q.type === "mc") {
     const order = shuffle(q.options.map((_, i) => i), seedOf(q.id));
     return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) };
