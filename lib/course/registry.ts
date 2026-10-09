@@ -20,6 +20,7 @@ export const COURSES = [
   { slug: "english-smp-8", title: "English Grade 8 (SMP) — Kurikulum Merdeka", uiLang: "en" },
   { slug: "english-smp-9", title: "English Grade 9 (SMP) — Kurikulum Merdeka", uiLang: "en" },
   { slug: "english-sma-10", title: "English Grade 10 (SMA) — Kurikulum Merdeka", uiLang: "en" },
+  { slug: "english-sma-11", title: "English Grade 11 (SMA) — Kurikulum Merdeka", uiLang: "en" },
   // English Day runs its whole quiz experience in English (see ui-text.ts).
   { slug: "english-day", title: "English Day — Everyday English for Work", uiLang: "en" },
 ] as const satisfies readonly Entry[];

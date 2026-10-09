@@ -12,9 +12,10 @@ import { ENGLISH_SMP_7 } from "@/content/english-smp-7";
 import { ENGLISH_SMP_8 } from "@/content/english-smp-8";
 import { ENGLISH_SMP_9 } from "@/content/english-smp-9";
 import { ENGLISH_SMA_10 } from "@/content/english-sma-10";
+import { ENGLISH_SMA_11 } from "@/content/english-sma-11";
 
 const COURSES: Record<string, Course> = Object.fromEntries(
-  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_DAY].map((c) => [c.slug, c])
+  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_SMA_11, ENGLISH_DAY].map((c) => [c.slug, c])
 );
 
 export const ALL_COURSES = Object.values(COURSES);
