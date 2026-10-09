@@ -18,9 +18,10 @@ import { ENGLISH_LANJUT } from "@/content/english-lanjut";
 import { IELTS_ACADEMIC } from "@/content/ielts";
 import { TOEFL_IBT } from "@/content/toefl-ibt";
 import { OXFORD_ELLT } from "@/content/oxford-ellt";
+import { ENGLISH_GRAMMAR } from "@/content/grammar";
 
 const COURSES: Record<string, Course> = Object.fromEntries(
-  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_SMA_11, ENGLISH_SMA_12, ENGLISH_LANJUT, IELTS_ACADEMIC, TOEFL_IBT, OXFORD_ELLT, ENGLISH_DAY].map((c) => [c.slug, c])
+  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_SMA_11, ENGLISH_SMA_12, ENGLISH_LANJUT, IELTS_ACADEMIC, TOEFL_IBT, OXFORD_ELLT, ENGLISH_GRAMMAR, ENGLISH_DAY].map((c) => [c.slug, c])
 );
 
 export const ALL_COURSES = Object.values(COURSES);
