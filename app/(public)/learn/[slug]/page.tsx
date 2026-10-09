@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
@@ -8,11 +8,15 @@ import { SketchBox } from "@/components/sketch/SketchBox";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
+import { Picture } from "@/components/course/pictures";
+import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
+import { AdminLevelControls } from "@/components/course/AdminLevelControls";
+import { SkillIcon } from "@/components/course/skill";
+import { useCourseText } from "@/components/course/lang";
 import type { Skill } from "@/lib/course/types";
 import { formatPrice } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
-import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag } from "lucide-react";
+import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag, Radio } from "lucide-react";
 
 type Attempt = { id: string; total_score: number | null; submitted_at: string | null };
 type QuizInfo = { id: string; title: string; questions: number; passPercent: number; unlocked: boolean; passed: boolean; score: number | null; maxScore: number | null };
@@ -22,6 +26,12 @@ type Outline = {
   subtitle: string;
   labels: { level: string; quiz: string };
   comingSoon: string | null;
+  mascot: string | null;
+  free: boolean;
+  openOrder: boolean;
+  adminLocks: boolean;
+  isAdmin: boolean;
+  quizSecondsPerQuestion: number | null;
   loggedIn: boolean;
   access: boolean;
   store: { slug: string; price: number } | null;
@@ -31,8 +41,13 @@ type Outline = {
     title: string;
     description: string;
     targetScore: string;
+    cover: string[];
+    locked: boolean;
+    hasLive: boolean;
+    openForStudents?: boolean;
+    live?: { id: string; pin: string; status: string } | null;
     pretest: QuizInfo | null;
-    lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number; unlocked: boolean; done: boolean }[];
+    lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number | null; unlocked: boolean; done: boolean }[];
     quiz: QuizInfo;
   }[];
   pretest: { title: string; description: string; minutes: number; questions: number; attempts: Attempt[] } | null;
@@ -41,18 +56,25 @@ type Outline = {
 
 export default function CourseHomePage() {
   const { slug } = useParams<{ slug: string }>();
+  const t = useCourseText();
   const [outline, setOutline] = useState<Outline | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(
+    () =>
+      fetch(`/api/courses/${slug}`, { cache: "no-store" })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          setOutline(data);
+        })
+        .catch((err: Error) => setError(err.message)),
+    [slug]
+  );
+
   useEffect(() => {
-    fetch(`/api/courses/${slug}`, { cache: "no-store" })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setOutline(data);
-      })
-      .catch((err: Error) => setError(err.message));
-  }, [slug]);
+    load();
+  }, [load]);
 
   if (error) {
     return (
@@ -69,7 +91,7 @@ export default function CourseHomePage() {
       <PaperBackground className="pt-24 pb-20 min-h-screen">
         <div className="text-center py-20 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-          Memuat kursus...
+          {t.loadingCourse}
         </div>
       </PaperBackground>
     );
@@ -92,20 +114,34 @@ export default function CourseHomePage() {
 
         {/* Header */}
         <div className="text-center space-y-3">
-          <Badge variant="blue" className="mx-auto">Kursus Interaktif</Badge>
+          {outline.mascot && <Picture name={`${outline.mascot}-wave`} label="Maskot kursus" className="w-24 h-24 mx-auto" />}
+          <div className="flex justify-center gap-2">
+            <Badge variant="blue">{t.interactiveCourse}</Badge>
+            {outline.free && <Badge variant="green">{t.free}</Badge>}
+          </div>
           <h1 className="text-4xl md:text-5xl">
             <SketchBox color="var(--color-accent-yellow)">{outline.title}</SketchBox>
           </h1>
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">{outline.subtitle}</p>
         </div>
 
+        {outline.isAdmin && (outline.adminLocks || outline.levels.some((l) => l.hasLive)) && (
+          <div className="flex items-start gap-3 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-brand-blue)]/40 bg-white/70 p-4 font-[var(--font-inter)] text-sm">
+            <Radio className="w-5 h-5 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
+            <p className="text-[var(--color-ink-soft)]">
+              <strong className="text-[var(--color-brand-blue)]">Mode admin.</strong> Anda melihat semua modul, termasuk yang masih terkunci untuk peserta.
+              Di bawah setiap modul ada kontrol untuk {outline.adminLocks ? "membuka atau mengunci modul dan " : ""}memulai Live Quiz. Harga dan status gratis diatur dari menu admin Materi.
+            </p>
+          </div>
+        )}
+
         {/* Progress / access */}
         <Card variant="sketch" className="space-y-4">
           {outline.access ? (
             <>
               <div className="flex items-center justify-between gap-4 font-[var(--font-inter)]">
-                <span className="font-semibold text-[var(--color-ink)]">Progres belajar</span>
-                <span className="text-sm text-[var(--color-ink-soft)]">{outline.progress.completed}/{outline.progress.total} modul · {pct}%</span>
+                <span className="font-semibold text-[var(--color-ink)]">{t.progress}</span>
+                <span className="text-sm text-[var(--color-ink-soft)]">{t.progressCount(outline.progress.completed, outline.progress.total, pct)}</span>
               </div>
               <div className="h-3 rounded-full bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] overflow-hidden">
                 <div className="h-full bg-[var(--color-success-green)] transition-all" style={{ width: `${pct}%` }} />
@@ -113,27 +149,35 @@ export default function CourseHomePage() {
               {nextLesson && (
                 <div className="flex justify-end">
                   <Button href={nextLesson.href}>
-                    <PlayCircle className="w-4 h-4" /> {outline.progress.completed === 0 ? "Mulai Belajar" : "Lanjutkan Belajar"}
+                    <PlayCircle className="w-4 h-4" /> {outline.progress.completed === 0 ? t.startLearning : t.continueLearning}
                   </Button>
                 </div>
               )}
             </>
+          ) : outline.free ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-[var(--font-inter)]">
+              <div>
+                <p className="font-semibold text-[var(--color-ink)]">{t.freeCourse}</p>
+                <p className="text-sm text-[var(--color-ink-soft)]">{t.freeCourseHint}</p>
+              </div>
+              <Button href={`/login?next=/learn/${slug}`} className="shrink-0">{t.signInToStart}</Button>
+            </div>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-[var(--font-inter)]">
               <div>
-                <p className="font-semibold text-[var(--color-ink)]">Buka seluruh materi, kuis, dan tryout</p>
+                <p className="font-semibold text-[var(--color-ink)]">{t.unlockAll}</p>
                 <p className="text-sm text-[var(--color-ink-soft)]">
                   {outline.pretest
-                    ? outline.loggedIn ? "Pretest gratis bisa langsung dikerjakan." : "Masuk dulu untuk mengerjakan pretest gratis."
-                    : "Lihat daftar bab dan materinya di bawah."}
+                    ? outline.loggedIn ? t.pretestNow : t.pretestSignIn
+                    : t.seeSyllabus}
                 </p>
               </div>
               {outline.store ? (
                 <Button href={`/materials/${outline.store.slug}`} className="shrink-0">
-                  <ShoppingBag className="w-4 h-4" /> Beli · {formatPrice(outline.store.price)}
+                  <ShoppingBag className="w-4 h-4" /> {t.buy} · {formatPrice(outline.store.price)}
                 </Button>
               ) : (
-                <Badge variant="outline">Segera hadir</Badge>
+                <Badge variant="outline">{t.comingSoon}</Badge>
               )}
             </div>
           )}
@@ -167,12 +211,29 @@ export default function CourseHomePage() {
         {/* Levels */}
         {outline.levels.map((level) => (
           <div key={level.id} className="space-y-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-2xl md:text-3xl">{level.title}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                {level.cover.length > 0 && (
+                  <div className="flex -space-x-3 shrink-0">
+                    {level.cover.map((pic) => (
+                      <span key={pic} className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white border-2 border-[var(--color-line)] flex items-center justify-center">
+                        <Picture name={pic} className="w-11 h-11 md:w-12 md:h-12" />
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <h2 className="text-2xl md:text-3xl">{level.title}</h2>
+              </div>
               <Badge variant="amber">{level.targetScore}</Badge>
             </div>
             <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">{level.description}</p>
 
+            {level.locked ? (
+              <Card className="flex items-center gap-3 border-dashed bg-white/60 font-[var(--font-inter)]">
+                <Lock className="w-5 h-5 text-[var(--color-ink-soft)] shrink-0" />
+                <p className="text-sm text-[var(--color-ink-soft)]">{t.levelLocked}</p>
+              </Card>
+            ) : (
             <Card className="p-0 overflow-hidden">
               <ul className="divide-y divide-[var(--color-line)]">
                 {level.pretest && (
@@ -187,8 +248,8 @@ export default function CourseHomePage() {
                           <div className="flex-1">
                             <p className="font-bold text-[var(--color-ink)]">{p.title}</p>
                             <p className="text-xs text-[var(--color-ink-soft)]">
-                              {p.questions} soal · cek kemampuan awal sebelum belajar
-                              {p.score !== null && ` · skor ${p.score}/${p.maxScore}`}
+                              {t.questions(p.questions)} · {t.pretestRow}
+                              {p.score !== null && ` · ${t.score(p.score, p.maxScore)}`}
                             </p>
                           </div>
                         </div>
@@ -205,7 +266,7 @@ export default function CourseHomePage() {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-soft)]">
-                          <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {SKILL_LABEL[lesson.skill]} · {lesson.minutes} menit
+                          <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {t.skills[lesson.skill]}{lesson.minutes ? ` · ${t.minutes(lesson.minutes)}` : ""}
                         </div>
                         <p className="font-semibold text-[var(--color-ink)] truncate">{lesson.title}</p>
                         <p className="text-xs text-[var(--color-ink-soft)] line-clamp-1">{lesson.summary}</p>
@@ -225,8 +286,8 @@ export default function CourseHomePage() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--color-brand-blue)]">{q.title}</p>
                           <p className="text-xs text-[var(--color-ink-soft)]">
-                            {q.questions} soal · lulus minimal {q.passPercent}% untuk lanjut
-                            {q.score !== null && ` · nilai terbaik ${q.score}/${q.maxScore}`}
+                            {t.questions(q.questions)}{outline.quizSecondsPerQuestion ? ` · ${t.secondsPerQuestion(outline.quizSecondsPerQuestion)}` : ""} · {outline.openOrder ? t.target(q.passPercent) : t.passToContinue(q.passPercent)}
+                            {q.score !== null && ` · ${t.bestScore(q.score, q.maxScore)}`}
                           </p>
                         </div>
                       </div>
@@ -236,6 +297,23 @@ export default function CourseHomePage() {
                 </li>
               </ul>
             </Card>
+            )}
+            {outline.isAdmin ? (
+              (outline.adminLocks || level.hasLive) && (
+                <AdminLevelControls
+                  slug={slug}
+                  levelId={level.id}
+                  levelTitle={level.title}
+                  adminLocks={outline.adminLocks}
+                  openForStudents={level.openForStudents ?? true}
+                  hasLive={level.hasLive}
+                  live={level.live ?? null}
+                  onChanged={load}
+                />
+              )
+            ) : (
+              !level.locked && level.hasLive && <LiveQuizWidget courseSlug={slug} levelId={level.id} />
+            )}
           </div>
         ))}
 

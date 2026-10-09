@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SketchBox } from "@/components/sketch/SketchBox";
+import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
 import { Mail, Lock } from "lucide-react";
 
 const loginSchema = z.object({
@@ -36,7 +37,11 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [supabase] = useState(() => createClient());
   const [error, setError] = useState<string | null>(
-    searchParams.get("error") === "link" ? "Link sudah kedaluwarsa atau tidak valid. Silakan coba lagi." : null
+    searchParams.get("error") === "link"
+      ? "Link sudah kedaluwarsa atau tidak valid. Silakan coba lagi."
+      : searchParams.get("error") === "oauth"
+        ? "Masuk dengan Google gagal atau dibatalkan. Silakan coba lagi."
+        : null
   );
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
@@ -116,6 +121,9 @@ function LoginForm() {
                 {error}
               </div>
             )}
+
+            <GoogleButton label="Masuk dengan Google" next={searchParams.get("next")} />
+            <OrDivider text="atau masuk dengan email" />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <Input

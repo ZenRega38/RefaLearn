@@ -8,6 +8,8 @@ import { isCorrect } from "@/lib/course/grading";
 import { QuestionBlock } from "@/components/course/QuestionBlock";
 import { answerText, isAnswered } from "@/components/course/QuestionInput";
 import { Md } from "@/components/course/Md";
+import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
 
 /**
  * Duolingo-style mini quiz: one question at a time, instant feedback, and
@@ -19,13 +21,17 @@ export function Checkpoint({
   passages = [],
   onComplete,
   completing = false,
+  mascot,
 }: {
   title: string;
   questions: Question[];
   passages?: Passage[];
   onComplete: (stats: { firstTry: number; total: number }) => void;
   completing?: boolean;
+  /** Picture family (e.g. "owl") that reacts to answers; trophy/icons when absent. */
+  mascot?: string;
 }) {
+  const t = useCourseText();
   const [queue, setQueue] = useState<Question[]>(questions);
   const [round, setRound] = useState(0);
   const [response, setResponse] = useState<Response | null>(null);
@@ -68,19 +74,19 @@ export function Checkpoint({
 
       {finished ? (
         <div className="text-center py-8 space-y-4">
-          <Trophy className="w-14 h-14 mx-auto text-[var(--color-accent-yellow)]" />
-          <h4 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">Checkpoint selesai!</h4>
+          {mascot ? <Picture name={`${mascot}-cheer`} className="w-32 h-32 mx-auto" /> : <Trophy className="w-14 h-14 mx-auto text-[var(--color-accent-yellow)]" />}
+          <h4 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">{t.checkpointDone}</h4>
           <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-            Benar di percobaan pertama: <strong>{questions.length - missed.size}/{questions.length}</strong>
+            {t.firstTry} <strong>{questions.length - missed.size}/{questions.length}</strong>
           </p>
           <Button onClick={() => onComplete({ firstTry: questions.length - missed.size, total: questions.length })} isLoading={completing}>
-            Lanjut
+            {t.next}
           </Button>
         </div>
       ) : (
         <>
           {missed.has(current.id) && checked === null && (
-            <p className="text-xs font-semibold text-[var(--color-accent-coral)] font-[var(--font-inter)]">Coba lagi soal ini 💪</p>
+            <p className="text-xs font-semibold text-[var(--color-accent-coral)] font-[var(--font-inter)]">{t.tryThisAgain}</p>
           )}
           <QuestionBlock
             key={`${current.id}-${round}`}
@@ -95,28 +101,34 @@ export function Checkpoint({
 
           {checked === null ? (
             <div className="flex justify-end">
-              <Button onClick={check} disabled={!isAnswered(current, response)}>Periksa</Button>
+              <Button onClick={check} disabled={!isAnswered(current, response)}>{t.check}</Button>
             </div>
           ) : (
             <div
               className={`rounded-[var(--radius-card)] p-4 border-2 font-[var(--font-inter)] ${checked ? "bg-[var(--color-success-green)]/10 border-[var(--color-success-green)]" : "bg-[var(--color-danger-red)]/10 border-[var(--color-danger-red)]"}`}
             >
               <div className="flex items-start gap-3">
-                {checked ? <CheckCircle2 className="w-6 h-6 text-[var(--color-success-green)] shrink-0" /> : <XCircle className="w-6 h-6 text-[var(--color-danger-red)] shrink-0" />}
+                {mascot ? (
+                  <Picture name={checked ? `${mascot}-cheer` : `${mascot}-think`} className="w-16 h-16 shrink-0 -my-1" />
+                ) : checked ? (
+                  <CheckCircle2 className="w-6 h-6 text-[var(--color-success-green)] shrink-0" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-[var(--color-danger-red)] shrink-0" />
+                )}
                 <div className="flex-1 space-y-1 text-sm text-[var(--color-ink)]">
                   <p className={`font-bold ${checked ? "text-[var(--color-success-green)]" : "text-[var(--color-danger-red)]"}`}>
-                    {checked ? "Benar!" : "Belum tepat."}
+                    {checked ? t.correct : t.notQuite}
                   </p>
                   {!checked && (
                     <p>
-                      Jawaban: <strong>{answerText(current)}</strong>
+                      {t.answerIs} <strong>{answerText(current)}</strong>
                     </p>
                   )}
                   <Md text={current.explanation} />
                 </div>
               </div>
               <div className="flex justify-end mt-3">
-                <Button onClick={next}>{checked ? "Lanjut" : "Mengerti"}</Button>
+                <Button onClick={next}>{checked ? t.next : t.gotIt}</Button>
               </div>
             </div>
           )}

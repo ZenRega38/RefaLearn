@@ -23,6 +23,9 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     isPretest: found.isPretest,
     labels: ctx.course.labels,
+    mascot: ctx.course.mascot ?? null,
+    openOrder: !!ctx.course.openOrder,
+    secondsPerQuestion: found.isPretest ? null : ctx.course.quizSecondsPerQuestion ?? null,
     quiz: {
       id: found.quiz.id,
       title: found.quiz.title,

@@ -30,11 +30,8 @@ export const metadata: Metadata = {
     default: "Refa Learn — Bridging Borders, Embracing The World!",
     template: "%s | Refa Learn",
   },
-  icons: {
-    icon: "/RefaLearn-Logo.png",
-    shortcut: "/RefaLearn-Logo.png",
-    apple: "/RefaLearn-Logo.png",
-  },
+  // Tab and home-screen icons come from app/favicon.ico, app/icon.png and
+  // app/apple-icon.png (generated from public/RefaLearn-Logo.png).
   description:
     "Les privat Bahasa Inggris terbaik dengan sistem bayar setelah kelas. IELTS, TOEFL, dan persiapan ujian untuk siswa SMA hingga mahasiswa.",
   keywords: [

@@ -1,4 +1,4 @@
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 // Every /admin/* page depends on who's logged in — there's no meaningful
 // static version of it to cache. Without this, Next tries to prerender a
@@ -8,10 +8,5 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 export const dynamic = "force-dynamic";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex flex-col md:flex-row min-h-screen bg-[var(--color-paper-bg-alt)]">
-            <AdminSidebar />
-            <div className="flex-1 min-w-0">{children}</div>
-        </div>
-    );
+    return <AdminShell>{children}</AdminShell>;
 }

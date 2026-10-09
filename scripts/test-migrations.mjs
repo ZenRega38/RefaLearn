@@ -203,5 +203,27 @@ await expectFail("student cannot turn a purchase into a grant", () => as("authen
 const granted = await as("authenticated", S2, `select id from materials where id=$1`, [mat]);
 check(granted.rows.length === 1, "granted student can see the (hidden) material", granted.rows.length);
 
+console.log("\nModule locks & live quiz:");
+const openMods = await as("anon", null, `select level_id from course_level_access where course_slug='english-day' and is_open order by level_id`);
+check(openMods.rows.map((r) => r.level_id).join(",") === "ed-m1,ed-m2", "English Day starts with modules 1–2 open (visible to anyone)", JSON.stringify(openMods.rows));
+await expectFail("student cannot open a module", () => as("authenticated", S1,
+  `insert into course_level_access (course_slug, level_id, is_open) values ('english-day','ed-m3',true)`), /row-level security/);
+await expectOk("admin opens a module", () => as("authenticated", ADMIN,
+  `insert into course_level_access (course_slug, level_id, is_open) values ('english-day','ed-m3',true) on conflict (course_slug, level_id) do update set is_open = excluded.is_open`));
+const liveSess = (await as("service_role", null, `insert into live_sessions (pin, course_slug, level_id, title, question_count) values ('123456','english-day','ed-m1','Live',5) returning id`)).rows[0].id;
+await expectFail("two running sessions cannot share a PIN", () => as("service_role", null,
+  `insert into live_sessions (pin, course_slug, level_id, title, question_count) values ('123456','english-day','ed-m2','Live',5)`), /duplicate key/);
+await as("service_role", null, `insert into live_players (session_id, nickname, token_hash) values ($1,'Budi','x')`, [liveSess]);
+await expectFail("nicknames are unique per session (case-insensitive)", () => as("service_role", null,
+  `insert into live_players (session_id, nickname, token_hash) values ($1,'budi','y')`, [liveSess]), /duplicate key/);
+const anonPlayers = await as("anon", null, `select id from live_players`);
+const studentSessions = await as("authenticated", S1, `select id from live_sessions`);
+check(anonPlayers.rows.length === 0 && studentSessions.rows.length === 0, "live tables are hidden from the API roles", `${anonPlayers.rows.length}/${studentSessions.rows.length}`);
+await expectFail("nobody can write live answers through the API", () => as("anon", null,
+  `insert into live_answers (session_id, player_id, q_index, choice, correct, points, elapsed_ms) values ($1, gen_random_uuid(), 0, 0, true, 1000, 1)`, [liveSess]), /row-level security|foreign key/);
+await as("service_role", null, `update live_sessions set status='ended' where id=$1`, [liveSess]);
+await expectOk("a PIN can be reused after the session ends", () => as("service_role", null,
+  `insert into live_sessions (pin, course_slug, level_id, title, question_count) values ('123456','english-day','ed-m2','Live',5)`));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

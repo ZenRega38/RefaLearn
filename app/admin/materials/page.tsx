@@ -268,13 +268,23 @@ export default function AdminMaterialsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Harga (Rp)"
-                type="number"
-                value={price.toString()}
-                onChange={(e) => setPrice(parseInt(e.target.value) || 0)}
-                required
-              />
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  label="Harga (Rp)"
+                  type="number"
+                  min={0}
+                  value={price.toString()}
+                  onChange={(e) => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
+                  required
+                />
+                <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                  {price === 0
+                    ? courseSlug
+                      ? "Gratis: semua pengguna yang login bisa langsung membuka kursusnya tanpa checkout."
+                      : "Gratis: siswa cukup klik Ambil Gratis, lalu file langsung tersedia di dashboard."
+                    : "Isi 0 untuk membuat materi ini gratis."}
+                </p>
+              </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">Status</label>
                 <select

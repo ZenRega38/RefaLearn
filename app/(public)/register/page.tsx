@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/redirect";
+import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -133,6 +134,12 @@ function RegisterForm() {
                 {error}
               </div>
             )}
+
+            <GoogleButton label="Daftar dengan Google" next={searchParams.get("next")} />
+            <p className="mt-2 text-[11px] text-center text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+              Dengan mendaftar, Anda menyetujui <Link href="/privacy" className="underline">Kebijakan Privasi</Link>.
+            </p>
+            <OrDivider text="atau daftar dengan email" />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">

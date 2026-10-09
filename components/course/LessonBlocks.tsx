@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Lightbulb, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import type { Block, Question, Response } from "@/lib/course/types";
+import type { Block, Question, Response, VocabItem } from "@/lib/course/types";
 import { isCorrect } from "@/lib/course/grading";
 import { Md } from "@/components/course/Md";
 import { AudioPlayer } from "@/components/course/AudioPlayer";
@@ -11,16 +11,20 @@ import { QuestionBlock } from "@/components/course/QuestionBlock";
 import { answerText, isAnswered } from "@/components/course/QuestionInput";
 import { Button } from "@/components/ui/Button";
 import { speak, speechSupported } from "@/components/course/speech";
+import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
+import { TaskBlock } from "@/components/course/TaskBlock";
 
 /** Inline "Coba sekarang" question inside the lesson material. */
 function TryIt({ question }: { question: Question }) {
+  const t = useCourseText();
   const [response, setResponse] = useState<Response | null>(null);
   const [checked, setChecked] = useState<boolean | null>(null);
   const [round, setRound] = useState(0);
 
   return (
     <div className="rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-accent-coral)]/60 bg-white p-4 md:p-5 space-y-4">
-      <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent-coral)] font-[var(--font-inter)]">Coba sekarang</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-accent-coral)] font-[var(--font-inter)]">{t.tryNow}</p>
       <QuestionBlock
         key={round}
         question={question}
@@ -32,17 +36,17 @@ function TryIt({ question }: { question: Question }) {
       />
       {checked === null ? (
         <div className="flex justify-end">
-          <Button size="sm" onClick={() => setChecked(isCorrect(question, response))} disabled={!isAnswered(question, response)}>Periksa</Button>
+          <Button size="sm" onClick={() => setChecked(isCorrect(question, response))} disabled={!isAnswered(question, response)}>{t.check}</Button>
         </div>
       ) : (
         <div className={`rounded-[var(--radius-sketch)] p-3 text-sm font-[var(--font-inter)] ${checked ? "bg-[var(--color-success-green)]/10" : "bg-[var(--color-danger-red)]/10"}`}>
           <p className={`font-bold flex items-center gap-1.5 ${checked ? "text-[var(--color-success-green)]" : "text-[var(--color-danger-red)]"}`}>
-            {checked ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} {checked ? "Tepat!" : `Jawaban: ${answerText(question)}`}
+            {checked ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} {checked ? t.correctShort : `${t.answerIs} ${answerText(question)}`}
           </p>
           <div className="mt-1 text-[var(--color-ink)]"><Md text={question.explanation} /></div>
           {!checked && (
             <button className="mt-2 text-xs font-semibold text-[var(--color-brand-blue)] underline" onClick={() => { setChecked(null); setResponse(null); setRound((r) => r + 1); }}>
-              Coba lagi
+              {t.tryAgain}
             </button>
           )}
         </div>
@@ -52,7 +56,8 @@ function TryIt({ question }: { question: Question }) {
 }
 
 /** Picture-word cards: tap to hear the English word (and its example). */
-function VocabCards({ title, items }: { title?: string; items: { emoji: string; word: string; meaning: string; example?: string }[] }) {
+function VocabCards({ title, items }: { title?: string; items: VocabItem[] }) {
+  const t = useCourseText();
   const [active, setActive] = useState<string | null>(null);
   const [canSpeak] = useState(() => speechSupported());
 
@@ -74,14 +79,18 @@ function VocabCards({ title, items }: { title?: string; items: { emoji: string; 
             onClick={() => say(it.word, it.example)}
             className={`text-left rounded-[var(--radius-card)] border-2 bg-white p-3 transition-all hover:-translate-y-0.5 ${active === it.word ? "border-[var(--color-accent-coral)] shadow-[var(--shadow-sketch)]" : "border-[var(--color-line)]"}`}
           >
-            <span className="block text-4xl leading-none mb-2" aria-hidden>{it.emoji}</span>
+            {it.pic ? (
+              <Picture name={it.pic} className="block w-20 h-20 md:w-24 md:h-24 mx-auto mb-2" />
+            ) : (
+              <span className="block text-4xl leading-none mb-2" aria-hidden>{it.emoji}</span>
+            )}
             <span className="block font-bold text-[var(--color-brand-blue)] text-base">{it.word} {canSpeak && <span className="text-xs">🔊</span>}</span>
             <span className="block text-xs text-[var(--color-ink-soft)]">{it.meaning}</span>
             {it.example && <span className="block text-xs text-[var(--color-ink)] italic mt-1">“{it.example}”</span>}
           </button>
         ))}
       </div>
-      {canSpeak && <p className="text-xs text-[var(--color-ink-soft)]">Ketuk kartu untuk mendengar cara mengucapkannya.</p>}
+      {canSpeak && <p className="text-xs text-[var(--color-ink-soft)]">{t.tapCards}</p>}
     </div>
   );
 }
@@ -149,6 +158,22 @@ export function LessonBlocks({ blocks }: { blocks: Block[] }) {
             return <TryIt key={i} question={b.question} />;
           case "vocab":
             return <VocabCards key={i} title={b.title} items={b.items} />;
+          case "task":
+            return <TaskBlock key={i} task={b} />;
+          case "pictures":
+            return (
+              <figure key={i} className="rounded-[var(--radius-card)] bg-[var(--color-paper-bg-alt)]/70 border border-[var(--color-line)] p-4">
+                <div className="flex flex-wrap justify-center gap-4">
+                  {b.items.map((it, j) => (
+                    <div key={j} className="flex flex-col items-center gap-1">
+                      <Picture name={it.pic} label={it.label} className={`${b.items.length === 1 ? "h-36 md:h-44" : "h-24 md:h-28"} w-auto max-w-full`} />
+                      {it.label && <span className="text-sm font-bold text-[var(--color-brand-blue)]">{it.label}</span>}
+                    </div>
+                  ))}
+                </div>
+                {b.caption && <figcaption className="mt-2 text-center text-sm text-[var(--color-ink-soft)]">{b.caption}</figcaption>}
+              </figure>
+            );
         }
       })}
     </div>

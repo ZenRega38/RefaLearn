@@ -21,6 +21,13 @@ type QuestionBase = {
   explanation: string;
   /** Higher-Order Thinking Skills item (analyse / evaluate / create). */
   hots?: boolean;
+  /** Illustration shown above the prompt, e.g. "cat" or "apple*4" (see lib/course/pictures). */
+  image?: string;
+  /**
+   * A translation item (Indonesian ↔ English). Only these may show
+   * Indonesian in the prompt or options of an all-English course.
+   */
+  translate?: boolean;
 };
 
 /** Single answer, four (or more) options. */
@@ -54,7 +61,7 @@ export type Response =
   | { type: "error"; mark: "A" | "B" | "C" | "D" };
 
 /** Reading passage. Each entry of `lines` is one numbered line, as on the ITP paper. */
-export type Passage = { id: string; title?: string; lines: string[] };
+export type Passage = { id: string; title?: string; lines: string[]; /** Illustration beside the title. */ pic?: string };
 
 // ---------------------------------------------------------------------------
 // Lessons
@@ -69,8 +76,43 @@ export type Block =
   | { type: "audio"; caption?: string; script: AudioScript; showTranscript?: boolean }
   | { type: "passage"; passage: Passage }
   | { type: "try"; question: Question }
-  /** Picture-word cards; tapping one speaks the English word. */
-  | { type: "vocab"; title?: string; items: { emoji: string; word: string; meaning: string; example?: string }[] };
+  /** Picture-word cards; tapping one speaks the English word. `pic` (an illustration name) wins over `emoji`. */
+  | { type: "vocab"; title?: string; items: VocabItem[] }
+  /** A row of illustrations with optional captions (scenes, story characters). */
+  | { type: "pictures"; items: { pic: string; label?: string }[]; caption?: string }
+  /** Open writing or speaking practice, checked against model answers and a rubric. */
+  | TaskBlock;
+
+/**
+ * Writing / speaking practice. The learner writes (word counter) or records
+ * themselves (microphone, with preparation and speaking timers), then
+ * compares with model answers and ticks a self-check rubric. Nothing is
+ * graded automatically; drafts stay in the learner's browser.
+ */
+export type TaskBlock = {
+  type: "task";
+  /** Stable id, used to keep the learner's draft in their browser. */
+  id: string;
+  kind: "writing" | "speaking";
+  title?: string;
+  /** The task, in English (markdown). */
+  prompt: string;
+  image?: string;
+  /** Speaking: preparation time before recording starts. */
+  prepSeconds?: number;
+  /** Writing: suggested time; speaking: maximum recording length. */
+  seconds?: number;
+  minWords?: number;
+  maxWords?: number;
+  /** Short hints shown before starting (useful phrases, structure). */
+  tips?: string[];
+  /** Model answers, e.g. one per level or band. Speaking models can be played aloud. */
+  models: { label: string; text: string; note?: string }[];
+  /** Self-check criteria the learner ticks after comparing. */
+  rubric: string[];
+};
+
+export type VocabItem = { emoji: string; pic?: string; word: string; meaning: string; example?: string };
 
 export type LessonSection = { title: string; blocks: Block[] };
 
@@ -79,7 +121,8 @@ export type Lesson = {
   skill: Skill;
   title: string;
   summary: string;
-  minutes: number;
+  /** Estimated minutes; omit to show no duration (self-paced review courses). */
+  minutes?: number;
   sections: LessonSection[];
   /** Mini quiz at the end of the lesson; wrong answers come back until right. */
   checkpoint: Question[];
@@ -100,11 +143,23 @@ export type Level = {
   description: string;
   /** Short goal badge, e.g. "Target 400–450" or "Tujuan pembelajaran". */
   targetScore: string;
+  /** Illustrations shown beside the level title on the course page. */
+  cover?: string[];
   /** Optional diagnostic at the start of the level/chapter (any score passes). */
   pretest?: LevelQuiz;
   lessons: Lesson[];
   /** End-of-level quiz / chapter posttest; passing opens the next level. */
   quiz: LevelQuiz;
+  /** Question set the teacher can host as a live (Kahoot-style) quiz. */
+  live?: LiveQuizSet;
+};
+
+/** A live quiz: single-answer questions played together, hosted by the admin. */
+export type LiveQuizSet = {
+  title: string;
+  /** Seconds to answer each question (default 20). */
+  seconds?: number;
+  questions: McQuestion[];
 };
 
 // ---------------------------------------------------------------------------
@@ -142,8 +197,18 @@ export type Course = {
   /** Course-wide diagnostic and final test (e.g. TOEFL pretest & tryout). */
   pretest?: Exam;
   tryout?: Exam;
+  /** The tryout also opens once this level's quiz is passed (default: after every level). */
+  tryoutAfterLevel?: string;
   /** Shown under the last level, e.g. upcoming levels. */
   comingSoon?: string;
+  /** Levels stay locked until the admin opens them (course_level_access). */
+  adminLocks?: boolean;
+  /** Inside an open level every lesson and the quiz are open at once (no sequential unlocking). */
+  openOrder?: boolean;
+  /** Per-question time limit for level quizzes, in seconds. */
+  quizSecondsPerQuestion?: number;
+  /** Mascot picture family (e.g. "owl" → owl-cheer, owl-think…) that cheers students on. */
+  mascot?: string;
 };
 
 // ---------------------------------------------------------------------------

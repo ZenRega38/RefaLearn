@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import type { PublicQuestion, Question, Response } from "@/lib/course/types";
 import { seedOf, shuffle } from "@/lib/course/grading";
+import { optionText, parsePicOption } from "@/lib/course/pictures";
+import { Picture } from "@/components/course/pictures";
+import { useCourseText } from "@/components/course/lang";
 
 type AnyQuestion = Question | PublicQuestion;
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
@@ -20,11 +23,11 @@ function matchSides(q: AnyQuestion): { left: string[]; right: string[] } {
 /** Human-readable correct answer, for feedback and review screens. */
 export function answerText(q: Question): string {
   switch (q.type) {
-    case "mc": return `${LETTERS[q.answer]}. ${q.options[q.answer]}`;
-    case "ms": return q.answers.map((i) => q.options[i]).join(" • ");
+    case "mc": return `${LETTERS[q.answer]}. ${optionText(q.options[q.answer])}`;
+    case "ms": return q.answers.map((i) => optionText(q.options[i])).join(" • ");
     case "fill": return q.accept[0];
     case "order": return q.answer[0].join(" ");
-    case "match": return q.pairs.map(([l, r]) => `${l} → ${r}`).join(" • ");
+    case "match": return q.pairs.map(([l, r]) => `${optionText(l)} → ${optionText(r)}`).join(" • ");
     case "error": {
       const seg = q.segments.find((s) => s.mark === q.answer);
       return `(${q.answer}) “${seg?.text ?? ""}” → ${q.correction}`;
@@ -73,6 +76,21 @@ export function QuestionInput({ question: q, value, onChange, disabled = false, 
 
 // ---------------------------------------------------------------------------
 
+/** Text, or an illustration ("pic:cat", "pic:cat|caption") with its caption. */
+function OptionContent({ text, size = "md" }: { text: string; size?: "sm" | "md" | "lg" }) {
+  const pic = parsePicOption(text);
+  if (!pic) return <>{text}</>;
+  const box = size === "lg" ? "w-20 h-20 md:w-24 md:h-24" : size === "md" ? "w-12 h-12" : "w-12 h-12 md:w-14 md:h-14";
+  return (
+    <span className={`inline-flex items-center gap-2 ${size === "lg" ? "flex-col" : ""}`}>
+      <Picture name={pic.ref} className={`${box} shrink-0`} label={pic.caption ?? optionText(text)} />
+      {pic.caption && <span className="font-semibold">{pic.caption}</span>}
+    </span>
+  );
+}
+
+const allPictures = (options: string[]) => options.length > 0 && options.every((o) => parsePicOption(o));
+
 const optionBase = "w-full text-left flex items-start gap-3 p-3 md:p-4 rounded-[var(--radius-sketch)] border-2 transition-all font-[var(--font-inter)] text-sm md:text-base";
 
 function optionClass(selected: boolean, correct: boolean | null) {
@@ -83,7 +101,30 @@ function optionClass(selected: boolean, correct: boolean | null) {
     : `${optionBase} border-[var(--color-line)] bg-white hover:border-[var(--color-brand-blue)]/50`;
 }
 
+/** Same colours as a text option, laid out as a square picture tile. */
+const tileClass = (selected: boolean, correct: boolean | null) =>
+  optionClass(selected, correct).replace("text-left flex items-start gap-3 p-3 md:p-4", "relative flex flex-col items-center justify-center gap-1 px-2 pt-7 pb-3");
+
 function McInput({ q, value, onChange, disabled, reveal }: { q: { options: string[] }; value: number | null; onChange: (i: number) => void; disabled: boolean; reveal?: number }) {
+  if (allPictures(q.options)) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {q.options.map((opt, i) => {
+          const correct = reveal === undefined ? null : i === reveal ? true : i === value ? false : null;
+          return (
+            <button key={i} type="button" disabled={disabled} onClick={() => onChange(i)} className={tileClass(value === i, correct)}>
+              <span className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[11px] font-bold ${value === i ? "bg-[var(--color-brand-blue)] border-[var(--color-brand-blue)] text-white" : "border-[var(--color-line)] text-[var(--color-ink-soft)] bg-white"}`}>
+                {LETTERS[i]}
+              </span>
+              {correct === true && <Check className="absolute top-2 right-2 w-5 h-5 text-[var(--color-success-green)]" />}
+              {correct === false && <X className="absolute top-2 right-2 w-5 h-5 text-[var(--color-danger-red)]" />}
+              <span className="text-[var(--color-ink)] text-center"><OptionContent text={opt} size="lg" /></span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="space-y-2.5">
       {q.options.map((opt, i) => {
@@ -93,7 +134,7 @@ function McInput({ q, value, onChange, disabled, reveal }: { q: { options: strin
             <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 ${value === i ? "bg-[var(--color-brand-blue)] border-[var(--color-brand-blue)] text-white" : "border-[var(--color-line)] text-[var(--color-ink-soft)]"}`}>
               {LETTERS[i]}
             </span>
-            <span className="pt-0.5 text-[var(--color-ink)]">{opt}</span>
+            <span className="pt-0.5 text-[var(--color-ink)]"><OptionContent text={opt} /></span>
             {correct === true && <Check className="w-5 h-5 ml-auto text-[var(--color-success-green)] shrink-0" />}
             {correct === false && <X className="w-5 h-5 ml-auto text-[var(--color-danger-red)] shrink-0" />}
           </button>
@@ -116,7 +157,7 @@ function MsInput({ q, value, onChange, disabled, reveal }: { q: { options: strin
             <span className={`w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 ${selected ? "bg-[var(--color-brand-blue)] border-[var(--color-brand-blue)] text-white" : "border-[var(--color-line)]"}`}>
               {selected && <Check className="w-4 h-4" />}
             </span>
-            <span className="text-[var(--color-ink)]">{opt}</span>
+            <span className="text-[var(--color-ink)]"><OptionContent text={opt} /></span>
           </button>
         );
       })}
@@ -125,6 +166,7 @@ function MsInput({ q, value, onChange, disabled, reveal }: { q: { options: strin
 }
 
 function FillInput({ q, value, onChange, disabled }: { q: { before: string; after: string }; value: string; onChange: (v: string) => void; disabled: boolean }) {
+  const t = useCourseText();
   return (
     <p className="text-base md:text-lg leading-loose font-[var(--font-inter)] text-[var(--color-ink)]">
       {q.before}{" "}
@@ -132,7 +174,7 @@ function FillInput({ q, value, onChange, disabled }: { q: { before: string; afte
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        aria-label="Jawaban"
+        aria-label={t.answerAria}
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
@@ -144,6 +186,7 @@ function FillInput({ q, value, onChange, disabled }: { q: { before: string; afte
 }
 
 function OrderInput({ q, value, onChange, disabled }: { q: { id: string; tiles: string[] }; value: string[]; onChange: (v: string[]) => void; disabled: boolean }) {
+  const t = useCourseText();
   // Tiles are identified by index so repeated words work.
   const bank = useMemo(() => shuffle(q.tiles.map((t, i) => ({ t, i })), seedOf(q.id)), [q.id, q.tiles]);
   const [placed, setPlaced] = useState<number[]>(() => {
@@ -176,7 +219,7 @@ function OrderInput({ q, value, onChange, disabled }: { q: { id: string; tiles: 
         onDrop={() => { if (dragIndex !== null && !disabled) add(dragIndex); setDragIndex(null); }}
         className="min-h-[60px] p-3 flex flex-wrap gap-2 border-b-2 border-dashed border-[var(--color-brand-blue)]/50 bg-[var(--color-brand-blue)]/5 rounded-t-[var(--radius-card)]"
       >
-        {placed.length === 0 && <span className="text-sm text-[var(--color-ink-soft)] italic self-center">Ketuk atau seret kata ke sini…</span>}
+        {placed.length === 0 && <span className="text-sm text-[var(--color-ink-soft)] italic self-center">{t.orderHint}</span>}
         {placed.map((i, pos) => (
           <button
             key={i}
@@ -211,6 +254,7 @@ function OrderInput({ q, value, onChange, disabled }: { q: { id: string; tiles: 
 const PAIR_COLORS = ["#2B4C7E", "#E8734A", "#4C8C6B", "#D9A441", "#8B5CF6", "#0EA5E9"];
 
 function MatchInput({ q, value, onChange, disabled, reveal }: { q: AnyQuestion; value: [string, string][]; onChange: (v: [string, string][]) => void; disabled: boolean; reveal?: [string, string][] }) {
+  const t = useCourseText();
   const { left, right } = useMemo(() => matchSides(q), [q]);
   const [active, setActive] = useState<string | null>(null);
   const [drag, setDrag] = useState<string | null>(null);
@@ -230,7 +274,7 @@ function MatchInput({ q, value, onChange, disabled, reveal }: { q: AnyQuestion; 
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Ketuk item kiri lalu pasangannya di kanan (atau seret).</p>
+      <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.matchHint}</p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           {left.map((l) => {
@@ -247,7 +291,7 @@ function MatchInput({ q, value, onChange, disabled, reveal }: { q: AnyQuestion; 
                 className={itemClass(color, active === l)}
                 style={color ? { borderColor: wrongPair ? "var(--color-danger-red)" : color } : undefined}
               >
-                {l}
+                <OptionContent text={l} size="sm" />
               </button>
             );
           })}
@@ -267,7 +311,7 @@ function MatchInput({ q, value, onChange, disabled, reveal }: { q: AnyQuestion; 
                 className={itemClass(color, false)}
                 style={color ? { borderColor: color, background: `${color}14` } : undefined}
               >
-                {r}
+                <OptionContent text={r} size="sm" />
               </button>
             );
           })}

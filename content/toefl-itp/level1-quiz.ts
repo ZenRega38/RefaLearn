@@ -21,7 +21,7 @@ const BATIK: Passage = {
 
 export const L1_QUIZ: LevelQuiz = {
   id: "l1-quiz",
-  title: "Big Quiz Level 1 — Fondasi",
+  title: "Big Quiz Level 1 — Foundations",
   passPercent: 70,
   passages: [BATIK],
   questions: [

@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
 import { ALL_COURSES, computeUnlocks, findLevelQuiz } from "@/lib/course/content";
-import { COURSES as REGISTRY } from "@/lib/course/registry";
+import { COURSES as REGISTRY, courseUiLang } from "@/lib/course/registry";
 import { convertedScore, isCorrect, normalizeAnswer, toPublicQuestion, totalScore } from "@/lib/course/grading";
 import type { Course, Passage, ProgressItem, Question, Response } from "@/lib/course/types";
+import { optionText, parsePicOption, parsePictureRef, PICTURE_NAMES } from "@/lib/course/pictures";
 
 type Located = { q: Question; passages: Passage[]; where: string };
 
@@ -209,6 +210,60 @@ describe("Grade 3 module (Kurikulum Merdeka)", () => {
     expect(findLevelQuiz(ENGLISH_SD_3, bab.pretest!.id)?.isPretest).toBe(true);
     expect(findLevelQuiz(ENGLISH_SD_3, bab.quiz.id)?.isPretest).toBe(false);
   });
+
+  it("illustrates every chapter: cover, picture vocab cards, and picture questions", () => {
+    for (const bab of ENGLISH_SD_3.levels) {
+      expect(bab.cover?.length, bab.id).toBeGreaterThan(0);
+      const blocks = bab.lessons.flatMap((l) => l.sections.flatMap((s) => s.blocks));
+      for (const b of blocks) if (b.type === "vocab") for (const it of b.items) expect(it.pic, `${bab.id} ${it.word}`).toBeTruthy();
+      expect(blocks.some((b) => b.type === "pictures"), bab.id).toBe(true);
+      const questions = allQuestions({ ...ENGLISH_SD_3, levels: [bab] }).map((x) => x.q);
+      const pictured = questions.filter((q) => pictureRefs(q).length > 0);
+      expect(pictured.length, bab.id).toBeGreaterThanOrEqual(6);
+    }
+  });
+});
+
+/** Every picture reference a question uses (image, picture options, match items). */
+function pictureRefs(q: Question): string[] {
+  const texts = q.type === "mc" || q.type === "ms" ? q.options : q.type === "match" ? q.pairs.flat() : [];
+  return [...(q.image ? [q.image] : []), ...texts.flatMap((t) => parsePicOption(t)?.ref ?? [])];
+}
+
+describe("pictures", () => {
+  it.each(ALL_COURSES.map((c) => [c.slug, c] as const))("every picture referenced by %s exists", (_slug, course) => {
+    const refs: string[] = [];
+    for (const level of course.levels) {
+      refs.push(...(level.cover ?? []));
+      for (const lesson of level.lessons) {
+        for (const p of lesson.passages ?? []) if (p.pic) refs.push(p.pic);
+        for (const b of lesson.sections.flatMap((s) => s.blocks)) {
+          if (b.type === "vocab") refs.push(...b.items.flatMap((it) => it.pic ?? []));
+          if (b.type === "pictures") refs.push(...b.items.map((it) => it.pic));
+          if (b.type === "passage" && b.passage.pic) refs.push(b.passage.pic);
+        }
+      }
+      for (const quiz of [level.quiz, ...(level.pretest ? [level.pretest] : [])]) for (const p of quiz.passages ?? []) if (p.pic) refs.push(p.pic);
+    }
+    for (const { q } of allQuestions(course)) refs.push(...pictureRefs(q));
+    if (course.mascot) refs.push(...["wave", "cheer", "think"].map((pose) => `${course.mascot}-${pose}`));
+    const missing = refs.filter((r) => !parsePictureRef(r));
+    expect(missing).toEqual([]);
+  });
+
+  it("parses picture options and repeat counts", () => {
+    expect(parsePicOption("pic:cat|kucing")).toEqual({ ref: "cat", caption: "kucing" });
+    expect(parsePicOption("cat")).toBeNull();
+    expect(parsePictureRef("apple*4")).toEqual({ name: "apple", count: 4 });
+    expect(parsePictureRef("unicorn")).toBeNull();
+    expect(optionText("pic:num-7")).toBe("7");
+    expect(optionText("pic:color-red")).toBe("red");
+    expect(optionText("pic:banana|banana")).toBe("banana");
+  });
+
+  it("names are unique", () => {
+    expect(new Set(PICTURE_NAMES).size).toBe(PICTURE_NAMES.length);
+  });
 });
 
 describe("grading", () => {
@@ -243,13 +298,21 @@ describe("grading", () => {
 describe("unlocking", () => {
   const pass = (itemId: string): ProgressItem => ({ itemId, kind: "lesson", score: null, maxScore: null, passed: true });
 
-  it("TOEFL: opens only the first lesson, then quiz, then tryout", () => {
+  it("TOEFL: level pretest first, then lessons one by one, then quiz, then tryout", () => {
     const level = TOEFL_ITP.levels[0];
-    expect([...computeUnlocks(TOEFL_ITP, []).unlocked]).toEqual([level.lessons[0].id]);
-    const lessons = level.lessons.map((l) => pass(l.id));
+    expect([...computeUnlocks(TOEFL_ITP, []).unlocked]).toEqual([level.pretest!.id]);
+    expect(computeUnlocks(TOEFL_ITP, [pass(level.pretest!.id)]).unlocked.has(level.lessons[0].id)).toBe(true);
+    const lessons = [pass(level.pretest!.id), ...level.lessons.map((l) => pass(l.id))];
     expect(computeUnlocks(TOEFL_ITP, lessons).unlocked.has(level.quiz.id)).toBe(true);
     expect(computeUnlocks(TOEFL_ITP, lessons).tryoutUnlocked).toBe(false);
+    // The tryout still opens after Level 1, as it did before Levels 2–3 existed.
     expect(computeUnlocks(TOEFL_ITP, [...lessons, pass(level.quiz.id)]).tryoutUnlocked).toBe(true);
+  });
+
+  it("TOEFL: learners who started lessons before the level pretest existed keep their place", () => {
+    const level = TOEFL_ITP.levels[0];
+    const u = computeUnlocks(TOEFL_ITP, [pass(level.lessons[0].id)]);
+    expect(u.unlocked.has(level.lessons[1].id)).toBe(true);
   });
 
   it("Grade 3: chapter pretest comes first, posttest opens the next chapter", () => {
@@ -268,3 +331,77 @@ describe("unlocking", () => {
     expect(u.totalItems).toBe(6 * 5);
   });
 });
+
+describe("admin-opened modules (English Day)", () => {
+  const course = getCourseOrThrow("english-day");
+
+  it("locks every module the admin hasn't opened", () => {
+    const u = computeUnlocks(course, [], new Set(["ed-m1", "ed-m2"]));
+    expect([...u.lockedLevels]).toEqual(course.levels.slice(2).map((l) => l.id));
+    expect(u.unlocked.has(course.levels[2].lessons[0].id)).toBe(false);
+    expect(u.unlocked.has(course.levels[2].quiz.id)).toBe(false);
+  });
+
+  it("opens every lesson and the quiz of an open module at once (free order, re-readable)", () => {
+    const u = computeUnlocks(course, [], new Set(["ed-m1", "ed-m2"]));
+    for (const level of course.levels.slice(0, 2)) {
+      for (const lesson of level.lessons) expect(u.unlocked.has(lesson.id), lesson.id).toBe(true);
+      expect(u.unlocked.has(level.quiz.id)).toBe(true);
+    }
+  });
+
+  it("treats a missing access list as everything locked", () => {
+    expect(computeUnlocks(course, []).unlocked.size).toBe(0);
+  });
+
+  it("is admin-opened, untimed per lesson, and timed per quiz question", () => {
+    expect(course.adminLocks && course.openOrder).toBe(true);
+    expect(course.quizSecondsPerQuestion).toBeGreaterThan(0);
+    for (const level of course.levels) for (const lesson of level.lessons) expect(lesson.minutes, lesson.id).toBeUndefined();
+  });
+
+  it("runs its quiz experience in English", () => {
+    expect(courseUiLang("english-day")).toBe("en");
+    expect(courseUiLang("toefl-itp")).toBe("en");
+  });
+
+  // Everything a learner answers or taps is English; only explanations
+  // (and phrase-table meanings / vocab meanings) may be Indonesian. Local
+  // dish names like nasi kuning or kepiting soka stay as they are.
+  it("has no Indonesian in titles, questions or options", () => {
+    const INDONESIAN = /\b(yang|dengan|saya|kamu|tidak|sudah|belum|akan|untuk|dari|ini|itu|dan|atau|adalah|di|ke|dengarkan|pasangkan|lengkapi|susun|pilih|artinya|gambar|jawaban|soal|teknisi|pantai|macet|lembur|tagihan|rumah|memasak|memancing|pelanggan|modul|kuis|bersepeda|lampu|sejak)\b/i;
+    // Quoting the Indonesian word you want to translate is the point of this one.
+    const allowed = new Set(["How do you say “pelanggan” in English?"]);
+    const texts: { where: string; text: string }[] = [];
+    const add = (where: string, text: string) => {
+      const shown = parsePicOption(text)?.caption ?? text;
+      if (!allowed.has(shown)) texts.push({ where, text: shown });
+    };
+    for (const level of course.levels) {
+      add(level.id, level.title);
+      add(level.id, level.targetScore);
+      add(level.quiz.id, level.quiz.title);
+      if (level.live) add(`${level.id}-live`, level.live.title);
+      for (const lesson of level.lessons) {
+        add(lesson.id, lesson.title);
+        for (const s of lesson.sections) add(lesson.id, s.title);
+      }
+      const questions = [...allQuestions(course).filter((x) => x.where.startsWith(level.id)).map((x) => x.q), ...(level.live?.questions ?? [])];
+      for (const q of questions) {
+        add(q.id, q.prompt ?? "");
+        if (q.type === "mc" || q.type === "ms") q.options.forEach((o) => add(q.id, o));
+        if (q.type === "match") q.pairs.flat().forEach((o) => add(q.id, o));
+        if (q.type === "fill") [q.before, q.after, ...q.accept].forEach((o) => add(q.id, o));
+        if (q.type === "order") add(q.id, q.answer[0].join(" "));
+      }
+    }
+    const indonesian = texts.filter((t) => INDONESIAN.test(t.text)).map((t) => `${t.where}: ${t.text}`);
+    expect(indonesian).toEqual([]);
+  });
+});
+
+function getCourseOrThrow(slug: string): Course {
+  const c = ALL_COURSES.find((x) => x.slug === slug);
+  if (!c) throw new Error(`missing course ${slug}`);
+  return c;
+}

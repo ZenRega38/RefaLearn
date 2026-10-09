@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, RotateCcw, Square, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import type { AudioScript } from "@/lib/course/types";
 import { speak, speechSupported, type SpeechHandle } from "@/components/course/speech";
+import { useCourseText } from "@/components/course/lang";
 
 const LABEL = { man: "Man", woman: "Woman", narrator: "Narrator" } as const;
 
@@ -28,6 +29,7 @@ export function AudioPlayer({
   onEnded?: () => void;
   caption?: string;
 }) {
+  const tx = useCourseText();
   const [state, setState] = useState<"idle" | "playing" | "done">("idle");
   const [line, setLine] = useState(-1);
   const [showText, setShowText] = useState(false);
@@ -67,7 +69,7 @@ export function AudioPlayer({
     return (
       <div className="flex items-start gap-2 p-3 rounded-[var(--radius-card)] bg-amber-50 border border-amber-300 text-amber-900 text-sm font-[var(--font-inter)]">
         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-        <span>Browser ini tidak mendukung pemutar suara. Gunakan Chrome, Edge, atau Safari versi terbaru.</span>
+        <span>{tx.audioUnsupported}</span>
       </div>
     );
   }
@@ -81,24 +83,24 @@ export function AudioPlayer({
           type="button"
           onClick={state === "playing" && !once ? () => handle.current?.cancel() : play}
           disabled={!canPlay && state !== "playing"}
-          aria-label={state === "playing" ? "Hentikan audio" : "Putar audio"}
+          aria-label={state === "playing" ? tx.stopAudio : tx.playAudio}
           className={`w-12 h-12 rounded-full flex items-center justify-center text-white shrink-0 transition-transform ${state === "playing" ? "bg-[var(--color-accent-coral)] animate-pulse" : "bg-[var(--color-brand-blue)] hover:scale-105"} disabled:opacity-40 disabled:hover:scale-100`}
         >
           {state === "playing" ? (once ? <Volume2 className="w-5 h-5" /> : <Square className="w-4 h-4" />) : state === "done" && !once ? <RotateCcw className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </button>
         <div className="flex-1 min-w-0 text-sm">
           <p className="font-semibold text-[var(--color-ink)]">
-            {caption ?? (state === "playing" ? "Mendengarkan…" : state === "done" ? (once ? "Audio selesai" : "Putar ulang") : "Putar audio")}
+            {caption ?? (state === "playing" ? tx.listening : state === "done" ? (once ? tx.audioDone : tx.replay) : tx.playAudio)}
           </p>
           <p className="text-xs text-[var(--color-ink-soft)]">
             {once
-              ? state === "idle" ? "Audio hanya bisa diputar satu kali." : state === "playing" ? `Sedang memutar${line >= 0 ? ` · ${LABEL[script[line].speaker]}` : ""}` : "Pilih jawaban Anda."
-              : state === "playing" && line >= 0 ? LABEL[script[line].speaker] : "Gunakan headset untuk hasil terbaik."}
+              ? state === "idle" ? tx.playOnce : state === "playing" ? `${tx.playingNow}${line >= 0 ? ` · ${LABEL[script[line].speaker]}` : ""}` : tx.chooseAnswer
+              : state === "playing" && line >= 0 ? LABEL[script[line].speaker] : tx.useHeadset}
           </p>
         </div>
         {allowTranscript && (
           <button type="button" onClick={() => setShowText((v) => !v)} className="text-xs text-[var(--color-brand-blue)] font-semibold flex items-center gap-1 shrink-0">
-            {showText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />} Transkrip
+            {showText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />} {tx.transcript}
           </button>
         )}
       </div>

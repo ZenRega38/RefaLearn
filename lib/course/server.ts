@@ -4,11 +4,31 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/api-auth";
 import { computeUnlocks, getCourse } from "@/lib/course/content";
 import { convertedScore, isCorrect, totalScore } from "@/lib/course/grading";
-import type { Exam, ExamResult, ProgressItem, Question, Response, SectionResult } from "@/lib/course/types";
+import type { Course, Exam, ExamResult, ProgressItem, Question, Response, SectionResult } from "@/lib/course/types";
 
-/** Does this user own the course (confirmed purchase of a material linked to it)? Admins always do. */
+/**
+ * A course is free when an active store material links to it at price 0.
+ * The admin controls this from the materials page, like any other product.
+ */
+export async function isFreeCourse(admin: SupabaseClient, slug: string): Promise<boolean> {
+  const { data } = await admin
+    .from("materials")
+    .select("id")
+    .eq("course_slug", slug)
+    .eq("is_active", true)
+    .eq("price", 0)
+    .limit(1);
+  return !!data && data.length > 0;
+}
+
+/**
+ * Can this user use the course? Admins always can; anyone signed in can
+ * when it is free; otherwise they need a confirmed order of a material
+ * linked to it.
+ */
 export async function hasCourseAccess(admin: SupabaseClient, userId: string, role: string, slug: string): Promise<boolean> {
   if (role === "admin") return true;
+  if (await isFreeCourse(admin, slug)) return true;
   const { data: materials } = await admin.from("materials").select("id").eq("course_slug", slug);
   const ids = (materials || []).map((m) => m.id as string);
   if (ids.length === 0) return false;
@@ -31,6 +51,23 @@ export async function loadProgress(admin: SupabaseClient, userId: string, slug: 
   return (data || []).map((r) => ({ itemId: r.item_id, kind: r.kind, score: r.score, maxScore: r.max_score, passed: r.passed }));
 }
 
+/** Levels the admin has opened, for courses with admin locks. */
+export async function loadOpenLevels(admin: SupabaseClient, slug: string): Promise<Set<string>> {
+  const { data } = await admin.from("course_level_access").select("level_id").eq("course_slug", slug).eq("is_open", true);
+  return new Set((data || []).map((r) => r.level_id as string));
+}
+
+/**
+ * The levels a user may enter: admins see every level (they preview and
+ * host modules before opening them), students only the opened ones.
+ * Undefined for courses without admin locks.
+ */
+export async function levelsOpenFor(admin: SupabaseClient, course: Course, role: string): Promise<Set<string> | undefined> {
+  if (!course.adminLocks) return undefined;
+  if (role === "admin") return new Set(course.levels.map((l) => l.id));
+  return loadOpenLevels(admin, course.slug);
+}
+
 /**
  * Everything a course API route needs: the course, the caller, whether they
  * own it, and what they've unlocked. Returns an error tuple otherwise.
@@ -43,11 +80,12 @@ export async function courseContext(slug: string) {
   if (!auth.ok) return { ok: false as const, error: auth.error, status: auth.status };
 
   const admin = createAdminClient();
-  const [access, progress] = await Promise.all([
+  const [access, progress, openLevels] = await Promise.all([
     hasCourseAccess(admin, auth.user.id, auth.profile.role, slug),
     loadProgress(admin, auth.user.id, slug),
+    levelsOpenFor(admin, course, auth.profile.role),
   ]);
-  const unlocks = computeUnlocks(course, progress);
+  const unlocks = computeUnlocks(course, progress, openLevels);
 
   return { ok: true as const, course, user: auth.user, profile: auth.profile, admin, access, progress, unlocks };
 }

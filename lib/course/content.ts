@@ -2,8 +2,30 @@ import "server-only";
 import type { Course, ExamKind, Lesson, Level, LevelQuiz, ProgressItem } from "@/lib/course/types";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
+import { ENGLISH_DAY } from "@/content/english-day";
+import { ENGLISH_SD_1 } from "@/content/english-sd-1";
+import { ENGLISH_SD_2 } from "@/content/english-sd-2";
+import { ENGLISH_SD_4 } from "@/content/english-sd-4";
+import { ENGLISH_SD_5 } from "@/content/english-sd-5";
+import { ENGLISH_SD_6 } from "@/content/english-sd-6";
+import { ENGLISH_SMP_7 } from "@/content/english-smp-7";
+import { ENGLISH_SMP_8 } from "@/content/english-smp-8";
+import { ENGLISH_SMP_9 } from "@/content/english-smp-9";
+import { ENGLISH_SMA_10 } from "@/content/english-sma-10";
+import { ENGLISH_SMA_11 } from "@/content/english-sma-11";
+import { ENGLISH_SMA_12 } from "@/content/english-sma-12";
+import { ENGLISH_LANJUT } from "@/content/english-lanjut";
+import { IELTS_ACADEMIC } from "@/content/ielts";
+import { TOEFL_IBT } from "@/content/toefl-ibt";
+import { OXFORD_ELLT } from "@/content/oxford-ellt";
+import { ENGLISH_GRAMMAR } from "@/content/grammar";
+import { ENGLISH_CONVERSATION } from "@/content/conversation";
+import { BUSINESS_ENGLISH } from "@/content/business";
+import { TOEIC_LR } from "@/content/toeic";
 
-const COURSES: Record<string, Course> = { [TOEFL_ITP.slug]: TOEFL_ITP, [ENGLISH_SD_3.slug]: ENGLISH_SD_3 };
+const COURSES: Record<string, Course> = Object.fromEntries(
+  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_SMA_11, ENGLISH_SMA_12, ENGLISH_LANJUT, IELTS_ACADEMIC, TOEFL_IBT, OXFORD_ELLT, TOEIC_LR, ENGLISH_GRAMMAR, ENGLISH_CONVERSATION, BUSINESS_ENGLISH, ENGLISH_DAY].map((c) => [c.slug, c])
+);
 
 export const ALL_COURSES = Object.values(COURSES);
 
@@ -37,17 +59,33 @@ export function getExam(course: Course, kind: ExamKind) {
  * opens when its lessons are done; the next level opens when the previous
  * quiz is passed; the tryout opens when every level quiz is passed.
  */
-export function computeUnlocks(course: Course, progress: ProgressItem[]) {
+export function computeUnlocks(course: Course, progress: ProgressItem[], openLevels?: ReadonlySet<string>) {
   const done = new Set(progress.filter((p) => p.passed).map((p) => p.itemId));
   const unlocked = new Set<string>();
   let previousOk = true;
+  // Levels the admin hasn't opened yet (only for courses with admin locks).
+  const lockedLevels = new Set(course.adminLocks ? course.levels.filter((l) => !openLevels?.has(l.id)).map((l) => l.id) : []);
 
   for (const level of course.levels) {
+    if (lockedLevels.has(level.id)) {
+      previousOk = false;
+      continue;
+    }
+    if (course.openOrder) {
+      // Self-paced review course: everything in an open level is open.
+      if (level.pretest) unlocked.add(level.pretest.id);
+      for (const lesson of level.lessons) unlocked.add(lesson.id);
+      unlocked.add(level.quiz.id);
+      continue;
+    }
     // A chapter pretest opens with the chapter and must be taken (any score)
     // before its lessons.
+    // Learners who already started the lessons (e.g. before the pretest was
+    // added) aren't sent back to it.
     if (level.pretest) {
       if (previousOk) unlocked.add(level.pretest.id);
-      previousOk = previousOk && done.has(level.pretest.id);
+      const started = level.lessons.some((l) => done.has(l.id));
+      previousOk = previousOk && (done.has(level.pretest.id) || started);
     }
     for (const lesson of level.lessons) {
       if (previousOk) unlocked.add(lesson.id);
@@ -67,5 +105,9 @@ export function computeUnlocks(course: Course, progress: ProgressItem[]) {
     0
   );
 
-  return { unlocked, done, tryoutUnlocked: previousOk, totalItems, completedItems };
+  // Some courses open the full tryout earlier than "every level passed".
+  const tryoutGate = course.tryoutAfterLevel ? course.levels.find((l) => l.id === course.tryoutAfterLevel) : undefined;
+  const tryoutUnlocked = previousOk || (!!tryoutGate && done.has(tryoutGate.quiz.id));
+
+  return { unlocked, done, lockedLevels, tryoutUnlocked, totalItems, completedItems };
 }

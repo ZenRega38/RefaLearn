@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { LessonBlocks } from "@/components/course/LessonBlocks";
 import { Checkpoint } from "@/components/course/Checkpoint";
-import { SkillIcon, SKILL_LABEL } from "@/components/course/skill";
+import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
+import { SkillIcon } from "@/components/course/skill";
+import { useCourseText } from "@/components/course/lang";
 import type { Lesson } from "@/lib/course/types";
 import { ArrowLeft, ArrowRight, CheckCircle2, Flag, RefreshCw, Clock } from "lucide-react";
 
@@ -19,11 +21,14 @@ type LessonPayload = {
   nextId: string;
   nextIsQuiz: boolean;
   done: boolean;
+  mascot: string | null;
+  hasLive: boolean;
 };
 
 export default function LessonPage() {
   const { slug, lessonId } = useParams<{ slug: string; lessonId: string }>();
   const router = useRouter();
+  const t = useCourseText();
   const [data, setData] = useState<LessonPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
@@ -48,7 +53,7 @@ export default function LessonPage() {
       <PaperBackground className="pt-24 pb-20 min-h-screen">
         <div className="container-main max-w-2xl mx-auto text-center py-20 space-y-4 font-[var(--font-inter)]">
           <p className="text-[var(--color-danger-red)]">{error}</p>
-          <Button href={`/learn/${slug}`} variant="secondary">Kembali ke Kursus</Button>
+          <Button href={`/learn/${slug}`} variant="secondary">{t.backToCourse}</Button>
         </div>
       </PaperBackground>
     );
@@ -59,14 +64,14 @@ export default function LessonPage() {
       <PaperBackground className="pt-24 pb-20 min-h-screen">
         <div className="text-center py-20 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-          Memuat materi...
+          {t.loadingLesson}
         </div>
       </PaperBackground>
     );
   }
 
   const { lesson } = data;
-  const steps = [...lesson.sections.map((s) => s.title), "Checkpoint"];
+  const steps = [...lesson.sections.map((s) => s.title), t.checkpoint];
   const onCheckpoint = step === lesson.sections.length;
 
   const complete = async () => {
@@ -78,7 +83,7 @@ export default function LessonPage() {
       router.push(data.nextIsQuiz ? `/learn/${slug}/quiz/${data.nextId}` : `/learn/${slug}/lesson/${data.nextId}`);
     } catch (err) {
       setSaving(false);
-      alert(err instanceof Error ? err.message : "Gagal menyimpan progres.");
+      alert(err instanceof Error ? err.message : t.saveFailed);
     }
   };
 
@@ -94,14 +99,14 @@ export default function LessonPage() {
           <aside className="lg:sticky lg:top-24">
             <Card className="p-4 space-y-3">
               <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5">
-                <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {SKILL_LABEL[lesson.skill]} · Materi {data.position.index + 1}/{data.position.total}
+                <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {t.skills[lesson.skill]} · {t.lessonOf(data.position.index + 1, data.position.total)}
               </p>
               <ol className="space-y-1 font-[var(--font-inter)] text-sm">
                 {steps.map((title, i) => (
                   <li key={title}>
                     <button
-                      onClick={() => i <= step && setStep(i)}
-                      disabled={i > step}
+                      onClick={() => (i <= step || data.done) && setStep(i)}
+                      disabled={i > step && !data.done}
                       className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md ${i === step ? "bg-[var(--color-brand-blue)] text-white" : i < step ? "text-[var(--color-ink)] hover:bg-[var(--color-paper-bg-alt)]" : "text-[var(--color-ink-soft)] opacity-60"}`}
                     >
                       {i < step ? <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--color-success-green)]" /> : i === steps.length - 1 ? <Flag className="w-4 h-4 shrink-0" /> : <span className="w-4 text-center text-xs">{i + 1}</span>}
@@ -116,19 +121,23 @@ export default function LessonPage() {
           <main className="space-y-6 min-w-0">
             <div>
               <h1 className="text-3xl md:text-4xl mb-1">{lesson.title}</h1>
-              <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" /> ±{lesson.minutes} menit {data.done && "· sudah selesai ✓"}
-              </p>
+              {(lesson.minutes || data.done) && (
+                <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" /> {lesson.minutes ? `${t.lessonMinutes(lesson.minutes)} ` : ""}{data.done && (lesson.minutes ? t.doneShort : t.doneLong)}
+                </p>
+              )}
             </div>
+            {data.hasLive && <LiveQuizWidget courseSlug={slug} levelId={data.level.id} compact />}
 
             <Card variant="sketch" className="p-5 md:p-8">
               {onCheckpoint ? (
                 <Checkpoint
-                  title={`Checkpoint: ${lesson.title}`}
+                  title={t.checkpointTitle(lesson.title)}
                   questions={lesson.checkpoint}
                   passages={lesson.passages}
                   onComplete={complete}
                   completing={saving}
+                  mascot={data.mascot ?? undefined}
                 />
               ) : (
                 <div className="space-y-6">
@@ -141,10 +150,10 @@ export default function LessonPage() {
             {!onCheckpoint && (
               <div className="flex justify-between gap-3">
                 <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
-                  <ArrowLeft className="w-4 h-4" /> Sebelumnya
+                  <ArrowLeft className="w-4 h-4" /> {t.previous}
                 </Button>
                 <Button onClick={() => setStep((s) => s + 1)}>
-                  {step === lesson.sections.length - 1 ? "Ke Checkpoint" : "Lanjut"} <ArrowRight className="w-4 h-4" />
+                  {step === lesson.sections.length - 1 ? t.toCheckpoint : t.next} <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             )}
