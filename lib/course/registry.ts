@@ -26,6 +26,7 @@ export const COURSES = [
   { slug: "ielts-academic", title: "IELTS Academic — Band by Band (4.5 → 7.5+)", uiLang: "en" },
   { slug: "toefl-ibt", title: "TOEFL iBT — New 2026 Format (Band 1–6)", uiLang: "en" },
   { slug: "oxford-ellt", title: "Oxford ELLT Preparation (B1 → C1+)", uiLang: "en" },
+  { slug: "toeic-lr", title: "TOEIC Listening & Reading (400+ → 900+)", uiLang: "en" },
   { slug: "english-grammar", title: "English Grammar Essentials (A2–B2)", uiLang: "en" },
   { slug: "english-conversation", title: "Everyday English Conversation (A2–B1+)", uiLang: "en" },
   { slug: "business-english", title: "Business English (B1–B2)", uiLang: "en" },
