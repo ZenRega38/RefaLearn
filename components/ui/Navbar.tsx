@@ -9,7 +9,7 @@ import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/news", label: "News" },
+  { href: "/stories", label: "Stories" },
   { href: "/alumni", label: "Alumni" },
   { href: "/schedule", label: "Jadwal" },
   { href: "/materials", label: "Materi" },

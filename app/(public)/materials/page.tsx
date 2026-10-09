@@ -21,29 +21,53 @@ type Material = {
   description: string;
 };
 
+// Special filters sit before the real categories. Keys can't clash with a
+// category name typed by the admin.
+const ALL = "__all";
+const MINE = "__mine";
+const FREE = "__free";
+type Filter = { key: string; label: string };
+
 export default function MaterialsCatalogPage() {
   const [supabase] = useState(() => createClient());
   const cart = useCart();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [categories, setCategories] = useState<string[]>(["Semua"]);
+  const [selectedCategory, setSelectedCategory] = useState(ALL);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Materials the student can open: purchased, granted by an admin, or a
+  // free material they already took. A free one not yet taken is not here.
+  const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchMaterials = async () => {
-      const { data } = await supabase
-        .from('materials')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      const [{ data }, { data: { user } }] = await Promise.all([
+        supabase
+          .from('materials')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false }),
+        supabase.auth.getUser(),
+      ]);
+
+      if (user) {
+        setIsLoggedIn(true);
+        const { data: orders } = await supabase
+          .from('material_orders')
+          .select('material_ids')
+          .eq('student_id', user.id)
+          .eq('status', 'confirmed');
+        setOwnedIds(new Set((orders || []).flatMap((o) => o.material_ids as string[])));
+      }
 
       if (data) {
         setMaterials(data as Material[]);
 
         // Extract unique categories
         const cats = new Set(data.map(m => m.category).filter(Boolean));
-        setCategories(["Semua", ...Array.from(cats)]);
+        setCategories(Array.from(cats));
       }
       setLoading(false);
     };
@@ -54,9 +78,20 @@ export default function MaterialsCatalogPage() {
   const filteredMaterials = materials.filter(m => {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (m.description || "").toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "Semua" || m.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === ALL ||
+      (selectedCategory === MINE && ownedIds.has(m.id)) ||
+      (selectedCategory === FREE && m.price === 0) ||
+      m.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const filters: Filter[] = [
+    { key: ALL, label: "Semua" },
+    ...(isLoggedIn ? [{ key: MINE, label: "My Courses" }] : []),
+    ...(materials.some((m) => m.price === 0) ? [{ key: FREE, label: "Free" }] : []),
+    ...categories.map((c) => ({ key: c, label: c })),
+  ];
 
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
@@ -81,16 +116,16 @@ export default function MaterialsCatalogPage() {
         {/* Filters & Search */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 p-4 rounded-xl border border-[var(--color-line)] shadow-sm">
           <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar">
-            {categories.map(cat => (
+            {filters.map(f => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${selectedCategory === cat
+                key={f.key}
+                onClick={() => setSelectedCategory(f.key)}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${selectedCategory === f.key
                   ? 'bg-[var(--color-brand-blue)] text-white'
                   : 'bg-white border border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]'
                   }`}
               >
-                {cat}
+                {f.label}
               </button>
             ))}
           </div>
@@ -117,11 +152,15 @@ export default function MaterialsCatalogPage() {
         ) : filteredMaterials.length === 0 ? (
           <Card className="text-center py-16 bg-white/50 border-dashed">
             <BookOpen className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
-            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">Materi tidak ditemukan</h3>
+            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">
+              {selectedCategory === MINE && !searchQuery ? "Belum ada materi di My Courses" : "Materi tidak ditemukan"}
+            </h3>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Coba gunakan kata kunci pencarian yang lain atau ubah filter kategori.
+              {selectedCategory === MINE && !searchQuery
+                ? "Materi yang kamu beli, yang diberi akses oleh admin, dan materi gratis yang sudah kamu ambil akan muncul di sini."
+                : "Coba gunakan kata kunci pencarian yang lain atau ubah filter kategori."}
             </p>
-            <Button variant="secondary" className="mt-6" onClick={() => { setSearchQuery(""); setSelectedCategory("Semua"); }}>
+            <Button variant="secondary" className="mt-6" onClick={() => { setSearchQuery(""); setSelectedCategory(ALL); }}>
               Reset Filter
             </Button>
           </Card>
@@ -143,8 +182,9 @@ export default function MaterialsCatalogPage() {
                         <BookOpen className="w-20 h-20" />
                       </div>
                     )}
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                       <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
+                      {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">Dimiliki</Badge>}
                     </div>
                   </div>
 

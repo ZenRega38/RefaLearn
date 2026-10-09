@@ -1,5 +1,6 @@
 // Goes in: components/ui/FeaturedNewsCard.tsx
 import Link from "next/link";
+import { splitCategories } from "@/lib/format";
 
 type PostCardProps = {
     type: "post";
@@ -26,7 +27,7 @@ type FeaturedNewsCardProps = PostCardProps | QuoteCardProps;
  *
  * cover_image_url is free-text the admin pastes in (no domain allowlist),
  * so this uses a plain <img> rather than next/image — same choice already
- * made for CredentialBadge and the /news pages themselves.
+ * made for CredentialBadge and the /stories pages themselves.
  */
 export function FeaturedNewsCard(props: FeaturedNewsCardProps) {
     const card = (
@@ -42,10 +43,14 @@ export function FeaturedNewsCard(props: FeaturedNewsCardProps) {
             <div className="absolute inset-x-0 bottom-0 p-4">
                 {props.type === "post" ? (
                     <>
-                        {props.category && (
-                            <span className="inline-block text-[10px] uppercase tracking-wide font-bold text-white/90 bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full mb-2 font-[var(--font-inter)]">
-                                {props.category}
-                            </span>
+                        {splitCategories(props.category).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                                {splitCategories(props.category).map((cat) => (
+                                    <span key={cat} className="inline-block text-[10px] uppercase tracking-wide font-bold text-white/90 bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full font-[var(--font-inter)]">
+                                        {cat}
+                                    </span>
+                                ))}
+                            </div>
                         )}
                         <p className="text-white font-bold font-[var(--font-inter)] leading-snug line-clamp-3">
                             {props.title}
@@ -62,7 +67,7 @@ export function FeaturedNewsCard(props: FeaturedNewsCardProps) {
 
     if (props.type === "post") {
         return (
-            <Link href={`/news/${props.slug}`} className="block">
+            <Link href={`/stories/${props.slug}`} className="block">
                 {card}
             </Link>
         );

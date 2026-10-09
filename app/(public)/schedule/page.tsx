@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { SESSION_COUNT_OPTIONS } from "@/lib/policy";
 import { dateStrToLocalDate, localDateToDateStr, todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
 import { formatDateStr } from "@/lib/format";
+import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, needsGuardian, type ProfileCompletion } from "@/lib/profile";
 import { AlertCircle, Repeat, Wallet, Landmark } from "lucide-react";
 
 type ActiveContract = {
@@ -25,7 +26,9 @@ type ActiveContract = {
   version: number;
 };
 
-type Profile = { id: string; full_name: string; role: "admin" | "student" };
+type Profile = ProfileCompletion & { id: string; full_name: string; role: "admin" | "student" };
+
+const PROFILE_URL = "/dashboard/profile?next=/schedule";
 type BankDetails = { bank_name?: string; account_number?: string; account_name?: string };
 type EwalletDetails = { provider?: string; number?: string; account_name?: string };
 
@@ -83,7 +86,7 @@ export default function SchedulePage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase.from('profiles').select('id, full_name, role').eq('id', user.id).single();
+        const { data: profile } = await supabase.from('profiles').select(`id, role, ${PROFILE_COMPLETION_COLUMNS}`).eq('id', user.id).single();
         setUserProfile(profile as Profile | null);
 
         const [{ data: feesData }, { data: settingsData }, { data: overdueData }] = await Promise.all([
@@ -120,6 +123,9 @@ export default function SchedulePage() {
   }, [supabase, loadSlots]);
 
   const slotsForSelectedDate = allSlots.filter(s => s.date === selectedDate);
+
+  // Booking needs a complete profile; free materials only need a login.
+  const missingProfile = userProfile?.role === 'student' ? missingProfileFields(userProfile, todayStr()) : [];
 
   const availableDates = useMemo(
     () => Array.from(new Set(allSlots.map(s => s.date))).map(dateStrToLocalDate),
@@ -175,6 +181,12 @@ export default function SchedulePage() {
       return;
     }
 
+    if (missingProfile.length > 0) {
+      alert(`Lengkapi profil terlebih dahulu sebelum booking.\n\nData yang masih kurang:\n- ${missingProfile.join('\n- ')}`);
+      router.push(PROFILE_URL);
+      return;
+    }
+
     if (!activeContract) {
       alert("Kontrak/perjanjian kelas belum tersedia. Silakan hubungi admin sebelum melakukan booking.");
       return;
@@ -214,6 +226,11 @@ export default function SchedulePage() {
         alert(data.error || "Maaf, jadwal ini baru saja dipesan orang lain. Silakan pilih ulang.");
         resetSelection();
         await loadSlots();
+        return;
+      }
+      if (res.status === 403 && data.code === 'PROFILE_INCOMPLETE') {
+        alert(data.error);
+        router.push(PROFILE_URL);
         return;
       }
       if (!res.ok) throw new Error(data.error);
@@ -279,6 +296,21 @@ export default function SchedulePage() {
               Booking untuk sementara belum dibuka karena perjanjian kelas sedang disiapkan.
               Silakan hubungi kami melalui WhatsApp untuk informasi jadwal.
             </p>
+          </div>
+        )}
+
+        {missingProfile.length > 0 && (
+          <div className="max-w-5xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-warning-amber)]/10 border border-[var(--color-warning-amber)]/40 text-[var(--color-ink)] font-[var(--font-inter)] text-sm">
+            <div className="flex items-start gap-3 flex-1">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-[var(--color-warning-amber)]" />
+              <p>
+                Sebelum booking, lengkapi profil Anda dulu: {missingProfile.join(', ')}.
+                Data ini dipakai admin untuk memverifikasi pesanan Anda.
+              </p>
+            </div>
+            <a href={PROFILE_URL} className="shrink-0 font-semibold text-[var(--color-brand-blue)] hover:underline">
+              Lengkapi Profil
+            </a>
           </div>
         )}
 
@@ -462,6 +494,8 @@ export default function SchedulePage() {
         onAccept={handleContractAccept}
         contractHtml={activeContract?.content || ""}
         expectedName={userProfile?.full_name || ""}
+        requireGuardian={needsGuardian(userProfile?.birth_date, todayStr())}
+        guardianName={userProfile?.guardian_name || ""}
       />
 
       {prepaymentToPay && (

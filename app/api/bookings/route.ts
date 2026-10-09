@@ -7,6 +7,7 @@ import { getDayType, getSessionPrice } from "@/lib/pricing";
 import { INVOICE_DUE_DAYS, SESSION_COUNT_OPTIONS } from "@/lib/policy";
 import { todayStr } from "@/lib/time";
 import { formatDateStr, hhmm } from "@/lib/format";
+import { ADULT_AGE, PROFILE_COMPLETION_COLUMNS, missingProfileFields, needsGuardian, sameName, type ProfileCompletion } from "@/lib/profile";
 import {
     getAdminEmails,
     getUserEmail,
@@ -73,6 +74,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ dates: preview });
     }
 
+    // Booking needs a complete profile so the admin can verify the student
+    // before accepting. Free materials only need a login and skip this.
+    const { data: completion } = await admin
+        .from("profiles")
+        .select(PROFILE_COMPLETION_COLUMNS)
+        .eq("id", user.id)
+        .single();
+    const studentProfile = completion as ProfileCompletion | null;
+    const missing = missingProfileFields(studentProfile, todayStr());
+    if (missing.length > 0) {
+        return NextResponse.json(
+            {
+                error: `Lengkapi profil terlebih dahulu sebelum booking. Data yang masih kurang: ${missing.join(", ")}.`,
+                code: "PROFILE_INCOMPLETE",
+                missing,
+            },
+            { status: 403 }
+        );
+    }
+
     if (resolved[0].date > horizon) {
         return jsonError("Tanggal di luar jangkauan booking.");
     }
@@ -126,6 +147,19 @@ export async function POST(request: NextRequest) {
         return jsonError("Untuk persetujuan orang tua/wali, ketik nama orang tua/wali — bukan nama siswa.");
     }
 
+    // Under 21 the contract must be signed by the guardian named on the profile,
+    // even though the signature is typed on the student's own account.
+    const minor = needsGuardian(studentProfile?.birth_date, todayStr());
+    const profileGuardian = (studentProfile?.guardian_name || "").trim();
+    if (minor) {
+        if (signerRole !== "guardian") {
+            return jsonError(`Siswa berusia di bawah ${ADULT_AGE} tahun. Perjanjian wajib disetujui oleh orang tua/wali.`);
+        }
+        if (!sameName(typedName, profileGuardian)) {
+            return jsonError(`Nama penanda tangan harus sama dengan nama orang tua/wali di profil: ${profileGuardian}.`);
+        }
+    }
+
     const sessions = resolved.map(({ date, slot }) => ({
         date,
         start_time: slot!.start_time,
@@ -139,7 +173,7 @@ export async function POST(request: NextRequest) {
         p_contract: contract.id,
         p_typed_name: typedName,
         p_signer_role: signerRole,
-        p_guardian_name: signerRole === "guardian" ? guardianName || typedName : null,
+        p_guardian_name: signerRole === "guardian" ? (minor ? profileGuardian : guardianName || typedName) : null,
         p_ip: clientIp(request),
         p_user_agent: request.headers.get("user-agent"),
         p_sessions: sessions,

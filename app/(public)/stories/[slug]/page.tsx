@@ -2,12 +2,12 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
-import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { ShareButtons } from "@/components/news/ShareButtons";
 import { Calendar, ArrowLeft } from "lucide-react";
 import { Metadata } from "next";
-import { formatTimestamp } from "@/lib/format";
+import { formatTimestamp, splitCategories } from "@/lib/format";
+import { CategoryBadges } from "@/components/ui/CategoryBadges";
 import { siteUrl } from "@/lib/site";
 
 export const revalidate = 60; // Revalidate every minute
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: post.title,
     description: excerpt,
-    alternates: { canonical: `/news/${post.slug}` },
+    alternates: { canonical: `/stories/${post.slug}` },
     openGraph: {
       type: 'article',
       title: post.title,
@@ -68,7 +68,7 @@ export default async function NewsDetailPage({ params }: Props) {
     ? formatTimestamp(post.published_at, 'dd MMMM yyyy')
     : '';
 
-  // Related posts: same category first, topped up with the latest others.
+  // Related posts: those sharing the most categories first, topped up with the latest others.
   const supabase = createPublicClient();
   const { data: candidates } = await supabase
     .from('news_posts')
@@ -77,12 +77,15 @@ export default async function NewsDetailPage({ params }: Props) {
     .neq('id', post.id)
     .order('published_at', { ascending: false })
     .limit(12);
-  const related = [
-    ...(candidates || []).filter((p) => post.category && p.category === post.category),
-    ...(candidates || []).filter((p) => !post.category || p.category !== post.category),
-  ].slice(0, 3);
+  const postCategories = new Set(splitCategories(post.category).map((c) => c.toLowerCase()));
+  const sharedCount = (category: string | null) =>
+    splitCategories(category).filter((c) => postCategories.has(c.toLowerCase())).length;
+  // Array.prototype.sort is stable, so ties keep the newest-first order.
+  const related = [...(candidates || [])]
+    .sort((a, b) => sharedCount(b.category) - sharedCount(a.category))
+    .slice(0, 3);
 
-  const url = `${siteUrl()}/news/${post.slug}`;
+  const url = `${siteUrl()}/stories/${post.slug}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -100,13 +103,13 @@ export default async function NewsDetailPage({ params }: Props) {
       <article className="pt-24 pb-20 relative">
         <div className="container-main max-w-3xl mx-auto">
 
-          <Link href="/news" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)] mb-8">
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Berita
+          <Link href="/stories" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)] mb-8">
+            <ArrowLeft className="w-4 h-4" /> Kembali ke Stories
           </Link>
 
           <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              {post.category && <Badge variant="blue">{post.category}</Badge>}
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              <CategoryBadges category={post.category} />
               <div className="flex items-center gap-1.5 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                 <Calendar className="w-4 h-4" />
                 {formattedDate}
@@ -140,12 +143,12 @@ export default async function NewsDetailPage({ params }: Props) {
 
           {related.length > 0 && (
             <div className="mt-12">
-              <h2 className="text-2xl mb-6">Artikel Terkait</h2>
+              <h2 className="text-2xl mb-6">Stories Lainnya</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {related.map((r) => (
-                  <Link key={r.id} href={`/news/${r.slug}`} className="group">
+                  <Link key={r.id} href={`/stories/${r.slug}`} className="group">
                     <Card variant="sketch" className="p-4 h-full">
-                      {r.category && <Badge variant="blue" className="mb-2">{r.category}</Badge>}
+                      <CategoryBadges category={r.category} className="mb-2" />
                       <h3 className="font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors leading-snug">
                         {r.title}
                       </h3>

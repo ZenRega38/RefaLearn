@@ -77,7 +77,7 @@ export function Footer() {
             <ul className="flex flex-col gap-2">
               <li><Link href="/" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Home</Link></li>
               <li><Link href="/about" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Tentang Kami</Link></li>
-              <li><Link href="/news" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Berita & Artikel</Link></li>
+              <li><Link href="/stories" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Stories</Link></li>
               <li><Link href="/alumni" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Testimoni Alumni</Link></li>
             </ul>
           </div>

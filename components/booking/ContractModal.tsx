@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { X, ShieldCheck } from "lucide-react";
+import { X, ShieldCheck, Users } from "lucide-react";
+import { ADULT_AGE, sameName } from "@/lib/profile";
 
 export type ContractSignature = {
   typedName: string;
@@ -16,24 +17,37 @@ interface ContractModalProps {
   onAccept: (signature: ContractSignature) => void;
   contractHtml: string;
   expectedName: string;
+  /** Student is under 21: only their parent/guardian may sign. */
+  requireGuardian?: boolean;
+  /** Guardian name from the student's profile; the guardian must type exactly this. */
+  guardianName?: string;
 }
 
-export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expectedName }: ContractModalProps) {
+export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expectedName, requireGuardian = false, guardianName = "" }: ContractModalProps) {
   const [typedName, setTypedName] = useState("");
-  const [signerRole, setSignerRole] = useState<"student" | "guardian">("student");
+  const [chosenRole, setChosenRole] = useState<"student" | "guardian">("student");
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
 
   if (!isOpen) return null;
 
+  // Under 21 the guardian always signs, whatever was picked before.
+  const signerRole = requireGuardian ? "guardian" : chosenRole;
+  const setSignerRole = setChosenRole;
+
   const expected = expectedName.trim().toLowerCase();
   const typed = typedName.trim().toLowerCase();
 
-  // A student signs with exactly their profile name; a parent/guardian signs
-  // with their own name (which must not just be the student's name again).
+  // A student signs with exactly their profile name. A parent/guardian signs
+  // with their own name: for an under-21 student it must match the guardian
+  // on the profile, otherwise it just must not be the student's name again.
   const nameValid =
     typed.length >= 2 &&
-    (signerRole === "student" ? !!expected && typed === expected : typed !== expected);
+    (signerRole === "student"
+      ? !!expected && typed === expected
+      : requireGuardian
+        ? sameName(typedName, guardianName)
+        : typed !== expected);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +59,9 @@ export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expecte
       setError(
         signerRole === "student"
           ? "Nama yang diketik harus persis sama dengan nama di profil Anda."
-          : "Ketik nama lengkap orang tua/wali (bukan nama siswa)."
+          : requireGuardian
+            ? `Ketik nama orang tua/wali persis seperti di profil: ${guardianName}.`
+            : "Ketik nama lengkap orang tua/wali (bukan nama siswa)."
       );
       return;
     }
@@ -79,6 +95,16 @@ export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expecte
 
         {/* Footer & Signature */}
         <div className="p-6 bg-[var(--color-paper-bg-alt)] border-t border-dashed border-[var(--color-line)] space-y-4 font-[var(--font-inter)]">
+          {requireGuardian ? (
+            <div className="flex items-start gap-2 rounded-[var(--radius-card)] border border-[var(--color-warning-amber)]/50 bg-[var(--color-warning-amber)]/10 p-3 text-sm text-[var(--color-ink)]">
+              <Users className="w-5 h-5 shrink-0 mt-0.5 text-[var(--color-warning-amber)]" />
+              <p>
+                Karena usia siswa di bawah {ADULT_AGE} tahun, perjanjian ini wajib dibaca dan disetujui oleh
+                orang tua/wali <strong>{guardianName}</strong>. Mohon serahkan perangkat ini kepada beliau untuk
+                mencentang persetujuan dan mengetik namanya sendiri.
+              </p>
+            </div>
+          ) : (
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-sm">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -97,6 +123,7 @@ export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expecte
               Saya orang tua/wali siswa
             </label>
           </div>
+          )}
 
           <label className="flex items-start gap-2 text-sm text-[var(--color-ink)] cursor-pointer">
             <input
@@ -106,7 +133,7 @@ export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expecte
               className="mt-1"
             />
             <span>
-              Saya telah membaca, memahami, dan menyetujui seluruh isi perjanjian di atas, dan saya cakap
+              {requireGuardian ? "Saya, orang tua/wali siswa, telah" : "Saya telah"} membaca, memahami, dan menyetujui seluruh isi perjanjian di atas, dan saya cakap
               secara hukum untuk menyetujuinya{signerRole === "guardian" ? " atas nama siswa" : ""}.
             </span>
           </label>
@@ -114,7 +141,7 @@ export function ContractModal({ isOpen, onClose, onAccept, contractHtml, expecte
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 items-start">
             <div className="flex-1 w-full">
               <Input
-                placeholder={signerRole === "student" ? `Ketik: ${expectedName}` : "Ketik nama lengkap orang tua/wali"}
+                placeholder={signerRole === "student" ? `Ketik: ${expectedName}` : requireGuardian ? `Ketik: ${guardianName}` : "Ketik nama lengkap orang tua/wali"}
                 value={typedName}
                 onChange={(e) => {
                   setTypedName(e.target.value);

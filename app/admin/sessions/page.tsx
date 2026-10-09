@@ -11,11 +11,45 @@ import { Check, X, Eye, Edit3, MessageSquare, Clock, RefreshCw, Calendar } from 
 import { DAY_TYPE_LABELS, formatPrice, type DayType } from "@/lib/pricing";
 import { formatDateStr, hhmm, toWhatsAppNumber } from "@/lib/format";
 import { todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
+import { ageOn, googleMapsUrl, isValidBirthDate, isValidCoordinate, missingProfileFields } from "@/lib/profile";
 
 type Profile = {
   full_name: string;
   phone: string;
+  birth_date?: string | null;
+  guardian_name?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
+
+/** Verification details the admin checks by hand before accepting a booking. */
+function StudentVerification({ profile }: { profile: Profile | null | undefined }) {
+  if (!profile) return null;
+  const today = todayStr();
+  const missing = missingProfileFields(profile, today);
+  const age = isValidBirthDate(profile.birth_date, today) ? ageOn(profile.birth_date, today) : null;
+  return (
+    <div className="mt-2 space-y-0.5 text-xs text-[var(--color-ink-soft)] max-w-xs">
+      {age !== null && <div>Usia {age} tahun</div>}
+      {profile.guardian_name && <div>Wali: <span className="text-[var(--color-ink)]">{profile.guardian_name}</span></div>}
+      {profile.address && <div className="whitespace-pre-line">{profile.address}</div>}
+      {isValidCoordinate(profile.latitude, profile.longitude) && (
+        <a
+          href={googleMapsUrl(profile.latitude!, profile.longitude!)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-[var(--color-brand-blue)] hover:underline"
+        >
+          Lihat lokasi di peta
+        </a>
+      )}
+      {missing.length > 0 && (
+        <div className="text-[var(--color-danger-red)]">Profil belum lengkap: {missing.join(", ")}</div>
+      )}
+    </div>
+  );
+}
 
 type Session = {
   id: string;
@@ -61,7 +95,7 @@ export default function AdminSessionsPage() {
     setLoading(true);
     let query = supabase
       .from('sessions')
-      .select('*, profiles(full_name, phone)');
+      .select('*, profiles(full_name, phone, birth_date, guardian_name, address, latitude, longitude)');
 
     const today = todayStr();
 
@@ -292,6 +326,7 @@ export default function AdminSessionsPage() {
                                 {session.profiles?.phone || '-'}
                               </a>
                             </div>
+                            <StudentVerification profile={session.profiles} />
                           </td>
                           <td className="p-4" data-label="Harga">
                             <div className="font-bold text-[var(--color-ink)]">{formatPrice(session.price)}</div>

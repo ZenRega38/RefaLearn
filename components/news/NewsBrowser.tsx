@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { CategoryBadges } from "@/components/ui/CategoryBadges";
+import { splitCategories } from "@/lib/format";
 import { Calendar, ArrowRight, LayoutGrid, List } from "lucide-react";
 
 export type NewsListItem = {
@@ -20,8 +21,9 @@ export type NewsListItem = {
 export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [category, setCategory] = useState("Semua");
-  const categories = ["Semua", ...Array.from(new Set(posts.map((p) => p.category).filter((c): c is string => !!c)))];
-  const visible = category === "Semua" ? posts : posts.filter((p) => p.category === category);
+  // A post can carry several comma-separated categories; each one becomes its own filter.
+  const categories = ["Semua", ...Array.from(new Set(posts.flatMap((p) => splitCategories(p.category))))];
+  const visible = category === "Semua" ? posts : posts.filter((p) => splitCategories(p.category).includes(category));
 
   return (
     <div className="space-y-8">
@@ -62,12 +64,12 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
 
       {visible.length === 0 ? (
         <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada artikel di kategori ini.</p>
+          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada story di kategori ini.</p>
         </div>
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {visible.map((post) => (
-            <Link href={`/news/${post.slug}`} key={post.id} className="group h-full flex">
+            <Link href={`/stories/${post.slug}`} key={post.id} className="group h-full flex">
               <Card variant="sketch" className="p-0 overflow-hidden flex flex-col w-full hover:border-[var(--color-brand-blue)] transition-colors duration-300">
                 {post.cover_image_url ? (
                   <div className="w-full h-48 bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] overflow-hidden">
@@ -85,9 +87,9 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
                 )}
 
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    {post.category ? <Badge variant="blue">{post.category}</Badge> : <span />}
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <CategoryBadges category={post.category} />
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                       <Calendar className="w-3.5 h-3.5" />
                       {post.formattedDate}
                     </div>
@@ -112,7 +114,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
       ) : (
         <div className="space-y-4">
           {visible.map((post) => (
-            <Link href={`/news/${post.slug}`} key={post.id} className="group block">
+            <Link href={`/stories/${post.slug}`} key={post.id} className="group block">
               <Card variant="sketch" className="p-0 overflow-hidden flex flex-col sm:flex-row hover:border-[var(--color-brand-blue)] transition-colors duration-300">
                 <div className="sm:w-56 h-40 sm:h-auto shrink-0 bg-[var(--color-paper-bg-alt)] border-b sm:border-b-0 sm:border-r border-[var(--color-line)] overflow-hidden flex items-center justify-center">
                   {post.cover_image_url ? (
@@ -123,8 +125,8 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
                   )}
                 </div>
                 <div className="p-5 flex flex-col flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    {post.category && <Badge variant="blue">{post.category}</Badge>}
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <CategoryBadges category={post.category} />
                     <div className="flex items-center gap-1.5 text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                       <Calendar className="w-3.5 h-3.5" />
                       {post.formattedDate}

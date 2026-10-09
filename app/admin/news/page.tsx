@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, Star } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { slugify } from "@/lib/format";
+import { slugify, splitCategories } from "@/lib/format";
 
 type NewsPost = {
   id: string;
@@ -160,7 +160,8 @@ export default function AdminNewsPage() {
     const postData = {
       title,
       slug,
-      category,
+      // Stored as one text field; normalize spacing so "a,b ,  c" saves as "a, b, c".
+      category: splitCategories(category).join(", "),
       content,
       cover_image_url: coverUrl,
       status,
@@ -208,7 +209,7 @@ export default function AdminNewsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
-              {currentId ? "Edit Berita" : "Tulis Berita Baru"}
+              {currentId ? "Edit Story" : "Tulis Story Baru"}
             </h1>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={handleCancel}>Batal</Button>
@@ -219,7 +220,7 @@ export default function AdminNewsPage() {
           <Card variant="sketch" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Judul Berita"
+                label="Judul Story"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Masukkan judul..."
@@ -229,7 +230,7 @@ export default function AdminNewsPage() {
                 label="Kategori"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Tips Belajar, Pengumuman, dll"
+                placeholder="Pisahkan dengan koma, misal: Tips Belajar, Pengumuman"
               />
             </div>
 
@@ -250,7 +251,7 @@ export default function AdminNewsPage() {
 
             <div>
               <label className="block text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)] mb-1.5">
-                Konten Berita
+                Konten Story
               </label>
               <RichTextEditor
                 content={content}
@@ -269,7 +270,7 @@ export default function AdminNewsPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
-              Manajemen Berita
+              Manajemen Stories
             </h1>
             <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-1">
               <Star className="w-3 h-3 inline -mt-0.5 mr-1" fill="currentColor" />
@@ -314,8 +315,12 @@ export default function AdminNewsPage() {
                         <div className="text-xs text-[var(--color-ink-soft)] truncate max-w-xs">{post.slug}</div>
                       </td>
                       <td className="p-4" data-label="Kategori">
-                        {post.category ? (
-                          <span className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs">{post.category}</span>
+                        {splitCategories(post.category).length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {splitCategories(post.category).map((cat) => (
+                              <span key={cat} className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs">{cat}</span>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-[var(--color-ink-soft)] italic">-</span>
                         )}
@@ -336,7 +341,7 @@ export default function AdminNewsPage() {
                           >
                             <Star className="w-4 h-4" fill={featuredIds.includes(post.id) ? "currentColor" : "none"} />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => window.open(`/news/${post.slug}`, '_blank')} className="px-2" title="Lihat di publik">
+                          <Button variant="ghost" size="sm" onClick={() => window.open(`/stories/${post.slug}`, '_blank')} className="px-2" title="Lihat di publik">
                             <ExternalLink className="w-4 h-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => handleEdit(post.id)} className="px-2 text-[var(--color-brand-blue)]">
