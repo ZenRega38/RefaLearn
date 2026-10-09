@@ -87,6 +87,17 @@ export const arrange = (id: string, prompt: string, sentence: string, explanatio
   return { id, type: "order", prompt, tiles: words, answer: [words, ...(e.alternatives ?? []).map((a) => a.split(" "))], explanation, ...extra(e) };
 };
 
+/** Put whole sentences or paragraphs in order (pass them in the correct order). */
+export const sequence = (id: string, prompt: string, items: string[], explanation: string, e: Extra = {}): OrderQuestion => ({
+  id,
+  type: "order",
+  prompt,
+  tiles: items,
+  answer: [items],
+  explanation,
+  ...extra(e),
+});
+
 export const match = (id: string, prompt: string, pairs: [string, string][], explanation: string, e: Extra = {}): MatchQuestion => ({
   id,
   type: "match",
