@@ -607,6 +607,18 @@ body {
   margin: 1.5rem auto;
 }
 
+/* Paragraf yang isinya cuma teks miring tepat di bawah gambar = keterangan
+   foto. Dibuat begini (bukan <figcaption>) karena editor admin (Tiptap)
+   akan membuang <figure>/<figcaption> saat story disimpan ulang. */
+.story-content img + p:has(> em:only-child) {
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-ink-soft);
+}
+
 @layer components {
 
   /* Tabel yang dikasih class ini otomatis jadi kartu bertumpuk di layar
