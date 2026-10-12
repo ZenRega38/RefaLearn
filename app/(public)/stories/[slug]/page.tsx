@@ -12,6 +12,8 @@ import { siteUrl } from "@/lib/site";
 
 export const revalidate = 60; // Revalidate every minute
 
+const FOUNDER_NAME = 'Rega Rizkan Azizan';
+
 type Props = {
   params: Promise<{ slug: string }>;
 };
@@ -86,6 +88,18 @@ export default async function NewsDetailPage({ params }: Props) {
     .slice(0, 3);
 
   const url = `${siteUrl()}/stories/${post.slug}`;
+  const refaLearn = { '@type': 'Organization', name: 'Refa Learn', url: siteUrl() };
+  // Stories are published by Refa Learn, but many are the founder's own story.
+  // Marking him as the subject lets searches for his name find these pages.
+  const founder = post.content.includes(FOUNDER_NAME)
+    ? {
+        '@type': 'Person',
+        name: FOUNDER_NAME,
+        jobTitle: 'Founder & Lead Tutor',
+        worksFor: refaLearn,
+        url: 'https://zenrega.my.id/',
+      }
+    : undefined;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -93,7 +107,9 @@ export default async function NewsDetailPage({ params }: Props) {
     datePublished: post.published_at,
     dateModified: post.updated_at,
     image: post.cover_image_url ? [post.cover_image_url] : undefined,
-    author: { '@type': 'Organization', name: 'Refa Learn' },
+    author: refaLearn,
+    publisher: refaLearn,
+    about: founder,
     mainEntityOfPage: url,
   };
 
