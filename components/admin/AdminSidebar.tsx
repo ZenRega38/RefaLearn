@@ -21,6 +21,7 @@ import {
     Wallet,
     Handshake,
     Gift,
+    CalendarPlus,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -28,7 +29,8 @@ import { createClient } from "@/lib/supabase/client";
 const navItems = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
     { href: "/admin/availability", label: "Ketersediaan", icon: CalendarClock },
-    { href: "/admin/sessions", label: "Sesi & Permintaan", icon: Video },
+    { href: "/admin/sessions", label: "Sesi & Permintaan", icon: Video, exact: true },
+    { href: "/admin/sessions/assign", label: "Assign Jadwal", icon: CalendarPlus },
     { href: "/admin/invoices", label: "Tagihan", icon: Receipt },
     { href: "/admin/materials", label: "Materi", icon: BookOpen },
     { href: "/admin/material-orders", label: "Pesanan Materi", icon: ShoppingBag },

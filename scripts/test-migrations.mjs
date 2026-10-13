@@ -261,5 +261,32 @@ await expectFail("harga coret must be above the real price", () => db.query(`upd
 await expectOk("a free material can carry a harga coret (-100%)", () => db.query(`update materials set price=0, compare_at_price=100000 where id=$1`, [capMat]));
 await expectOk("harga coret is optional", () => db.query(`update materials set compare_at_price=null where id=$1`, [capMat]));
 
+console.log("\nSchedules assigned by the admin:");
+const offerPlan = { startDate: "2030-03-04", repeat: "weekly", dayTimes: { 1: "16:00" }, time: "16:00", endDate: null };
+const offerPatterns = [{ key: "w1", frequency: "weekly", dayOfWeek: 1, dayOfMonth: null, startTime: "16:00" }];
+const offerSessions = [
+  { date: "2030-03-04", start_time: "16:00", end_time: "17:30", day_type: "weekday", price: 100000, pattern_key: "w1" },
+  { date: "2030-03-11", start_time: "16:00", end_time: "17:30", day_type: "weekday", price: 100000, pattern_key: "w1" },
+];
+const offer = (await as("authenticated", ADMIN,
+  `insert into schedule_offers (student_id, created_by, plan, patterns, sessions, batch_until) values ($1,$2,$3,$4,$5,'2030-05-03') returning id`,
+  [S1, ADMIN, offerPlan, offerPatterns, JSON.stringify(offerSessions)])).rows[0].id;
+const held = await as("anon", null, `select start_time from get_booked_slots('2030-03-04','2030-03-04')`);
+check(held.rows.some((r) => String(r.start_time).startsWith("16:00")), "a pending offer holds its times for everyone", JSON.stringify(held.rows));
+const ownOffer = await as("authenticated", S1, `select id from schedule_offers`);
+const otherOffer = await as("authenticated", S2, `select id from schedule_offers`);
+check(ownOffer.rows.length === 1 && otherOffer.rows.length === 0, "students only see their own offers", `${ownOffer.rows.length}/${otherOffer.rows.length}`);
+await expectFail("students cannot create offers", () => as("authenticated", S1,
+  `insert into schedule_offers (student_id, plan, patterns, sessions, batch_until) values ($1,'{}','[]','[{"date":"2030-01-01"}]','2030-01-01')`, [S1]), /row-level security/);
+await expectFail("students cannot accept through the API", () => as("authenticated", S1,
+  `select public.accept_schedule_offer($1,$2,'Siswa Satu','student',null,null,null)`, [offer, contract]), /permission denied/);
+const accepted = (await as("service_role", null, `select public.accept_schedule_offer($1,$2,'Siswa Satu','student',null,'127.0.0.1','test') as r`, [offer, contract])).rows[0].r;
+check(accepted.session_ids.length === 2, "accepting creates every session", JSON.stringify(accepted));
+const created = await db.query(`select s.status, s.contract_acceptance_id is not null as signed, r.auto_extend, r.frequency, r.generated_until::text as until from sessions s join recurring_series r on r.id = s.series_id where s.id = any($1)`, [accepted.session_ids]);
+check(created.rows.every((r) => r.status === "accepted" && r.signed && r.auto_extend && r.frequency === "weekly" && r.until === "2030-05-03"),
+  "sessions are accepted and signed; the ongoing series auto-extends", JSON.stringify(created.rows[0]));
+await expectFail("an offer cannot be accepted twice", () => as("service_role", null,
+  `select public.accept_schedule_offer($1,$2,'Siswa Satu','student',null,null,null)`, [offer, contract]), /no longer waiting/);
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

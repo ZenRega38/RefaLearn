@@ -112,6 +112,38 @@ export async function sendAdminNewBookingEmail(
     return sendEmail(to, `Booking Baru dari ${params.studentName} — Refa Learn`, html);
 }
 
+export async function sendScheduleOfferEmail(
+    to: string,
+    params: { studentName: string; summary: string; sessions: SessionLine[]; total: number; ongoing: boolean; note?: string | null }
+) {
+    const shown = params.sessions.slice(0, 8);
+    const more = params.total - shown.length;
+    const html = layout(`
+    ${greet(params.studentName)}
+    <p>Admin Refa Learn menyiapkan jadwal kelas untuk Anda:</p>
+    <p><strong>${escapeHtml(params.summary)}</strong></p>
+    ${sessionList(shown)}
+    ${more > 0 ? `<p>…dan ${more} sesi lainnya${params.ongoing ? ", berlanjut terus sampai dihentikan" : ""}.</p>` : ""}
+    ${params.note ? `<p>Catatan admin: ${escapeHtml(params.note)}</p>` : ""}
+    <p>Jadwal ini akan aktif setelah Anda membaca dan menyetujui perjanjian kelas di dashboard.</p>
+    ${button("/dashboard", "Lihat & Setujui Jadwal")}
+  `);
+    return sendEmail(to, "Jadwal Baru Menunggu Persetujuan Anda — Refa Learn", html);
+}
+
+export async function sendAdminScheduleResponseEmail(
+    to: string[],
+    params: { studentName: string; accepted: boolean; summary: string; reason?: string | null }
+) {
+    const html = layout(`
+    <p><strong>${escapeHtml(params.studentName)}</strong> ${params.accepted ? '<strong style="color:#4C8C6B;">menyetujui</strong>' : '<strong style="color:#C24B4B;">menolak</strong>'} jadwal yang Anda kirim:</p>
+    <p>${escapeHtml(params.summary)}</p>
+    ${params.reason ? `<p>Alasan: ${escapeHtml(params.reason)}</p>` : ""}
+    ${button("/admin/sessions/assign", "Lihat Jadwal")}
+  `);
+    return sendEmail(to, `${params.studentName} ${params.accepted ? "menyetujui" : "menolak"} jadwal — Refa Learn`, html);
+}
+
 export async function sendSessionAcceptedEmail(
     to: string,
     params: { studentName: string; date: string; time: string }
