@@ -7,10 +7,12 @@ import {
     sendPrepaymentStatusEmail,
 } from "@/lib/email";
 import { monthLabel } from "@/lib/format";
+import { discardConfirmedProof } from "@/lib/payment-proofs";
 
 /**
  * Generic "notify a student" endpoint, called by admin pages right after
- * they confirm or reject a payment. Session accept/decline and reschedule
+ * they confirm or reject a payment. A confirmed payment's proof file is
+ * deleted here too (lib/payment-proofs.ts). Session accept/decline and reschedule
  * decisions email from their own routes.
  *
  * Body: { type: "invoice_status" | "material_order_status" | "prepayment_status"; recordId: string }
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
                     .single();
                 if (!invoice) throw new Error("Invoice not found");
                 if (invoice.status !== "confirmed" && invoice.status !== "rejected") break;
+                if (invoice.status === "confirmed") await discardConfirmedProof("invoices", recordId);
 
                 const email = await getUserEmail(invoice.student_id);
                 if (email) {
@@ -64,6 +67,7 @@ export async function POST(request: NextRequest) {
                     .single();
                 if (!order) throw new Error("Order not found");
                 if (order.status !== "confirmed" && order.status !== "rejected") break;
+                if (order.status === "confirmed") await discardConfirmedProof("material_orders", recordId);
 
                 const email = await getUserEmail(order.student_id);
                 if (email) {
@@ -83,6 +87,7 @@ export async function POST(request: NextRequest) {
                     .single();
                 if (!item) throw new Error("Prepayment not found");
                 if (item.status !== "confirmed" && item.status !== "rejected") break;
+                if (item.status === "confirmed") await discardConfirmedProof("prepayments", recordId);
 
                 const email = await getUserEmail(item.student_id);
                 if (email) {
