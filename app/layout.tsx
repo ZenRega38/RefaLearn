@@ -48,6 +48,9 @@ export const metadata: Metadata = {
     "les bahasa inggris terjamin",
   ],
   authors: [{ name: "Refa Learn" }],
+  // Google Search Console "HTML tag" verification: set GOOGLE_SITE_VERIFICATION
+  // to the content="…" value Search Console shows.
+  ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
   openGraph: {
     type: "website",
     locale: "id_ID",
