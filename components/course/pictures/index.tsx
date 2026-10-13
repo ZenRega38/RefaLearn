@@ -9,6 +9,7 @@ import * as W from "./work";
 import * as K from "./kids";
 import * as Wo from "./world";
 import * as N from "./nature";
+import * as O from "./olympiad";
 
 const numbers = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`num-${i + 1}`, () => S.number(i + 1)])) as Record<`num-${number}`, () => ReactNode>;
 
@@ -303,6 +304,35 @@ export const PICTURES: Record<PictureName, () => ReactNode> = {
   bowl: N.bowl,
   spoon: N.spoon,
   knife: N.knife,
+  medal: O.medal,
+  stopwatch: O.stopwatch,
+  podium: O.podium,
+  puzzle: O.puzzle,
+  magnifier: O.magnifier,
+  lightbulb: O.lightbulb,
+  checklist: O.checklist,
+  "speech-bubbles": O.speechBubbles,
+  flashcards: O.flashcards,
+  timeline: O.timeline,
+  "timeline-perfect": O.timelinePerfect,
+  debate: O.debate,
+  mouse: O.mouse,
+  tooth: O.tooth,
+  bee: O.bee,
+  "plastic-bottle": O.plasticBottle,
+  "cat-bag": O.catBag,
+  "cake-slice": O.cakeSlice,
+  "fish-out": O.fishOut,
+  "blue-moon": O.blueMoon,
+  "ice-break": O.iceBreak,
+  "cats-dogs-rain": O.catsDogsRain,
+  "new-leaf": O.newLeaf,
+  "price-tag": O.priceTag,
+  "under-weather": O.underWeather,
+  lion: O.lion,
+  "star-wink": O.starWink,
+  "time-money": O.timeMoney,
+  "hit-books": O.hitBooks,
   owl: () => S.owl("stand"),
   "owl-wave": () => S.owl("wave"),
   "owl-cheer": () => S.owl("cheer"),

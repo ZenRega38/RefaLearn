@@ -58,6 +58,11 @@ export const PICTURE_NAMES = [
   "medicine", "thermometer", "sick", "headache", "toothache", "cough", "stomachache",
   "recycle", "trash", "earth", "tap", "sprout", "factory",
   "pan", "bowl", "spoon", "knife",
+  // EA Champion English Olympiad: competition & study tools, nouns, timelines, passages, idioms
+  "medal", "stopwatch", "podium", "puzzle", "magnifier", "lightbulb", "checklist", "speech-bubbles", "flashcards",
+  "timeline", "timeline-perfect", "debate", "mouse", "tooth", "bee", "plastic-bottle",
+  "cat-bag", "cake-slice", "fish-out", "blue-moon", "ice-break", "cats-dogs-rain", "new-leaf", "price-tag",
+  "under-weather", "lion", "star-wink", "time-money", "hit-books",
   // mascot
   "owl", "owl-wave", "owl-cheer", "owl-think", "owl-read",
 ] as const;
