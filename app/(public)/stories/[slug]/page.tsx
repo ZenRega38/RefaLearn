@@ -9,6 +9,8 @@ import { Metadata } from "next";
 import { formatTimestamp, splitCategories } from "@/lib/format";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
 import { siteUrl } from "@/lib/site";
+import { youtubeEmbedUrl } from "@/lib/youtube";
+import { checkYoutube } from "@/lib/youtube-server";
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -87,6 +89,10 @@ export default async function NewsDetailPage({ params }: Props) {
     .sort((a, b) => sharedCount(b.category) - sharedCount(a.category))
     .slice(0, 3);
 
+  // A broken or unembeddable video link simply shows nothing to readers.
+  const youtube = await checkYoutube(post.youtube_url);
+  const video = youtube?.ok ? youtube : null;
+
   const url = `${siteUrl()}/stories/${post.slug}`;
   const refaLearn = { '@type': 'Organization', name: 'Refa Learn', url: siteUrl() };
   // Stories are published by Refa Learn, but many are the founder's own story.
@@ -152,6 +158,20 @@ export default async function NewsDetailPage({ params }: Props) {
             className="prose-content story-content prose-lg max-w-none"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
+
+          {video && (
+            <div className="mt-10 w-full aspect-video rounded-[var(--radius-card)] overflow-hidden border-2 border-[var(--color-line)] shadow-[var(--shadow-sketch)] bg-black">
+              <iframe
+                src={youtubeEmbedUrl(video.id)}
+                title={video.title || post.title}
+                className="w-full h-full"
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+          )}
 
           <div className="mt-12 pt-6 border-t border-dashed border-[var(--color-line)]">
             <ShareButtons url={url} title={post.title} />
