@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [{ data: posts }, { data: materials }] = await Promise.all([
     supabase.from("news_posts").select("slug, updated_at").eq("status", "published"),
-    supabase.from("materials").select("slug, updated_at").eq("is_active", true),
+    supabase.from("materials").select("slug, updated_at, course_slug").eq("is_active", true),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -34,6 +34,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...(materials || []).map((m) => ({
       url: `${base}/materials/${m.slug}`,
+      lastModified: m.updated_at ? new Date(m.updated_at) : undefined,
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    })),
+    // Public outline of every interactive course sold (or free) in the store.
+    ...Array.from(new Map((materials || []).filter((m) => m.course_slug).map((m) => [m.course_slug as string, m])).values()).map((m) => ({
+      url: `${base}/learn/${m.course_slug}`,
       lastModified: m.updated_at ? new Date(m.updated_at) : undefined,
       changeFrequency: "monthly" as const,
       priority: 0.5,

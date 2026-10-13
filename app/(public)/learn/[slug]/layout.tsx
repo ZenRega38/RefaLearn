@@ -1,15 +1,26 @@
-"use client";
+import type { Metadata } from "next";
+import { CourseLayoutClient } from "@/components/course/CourseLayoutClient";
+import { COURSES } from "@/lib/course/registry";
+import { storeCopy } from "@/lib/course/store-copy";
 
-import { useParams } from "next/navigation";
-import { CourseLangProvider } from "@/components/course/lang";
-import { courseReadAloud, courseUiLang } from "@/lib/course/registry";
+type Props = { children: React.ReactNode; params: Promise<{ slug: string }> };
 
-/** Every page of a course uses that course's interface language (and read-aloud for young learners). */
-export default function CourseLayout({ children }: { children: React.ReactNode }) {
-  const { slug } = useParams<{ slug: string }>();
-  return (
-    <CourseLangProvider lang={courseUiLang(slug)} readAloud={courseReadAloud(slug)}>
-      {children}
-    </CourseLangProvider>
-  );
+/** Title and description for search results and link previews. */
+export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
+  const { slug } = await params;
+  const copy = storeCopy(slug);
+  const title = copy?.title ?? COURSES.find((c) => c.slug === slug)?.title;
+  if (!title) return {};
+  const description = (copy?.description ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
+  return {
+    title: `${title} — Kursus Interaktif`,
+    description: description || undefined,
+    alternates: { canonical: `/learn/${slug}` },
+    openGraph: { type: "website", title, description: description || undefined },
+  };
+}
+
+export default async function CourseLayout({ children, params }: Props) {
+  const { slug } = await params;
+  return <CourseLayoutClient slug={slug}>{children}</CourseLayoutClient>;
 }
