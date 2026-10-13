@@ -7,9 +7,10 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { PillDropdown } from "@/components/ui/PillDropdown";
+import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { Badge } from "@/components/ui/Badge";
 import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
-import { formatPrice } from "@/lib/pricing";
+import { compareAtPrice } from "@/lib/pricing";
 import Link from "next/link";
 
 type Material = {
@@ -100,7 +101,10 @@ export default function MaterialsCatalogPage() {
 
         {/* Header */}
         <div className="text-center space-y-4 mb-12">
-          <Badge variant="blue" className="mx-auto">Materi Belajar</Badge>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Badge variant="blue">Materi Belajar</Badge>
+            <LimitedOffer />
+          </div>
           <h1 className="text-4xl md:text-5xl font-[var(--font-kalam)] text-[var(--color-ink)]">
             Tingkatkan Skill Bahasa Inggrismu
           </h1>
@@ -177,6 +181,7 @@ export default function MaterialsCatalogPage() {
                     )}
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                       <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
+                      {compareAtPrice(material.price) && <Badge variant="coral" className="shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent">Promo</Badge>}
                       {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">Dimiliki</Badge>}
                     </div>
                   </div>
@@ -186,10 +191,8 @@ export default function MaterialsCatalogPage() {
                       {material.title}
                     </h3>
 
-                    <div className="mt-auto pt-4 flex items-center justify-between">
-                      <span className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                        {material.price === 0 ? "Gratis" : formatPrice(material.price)}
-                      </span>
+                    <div className="mt-auto pt-4 flex items-end justify-between gap-3">
+                      <PriceTag price={material.price} size="md" stacked />
                       <Button variant="ghost" size="sm" className="bg-[var(--color-accent-coral)]/10 text-[var(--color-accent-coral)] hover:bg-[var(--color-accent-coral)] hover:text-white px-3 transition-colors">
                         <ShoppingBag className="w-4 h-4 mr-2" /> Detail
                       </Button>
