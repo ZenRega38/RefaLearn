@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { BookOpen, ShoppingBag, ArrowLeft, CheckCircle2, ShieldCheck, ShoppingCart, GraduationCap, Target } from "lucide-react";
-import { compareAtPrice } from "@/lib/pricing";
+import { validBefore } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
 import { addToCart, useCart } from "@/lib/cart";
 import Link from "next/link";
@@ -20,6 +20,7 @@ type Material = {
   slug: string;
   category: string;
   price: number;
+  compare_at_price: number | null;
   cover_image_url: string | null;
   description: string | null;
   created_at: string;
@@ -161,8 +162,8 @@ export default function MaterialDetailPage() {
             <Card className="bg-white/80 p-6 space-y-6">
               <div>
                 <div className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-1">Harga Materi</div>
-                <PriceTag price={material.price} size="lg" stacked />
-                {compareAtPrice(material.price) && <LimitedOffer className="mt-3" />}
+                <PriceTag price={material.price} before={material.compare_at_price} size="lg" stacked />
+                {validBefore(material.price, material.compare_at_price) && <LimitedOffer className="mt-3" />}
               </div>
 
               {freeCourse ? (

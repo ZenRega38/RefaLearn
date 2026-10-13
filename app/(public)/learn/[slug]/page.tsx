@@ -14,7 +14,7 @@ import { AdminLevelControls } from "@/components/course/AdminLevelControls";
 import { SkillIcon } from "@/components/course/skill";
 import { useCourseText } from "@/components/course/lang";
 import type { Skill } from "@/lib/course/types";
-import { compareAtPrice, formatPrice } from "@/lib/pricing";
+import { formatPrice, validBefore } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
 import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag, Radio } from "lucide-react";
 
@@ -34,7 +34,7 @@ type Outline = {
   quizSecondsPerQuestion: number | null;
   loggedIn: boolean;
   access: boolean;
-  store: { slug: string; price: number } | null;
+  store: { slug: string; price: number; before: number | null } | null;
   progress: { completed: number; total: number };
   levels: {
     id: string;
@@ -175,7 +175,7 @@ export default function CourseHomePage() {
               {outline.store ? (
                 <Button href={`/materials/${outline.store.slug}`} className="shrink-0">
                   <ShoppingBag className="w-4 h-4" /> {t.buy} ·
-                  {compareAtPrice(outline.store.price) && <span className="line-through opacity-70 font-normal">{formatPrice(compareAtPrice(outline.store.price)!)}</span>}
+                  {validBefore(outline.store.price, outline.store.before) && <span className="line-through opacity-70 font-normal">{formatPrice(outline.store.before!)}</span>}
                   {formatPrice(outline.store.price)}
                 </Button>
               ) : (

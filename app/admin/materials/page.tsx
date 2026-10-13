@@ -7,12 +7,12 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { PriceTag } from "@/components/ui/PriceTag";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen, FileUp, FileCheck, Tag, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { slugify } from "@/lib/format";
 import { COURSES } from "@/lib/course/registry";
-import { formatPrice } from "@/lib/pricing";
 import { uploadMaterialFile } from "@/lib/storage";
 
 type Material = {
@@ -21,6 +21,7 @@ type Material = {
   slug: string;
   category: string;
   price: number;
+  compare_at_price: number | null;
   is_active: boolean;
   cover_image_url: string;
 };
@@ -44,6 +45,9 @@ export default function AdminMaterialsPage() {
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(100000);
+  // "Harga coret": optional struck-through price shown next to the real one.
+  const [useCompareAt, setUseCompareAt] = useState(false);
+  const [compareAt, setCompareAt] = useState(0);
   const [fileUrl, setFileUrl] = useState<string | null>(null); // existing stored path, if any
   const [newFile, setNewFile] = useState<File | null>(null);   // a freshly picked file, not yet uploaded
   const [coverUrl, setCoverUrl] = useState("");
@@ -54,7 +58,7 @@ export default function AdminMaterialsPage() {
   const fetchMaterials = useCallback(async () => {
     const { data, error } = await supabase
       .from('materials')
-      .select('id, title, slug, category, price, is_active, cover_image_url')
+      .select('id, title, slug, category, price, compare_at_price, is_active, cover_image_url')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -110,6 +114,8 @@ export default function AdminMaterialsPage() {
       setCategory(data.category || "");
       setDescription(data.description || "");
       setPrice(data.price);
+      setUseCompareAt(data.compare_at_price != null);
+      setCompareAt(data.compare_at_price ?? 0);
       setFileUrl(data.file_url || null);
       setNewFile(null);
       setCoverUrl(data.cover_image_url || "");
@@ -126,6 +132,8 @@ export default function AdminMaterialsPage() {
     setCategory("");
     setDescription("");
     setPrice(100000);
+    setUseCompareAt(false);
+    setCompareAt(0);
     setFileUrl(null);
     setNewFile(null);
     setCoverUrl("");
@@ -141,6 +149,10 @@ export default function AdminMaterialsPage() {
   const handleSave = async () => {
     if (!title.trim() || !category.trim()) {
       alert("Judul dan kategori wajib diisi");
+      return;
+    }
+    if (useCompareAt && compareAt <= price) {
+      alert("Harga coret harus lebih besar dari harga jual.");
       return;
     }
 
@@ -169,6 +181,7 @@ export default function AdminMaterialsPage() {
         category,
         description,
         price,
+        compare_at_price: useCompareAt ? compareAt : null,
         file_url: finalFileUrl,
         cover_image_url: coverUrl,
         is_active: isActive,
@@ -296,6 +309,43 @@ export default function AdminMaterialsPage() {
                   <option value="inactive">Nonaktif (Sembunyikan)</option>
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)] p-4 font-[var(--font-inter)]">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useCompareAt}
+                  onChange={(e) => {
+                    setUseCompareAt(e.target.checked);
+                    if (e.target.checked && compareAt <= price) setCompareAt(price > 0 ? Math.ceil((price * 1.5) / 1000) * 1000 : 100000);
+                  }}
+                  className="mt-0.5 w-4 h-4 accent-[var(--color-brand-blue)]"
+                />
+                <span>
+                  <span className="text-sm font-semibold text-[var(--color-ink)]">Pakai harga coret (diskon)</span>
+                  <span className="block text-xs text-[var(--color-ink-soft)]">
+                    Menampilkan harga lama yang dicoret, persen diskon, dan label &quot;Limited Time Offer&quot;. Hanya tampilan — pembeli tetap membayar harga jual.
+                  </span>
+                </span>
+              </label>
+              {useCompareAt && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  <Input
+                    label="Harga Coret (Rp)"
+                    type="number"
+                    min={price + 1}
+                    value={compareAt.toString()}
+                    onChange={(e) => setCompareAt(Math.max(0, parseInt(e.target.value) || 0))}
+                    error={compareAt <= price ? "Harus lebih besar dari harga jual." : undefined}
+                    required
+                  />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-[var(--color-ink-soft)]">Pratinjau</p>
+                    <PriceTag price={price} before={compareAt} size="md" stacked />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -430,8 +480,8 @@ export default function AdminMaterialsPage() {
                       <td className="p-4" data-label="Kategori">
                         <span className="bg-white border border-[var(--color-line)] px-2 py-1 rounded text-xs">{material.category}</span>
                       </td>
-                      <td className="p-4 font-semibold" data-label="Harga">
-                        {material.price === 0 ? "Gratis" : formatPrice(material.price)}
+                      <td className="p-4" data-label="Harga">
+                        <PriceTag price={material.price} before={material.compare_at_price} size="sm" stacked />
                       </td>
                       <td className="p-4 text-center" data-label="Status">
                         <Badge variant={material.is_active ? 'green' : 'outline'}>

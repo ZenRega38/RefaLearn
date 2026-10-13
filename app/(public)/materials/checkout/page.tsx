@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { BookOpen, ArrowLeft, Trash2, ShoppingCart } from "lucide-react";
-import { compareAtPrice, formatPrice } from "@/lib/pricing";
+import { formatPrice, validBefore } from "@/lib/pricing";
 import { clearCart, removeFromCart, useCart } from "@/lib/cart";
 
-type CartItem = { id: string; title: string; slug: string; category: string; price: number; cover_image_url: string | null };
+type CartItem = { id: string; title: string; slug: string; category: string; price: number; compare_at_price: number | null; cover_image_url: string | null };
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function CheckoutPage() {
       }
       const { data } = await supabase
         .from("materials")
-        .select("id, title, slug, category, price, cover_image_url")
+        .select("id, title, slug, category, price, compare_at_price, cover_image_url")
         .in("id", cart)
         .eq("is_active", true);
       setItems((data || []) as CartItem[]);
@@ -42,7 +42,7 @@ export default function CheckoutPage() {
   }, [cart, supabase]);
 
   const total = items.reduce((sum, i) => sum + i.price, 0);
-  const totalBefore = items.reduce((sum, i) => sum + (compareAtPrice(i.price) ?? i.price), 0);
+  const totalBefore = items.reduce((sum, i) => sum + (validBefore(i.price, i.compare_at_price) ?? i.price), 0);
 
   const handleCheckout = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -109,11 +109,11 @@ export default function CheckoutPage() {
                     </Link>
                     {/* Phones: price under the title, so the title keeps its width. */}
                     <div className="mt-1 sm:hidden">
-                      <PriceTag price={item.price} size="sm" />
+                      <PriceTag price={item.price} before={item.compare_at_price} size="sm" />
                     </div>
                   </div>
                   <div className="hidden sm:block whitespace-nowrap">
-                    <PriceTag price={item.price} size="sm" stacked align="end" />
+                    <PriceTag price={item.price} before={item.compare_at_price} size="sm" stacked align="end" />
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="px-2 text-[var(--color-danger-red)]" aria-label="Hapus dari keranjang">
                     <Trash2 className="w-4 h-4" />

@@ -49,27 +49,25 @@ export function formatPrice(price: number): string {
 }
 
 /**
- * "Harga coret": the higher price shown struck through next to a real price,
- * with a "Limited Time Offer" label. Keyed by the real price so materials
- * and sessions share it; prices not listed here show no strike-through.
- * Only display — every charge, invoice and order uses the real price.
+ * "Harga coret" for sessions: the higher price shown struck through next to
+ * the real session price, with a "Limited Time Offer" label. Materials set
+ * theirs per item (materials.compare_at_price, from the admin form).
+ * Display only — every charge, invoice and order uses the real price.
  */
-export const COMPARE_AT_PRICES: Record<number, number> = {
-  // sessions
+export const SESSION_COMPARE_AT_PRICES: Record<number, number> = {
   100000: 120000,
   150000: 200000,
   200000: 250000,
-  // materials
-  49000: 100000,
-  99000: 150000,
-  199000: 300000,
-  249000: 400000,
 };
 
-/** The struck-through "before" price for a real price, or null. */
+/** The struck-through "before" price of a session price, or null. */
 export function compareAtPrice(price: number): number | null {
-  const before = COMPARE_AT_PRICES[price];
-  return before && before > price ? before : null;
+  return validBefore(price, SESSION_COMPARE_AT_PRICES[price]);
+}
+
+/** A "before" price only counts when it is above the real price. */
+export function validBefore(price: number, before: number | null | undefined): number | null {
+  return typeof before === "number" && before > price ? before : null;
 }
 
 /** Whole-number discount percentage, e.g. 99000 vs 150000 → 34. */

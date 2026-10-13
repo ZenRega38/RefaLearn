@@ -255,5 +255,11 @@ await expectFail("NISN/NIM rejects spaces and symbols", () => as("authenticated"
 const otherProfile = await as("authenticated", S2, `select nisn_nim from profiles where id=$1`, [S1]);
 check(otherProfile.rows.length === 0 || otherProfile.rows[0].nisn_nim === null, "another student cannot read someone's NISN/NIM", JSON.stringify(otherProfile.rows));
 
+console.log("\nMaterial harga coret:");
+const capMat = (await db.query(`insert into materials (category, title, slug, price, compare_at_price) values ('Test','Cap','cap-test',49000,100000) returning id`)).rows[0].id;
+await expectFail("harga coret must be above the real price", () => db.query(`update materials set compare_at_price=49000 where id=$1`, [capMat]), /materials_compare_at_price_above_price/);
+await expectOk("a free material can carry a harga coret (-100%)", () => db.query(`update materials set price=0, compare_at_price=100000 where id=$1`, [capMat]));
+await expectOk("harga coret is optional", () => db.query(`update materials set compare_at_price=null where id=$1`, [capMat]));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

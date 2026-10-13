@@ -1,5 +1,5 @@
 import { Timer } from "lucide-react";
-import { compareAtPrice, discountPercent, formatPrice } from "@/lib/pricing";
+import { compareAtPrice, discountPercent, formatPrice, validBefore } from "@/lib/pricing";
 
 const SIZES = {
   sm: { price: "text-sm", before: "text-[0.7rem]", badge: "text-[0.6rem] px-1.5 py-px" },
@@ -8,12 +8,15 @@ const SIZES = {
 } as const;
 
 /**
- * A price with its struck-through "before" price and a discount badge
- * (when lib/pricing has one). `inverted` is for dark/blue backgrounds.
- * Free (0) shows "Gratis".
+ * A price with its struck-through "before" price and a discount badge.
+ * Pass `before` for a material (its compare_at_price, null for none);
+ * leave it out for a session price (lib/pricing's session table).
+ * `inverted` is for dark/blue backgrounds. Free (0) shows "Gratis", and a
+ * free item with a "before" price shows -100%.
  */
 export function PriceTag({
   price,
+  before: beforeProp,
   size = "md",
   align = "start",
   stacked = false,
@@ -21,6 +24,7 @@ export function PriceTag({
   className = "",
 }: {
   price: number;
+  before?: number | null;
   size?: keyof typeof SIZES;
   align?: "start" | "center" | "end";
   /** Put the "before" price on its own line above the price. */
@@ -29,7 +33,7 @@ export function PriceTag({
   className?: string;
 }) {
   const s = SIZES[size];
-  const before = price > 0 ? compareAtPrice(price) : null;
+  const before = beforeProp === undefined ? compareAtPrice(price) : validBefore(price, beforeProp);
   const justify = align === "center" ? "justify-center" : align === "end" ? "justify-end" : "justify-start";
   const items = align === "center" ? "items-center" : align === "end" ? "items-end" : "items-start";
 
