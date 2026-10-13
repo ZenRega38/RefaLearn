@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { PriceTag } from "@/components/ui/PriceTag";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { storeCopy } from "@/lib/course/store-copy";
 import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, BookOpen, FileUp, FileCheck, Tag, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { slugify } from "@/lib/format";
@@ -53,6 +54,9 @@ export default function AdminMaterialsPage() {
   const [coverUrl, setCoverUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [courseSlug, setCourseSlug] = useState("");
+  // The rich-text editor only reads its content when it mounts; bump this to
+  // remount it after filling the description in from code.
+  const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const fetchMaterials = useCallback(async () => {
@@ -140,6 +144,30 @@ export default function AdminMaterialsPage() {
     setIsActive(true);
     setCourseSlug("");
     setIsEditing(true);
+  };
+
+  const isBlankHtml = (html: string) => !html.replace(/<[^>]*>/g, "").trim();
+
+  /** Fill title and description from the course's default store copy. */
+  const applyCourseCopy = (slug: string, askBeforeReplacing: boolean) => {
+    const copy = storeCopy(slug);
+    if (!copy) return;
+    const blankTitle = !title.trim();
+    const blankDescription = isBlankHtml(description);
+    const replace =
+      (blankTitle && blankDescription) ||
+      !askBeforeReplacing ||
+      window.confirm("Ganti judul dan deskripsi dengan teks bawaan kursus ini? Yang sudah kamu tulis akan ditimpa.");
+    if (replace || blankTitle) setTitle(copy.title);
+    if (replace || blankDescription) {
+      setDescription(copy.description);
+      setEditorKey((k) => k + 1);
+    }
+  };
+
+  const pickCourse = (slug: string) => {
+    setCourseSlug(slug);
+    if (slug) applyCourseCopy(slug, true);
   };
 
   const handleCancel = () => {
@@ -383,22 +411,34 @@ export default function AdminMaterialsPage() {
               <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
                 Kursus Interaktif (Opsional)
               </label>
-              <select className="input-field" value={courseSlug} onChange={(e) => setCourseSlug(e.target.value)}>
+              <select className="input-field" value={courseSlug} onChange={(e) => pickCourse(e.target.value)}>
                 <option value="">Tidak ada — materi file biasa</option>
                 {COURSES.map((c) => (
                   <option key={c.slug} value={c.slug}>{c.title}</option>
                 ))}
               </select>
               <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                Pembeli yang pembayarannya dikonfirmasi otomatis mendapat akses ke kursus ini di /learn.
+                Pembeli yang pembayarannya dikonfirmasi otomatis mendapat akses ke kursus ini di /learn. Judul dan deskripsi terisi otomatis dari kursus yang dipilih, dan tetap bisa diedit.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)] mb-1.5">
-                Deskripsi
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                <label className="block text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+                  Deskripsi
+                </label>
+                {courseSlug && storeCopy(courseSlug) && (
+                  <button
+                    type="button"
+                    onClick={() => applyCourseCopy(courseSlug, true)}
+                    className="text-xs font-semibold font-[var(--font-inter)] text-[var(--color-brand-blue)] hover:underline"
+                  >
+                    Pakai teks bawaan kursus
+                  </button>
+                )}
+              </div>
               <RichTextEditor
+                key={editorKey}
                 content={description}
                 onChange={setDescription}
               />

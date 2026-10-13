@@ -598,6 +598,45 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Rich text (material descriptions, the admin editor, stories): Tailwind's
+   reset removes list markers and the typography plugin isn't installed, so
+   bring bullets, numbers and paragraph spacing back here. */
+.prose-content ul,
+.prose ul,
+.ProseMirror ul {
+  list-style: disc;
+}
+
+.prose-content ol,
+.prose ol,
+.ProseMirror ol {
+  list-style: decimal;
+}
+
+.prose ul,
+.prose ol,
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.prose li,
+.ProseMirror li {
+  margin: 0.25rem 0;
+}
+
+.prose li::marker,
+.ProseMirror li::marker,
+.prose-content li::marker {
+  color: var(--color-accent-coral);
+}
+
+.prose p,
+.ProseMirror p {
+  margin: 0.5rem 0;
+}
+
 .prose-content a {
   color: var(--color-brand-blue);
   text-decoration: underline;
