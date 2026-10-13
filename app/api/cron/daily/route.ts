@@ -5,11 +5,13 @@ import { getUserEmail, sendInvoiceOverdueEmail } from "@/lib/email";
 import { INVOICE_DUE_DAYS } from "@/lib/policy";
 import { formatPrice } from "@/lib/pricing";
 import { monthLabel } from "@/lib/format";
+import { extendAssignedSeries } from "@/lib/schedule-offers-server";
 
 /**
  * Daily housekeeping: flags invoices that passed their due date as
  * `overdue` (late-payment clause of the contract) and emails the student
- * once, on the day it flips.
+ * once, on the day it flips; and keeps ongoing schedules assigned by the
+ * admin about 60 days ahead.
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
@@ -48,7 +50,14 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        return NextResponse.json({ ok: true, overdue: count });
+        let extended = 0;
+        try {
+            extended = await extendAssignedSeries(supabase);
+        } catch (extendErr) {
+            console.error("[cron/daily] extending schedules failed:", extendErr);
+        }
+
+        return NextResponse.json({ ok: true, overdue: count, extended });
     } catch (err) {
         console.error("[cron/daily] failed:", err);
         return NextResponse.json({ error: errorMessage(err) }, { status: 500 });

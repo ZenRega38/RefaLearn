@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Textarea } from "@/components/ui/Textarea";
-import { Check, X, Eye, Edit3, MessageSquare, Clock, RefreshCw, Calendar } from "lucide-react";
+import { Check, X, Eye, Edit3, MessageSquare, Clock, RefreshCw, Calendar, CalendarPlus } from "lucide-react";
 import { DAY_TYPE_LABELS, formatPrice, type DayType } from "@/lib/pricing";
 import { formatDateStr, hhmm, toWhatsAppNumber } from "@/lib/format";
 import { todayStr, APP_TIMEZONE_LABEL } from "@/lib/time";
@@ -249,7 +249,10 @@ export default function AdminSessionsPage() {
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
             Manajemen Kelas & Sesi
           </h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button href="/admin/sessions/assign" size="sm">
+              <CalendarPlus className="w-4 h-4" /> Assign Jadwal
+            </Button>
             <select
               className="input-field py-2"
               value={filter}

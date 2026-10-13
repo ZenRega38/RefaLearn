@@ -7,7 +7,8 @@ import { getDayType, getSessionPrice } from "@/lib/pricing";
 import { INVOICE_DUE_DAYS, SESSION_COUNT_OPTIONS } from "@/lib/policy";
 import { todayStr } from "@/lib/time";
 import { formatDateStr, hhmm } from "@/lib/format";
-import { ADULT_AGE, PROFILE_COMPLETION_COLUMNS, missingProfileFields, needsGuardian, sameName, type ProfileCompletion } from "@/lib/profile";
+import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, type ProfileCompletion } from "@/lib/profile";
+import { checkSignature, currentContractId } from "@/lib/contract-signing";
 import {
     getAdminEmails,
     getUserEmail,
@@ -122,43 +123,14 @@ export async function POST(request: NextRequest) {
 
     // Contract: must be the version in force today, and the signer must be
     // identifiable (UU ITE Pasal 11).
-    const { data: contract } = await admin
-        .from("contracts")
-        .select("id")
-        .lte("effective_date", todayStr())
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    if (!contract || contract.id !== body.contractId) {
+    const contractId = await currentContractId(admin);
+    if (!contractId || contractId !== body.contractId) {
         return jsonError("Versi perjanjian sudah berubah. Silakan muat ulang halaman dan baca perjanjian terbaru.", 409);
     }
 
-    const typedName = (body.typedName || "").trim();
-    const signerRole = body.signerRole === "guardian" ? "guardian" : "student";
-    const guardianName = (body.guardianName || "").trim();
     const profileName = (profile.full_name || "").trim();
-
-    if (!typedName) return jsonError("Nama penanda tangan wajib diisi.");
-    if (signerRole === "student" && typedName.toLowerCase() !== profileName.toLowerCase()) {
-        return jsonError("Nama yang diketik harus sama dengan nama di profil Anda.");
-    }
-    if (signerRole === "guardian" && typedName.toLowerCase() === profileName.toLowerCase()) {
-        return jsonError("Untuk persetujuan orang tua/wali, ketik nama orang tua/wali — bukan nama siswa.");
-    }
-
-    // Under 21 the contract must be signed by the guardian named on the profile,
-    // even though the signature is typed on the student's own account.
-    const minor = needsGuardian(studentProfile?.birth_date, todayStr());
-    const profileGuardian = (studentProfile?.guardian_name || "").trim();
-    if (minor) {
-        if (signerRole !== "guardian") {
-            return jsonError(`Siswa berusia di bawah ${ADULT_AGE} tahun. Perjanjian wajib disetujui oleh orang tua/wali.`);
-        }
-        if (!sameName(typedName, profileGuardian)) {
-            return jsonError(`Nama penanda tangan harus sama dengan nama orang tua/wali di profil: ${profileGuardian}.`);
-        }
-    }
+    const signature = checkSignature(body, profileName, studentProfile);
+    if (!signature.ok) return jsonError(signature.error);
 
     const sessions = resolved.map(({ date, slot }) => ({
         date,
@@ -170,10 +142,10 @@ export async function POST(request: NextRequest) {
 
     const { data: booking, error } = await admin.rpc("create_booking", {
         p_student: user.id,
-        p_contract: contract.id,
-        p_typed_name: typedName,
-        p_signer_role: signerRole,
-        p_guardian_name: signerRole === "guardian" ? (minor ? profileGuardian : guardianName || typedName) : null,
+        p_contract: contractId,
+        p_typed_name: signature.typedName,
+        p_signer_role: signature.signerRole,
+        p_guardian_name: signature.guardianName,
         p_ip: clientIp(request),
         p_user_agent: request.headers.get("user-agent"),
         p_sessions: sessions,

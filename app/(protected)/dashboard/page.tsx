@@ -20,6 +20,7 @@ import { uploadPaymentProof } from "@/lib/storage";
 import { dateStrToLocalDate, localDateToDateStr, APP_TIMEZONE_LABEL } from "@/lib/time";
 import { formatDateStr, hhmm } from "@/lib/format";
 import { ProgressCard } from "@/components/gamification/ProgressCard";
+import { ScheduleOffers } from "@/components/dashboard/ScheduleOffers";
 import { CalendarCheck, Clock, RefreshCw, AlertTriangle, Repeat, X, Info, Wallet, FileText } from "lucide-react";
 
 type SessionRow = {
@@ -397,6 +398,8 @@ export default function StudentSessionsDashboard() {
             </Button>
           </div>
         </div>
+
+        <ScheduleOffers onChanged={fetchData} />
 
         <ProgressCard />
 
