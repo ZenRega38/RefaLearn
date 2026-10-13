@@ -233,11 +233,11 @@ export default function AdminMaterialsPage() {
     return (
       <PaperBackground className="p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h1 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] flex items-center gap-2">
               <BookOpen className="w-6 h-6" /> {currentId ? "Edit Materi" : "Tambah Materi Baru"}
             </h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 self-end sm:self-auto">
               <Button variant="ghost" onClick={handleCancel}>Batal</Button>
               <Button onClick={handleSave} isLoading={saving}>Simpan</Button>
             </div>

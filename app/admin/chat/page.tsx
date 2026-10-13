@@ -312,8 +312,8 @@ export default function AdminChatInbox() {
                       onChange={e => setNewMessage(e.target.value)}
                       className="flex-1 min-w-0 input-field"
                     />
-                    <Button type="submit" disabled={(!newMessage.trim() && !file) || sending} isLoading={sending} className="px-6 gap-2">
-                      Kirim <Send className="w-4 h-4" />
+                    <Button type="submit" disabled={(!newMessage.trim() && !file) || sending} isLoading={sending} className="px-3 sm:px-6 gap-2" aria-label="Kirim">
+                      <span className="hidden sm:inline">Kirim</span> <Send className="w-4 h-4" />
                     </Button>
                   </form>
                 </div>

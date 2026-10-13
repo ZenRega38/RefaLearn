@@ -199,7 +199,7 @@ export default function StudentProfilePage() {
   };
 
   return (
-    <PaperBackground className="pt-24 pb-20 min-h-screen">
+    <PaperBackground className="pt-8 md:pt-12 pb-20 min-h-screen">
       <div className="container-main max-w-2xl mx-auto space-y-8">
         <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
           <UserCircle className="w-8 h-8 text-[var(--color-brand-blue)]" /> Profil Saya

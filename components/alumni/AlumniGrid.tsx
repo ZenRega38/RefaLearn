@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { PillDropdown } from "@/components/ui/PillDropdown";
 import { Quote } from "lucide-react";
 
 export type AlumniItem = {
@@ -24,19 +25,8 @@ export function AlumniGrid({ alumni }: { alumni: AlumniItem[] }) {
   return (
     <div className="space-y-8">
       {categories.length > 2 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar justify-start md:justify-center">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold font-[var(--font-inter)] transition-colors ${category === cat
-                ? "bg-[var(--color-brand-blue)] text-white"
-                : "bg-white border border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]"
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="flex justify-start md:justify-center">
+          <PillDropdown options={categories.map((c) => ({ key: c, label: c }))} value={category} onChange={setCategory} />
         </div>
       )}
 

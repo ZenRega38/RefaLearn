@@ -90,7 +90,9 @@ export function ProgressCard() {
       {milestone && (
         <p className="flex items-center gap-2 text-sm text-[var(--color-ink)] font-[var(--font-inter)] rounded-[var(--radius-card)] bg-[var(--color-accent-yellow)]/15 border border-[var(--color-accent-yellow)]/40 px-3 py-2">
           <Gift className="w-4 h-4 text-[var(--color-accent-coral)] shrink-0" />
-          {milestone.days - study.current} hari lagi menuju bonus <strong>+{milestone.xp} XP</strong> (streak belajar {milestone.days} hari).
+          <span>
+            {milestone.days - study.current} hari lagi menuju bonus <strong>+{milestone.xp} XP</strong> (streak belajar {milestone.days} hari).
+          </span>
         </p>
       )}
 

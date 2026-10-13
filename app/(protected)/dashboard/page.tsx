@@ -383,7 +383,7 @@ export default function StudentSessionsDashboard() {
   };
 
   return (
-    <PaperBackground className="pt-24 pb-20 min-h-screen">
+    <PaperBackground className="pt-8 md:pt-12 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
