@@ -3,6 +3,7 @@ import { Inter, Kalam, Caveat } from "next/font/google";
 import "./globals.css";
 import { SiteChrome } from "@/components/ui/SiteChrome";
 import { siteUrl } from "@/lib/site";
+import { ldJson, siteGraphLd } from "@/lib/seo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -72,6 +73,7 @@ export default function RootLayout({
       className={`${inter.variable} ${kalam.variable} ${caveat.variable}`}
     >
       <body className="min-h-screen flex flex-col">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(siteGraphLd()) }} />
         <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
