@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, Star } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, Star, Video, CheckCircle2, AlertTriangle } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { slugify, splitCategories } from "@/lib/format";
+import { isBrokenVideo, youtubeId, youtubeProblem, youtubeThumbnail, type YoutubeCheck } from "@/lib/youtube";
 
 type NewsPost = {
   id: string;
@@ -19,7 +20,37 @@ type NewsPost = {
   category: string;
   status: 'draft' | 'published';
   published_at: string | null;
+  youtube_url: string | null;
 };
+
+/** Server-side check of video links (exists, public, embeddable). */
+async function checkVideos(urls: string[]): Promise<Record<string, YoutubeCheck | null>> {
+  if (urls.length === 0) return {};
+  try {
+    const res = await fetch('/api/youtube/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls }),
+    });
+    if (!res.ok) return {};
+    return (await res.json()).results ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** White "!" in a yellow circle: the post's video link is broken. */
+function VideoWarningDot() {
+  return (
+    <span
+      title="Link video YouTube bermasalah — video tidak tampil untuk pembaca"
+      aria-label="Link video YouTube bermasalah"
+      className="inline-flex shrink-0 w-5 h-5 rounded-full bg-[var(--color-accent-yellow)] text-white text-xs font-black items-center justify-center shadow-sm ring-1 ring-[var(--color-warning-amber)]"
+    >
+      !
+    </span>
+  );
+}
 
 export default function AdminNewsPage() {
   const [supabase] = useState(() => createClient());
@@ -39,6 +70,10 @@ export default function AdminNewsPage() {
   const [category, setCategory] = useState("");
   const [content, setContent] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [videoCheck, setVideoCheck] = useState<{ url: string; result: YoutubeCheck | null } | null>(null);
+  // Broken video links in the list, by post id.
+  const [brokenVideos, setBrokenVideos] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
   // Kept from the loaded post so editing never changes its URL or its
   // original publish date.
@@ -49,11 +84,14 @@ export default function AdminNewsPage() {
   const fetchPosts = useCallback(async () => {
     const { data, error } = await supabase
       .from('news_posts')
-      .select('id, title, slug, category, status, published_at')
+      .select('id, title, slug, category, status, published_at, youtube_url')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setPosts(data as NewsPost[]);
+      const list = data as NewsPost[];
+      setPosts(list);
+      const results = await checkVideos(list.map((p) => p.youtube_url ?? '').filter(Boolean));
+      setBrokenVideos(new Set(list.filter((p) => p.youtube_url && isBrokenVideo(results[p.youtube_url])).map((p) => p.id)));
     }
     setLoading(false);
   }, [supabase]);
@@ -124,6 +162,7 @@ export default function AdminNewsPage() {
       setCategory(data.category || "");
       setContent(data.content);
       setCoverUrl(data.cover_image_url || "");
+      setYoutubeUrl(data.youtube_url || "");
       setStatus(data.status);
       setCurrentSlug(data.slug);
       setPublishedAt(data.published_at);
@@ -131,12 +170,33 @@ export default function AdminNewsPage() {
     }
   };
 
+  const trimmedVideo = youtubeUrl.trim();
+  useEffect(() => {
+    if (!isEditing || !trimmedVideo) return;
+    // A link that doesn't even parse needs no server round trip.
+    if (!youtubeId(trimmedVideo)) return;
+    const timer = window.setTimeout(async () => {
+      const results = await checkVideos([trimmedVideo]);
+      setVideoCheck({ url: trimmedVideo, result: results[trimmedVideo] ?? null });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [isEditing, trimmedVideo]);
+
+  const videoStatus: YoutubeCheck | 'checking' | null = !trimmedVideo
+    ? null
+    : !youtubeId(trimmedVideo)
+      ? { ok: false, reason: 'format' }
+      : videoCheck?.url === trimmedVideo
+        ? videoCheck.result
+        : 'checking';
+
   const handleCreateNew = () => {
     setCurrentId(null);
     setTitle("");
     setCategory("");
     setContent("");
     setCoverUrl("");
+    setYoutubeUrl("");
     setStatus("draft");
     setCurrentSlug(null);
     setPublishedAt(null);
@@ -164,6 +224,7 @@ export default function AdminNewsPage() {
       category: splitCategories(category).join(", "),
       content,
       cover_image_url: coverUrl,
+      youtube_url: youtubeUrl.trim() || null,
       status,
       // First publish stamps the date; later edits keep it.
       published_at: status === 'published' ? (publishedAt || new Date().toISOString()) : publishedAt,
@@ -258,6 +319,38 @@ export default function AdminNewsPage() {
                 onChange={setContent}
               />
             </div>
+
+            <div className="space-y-2">
+              <Input
+                label="Link Video YouTube (opsional)"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                icon={<Video className="w-4 h-4" />}
+                placeholder="https://www.youtube.com/watch?v=… atau https://youtu.be/…"
+                helperText="Tampil di bawah konten story, tidak autoplay. Kosongkan kalau tidak pakai video."
+              />
+              {videoStatus === 'checking' && (
+                <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Mengecek video…
+                </p>
+              )}
+              {videoStatus && videoStatus !== 'checking' && videoStatus.ok && (
+                <div className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-success-green)]/40 bg-[var(--color-success-green)]/10 p-2 font-[var(--font-inter)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={youtubeThumbnail(videoStatus.id)} alt="" className="w-24 aspect-video object-cover rounded-md shrink-0" />
+                  <p className="text-xs text-[var(--color-ink)] flex items-start gap-1.5 min-w-0">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--color-success-green)]" />
+                    <span className="line-clamp-2">Video ditemukan{videoStatus.title ? `: ${videoStatus.title}` : ""}</span>
+                  </p>
+                </div>
+              )}
+              {videoStatus && videoStatus !== 'checking' && !videoStatus.ok && (
+                <p className="flex items-start gap-2 rounded-[var(--radius-card)] border border-[var(--color-warning-amber)]/50 bg-[var(--color-accent-yellow)]/15 p-3 text-xs text-[var(--color-ink)] font-[var(--font-inter)]">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-[var(--color-warning-amber)]" />
+                  {youtubeProblem(videoStatus)}
+                </p>
+              )}
+            </div>
           </Card>
         </div>
       </PaperBackground>
@@ -311,7 +404,10 @@ export default function AdminNewsPage() {
                   posts.map((post) => (
                     <tr key={post.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
                       <td className="p-4" data-label="Judul">
-                        <div className="font-semibold text-[var(--color-ink)] mb-1">{post.title}</div>
+                        <div className="font-semibold text-[var(--color-ink)] mb-1 flex items-start gap-2">
+                          <span>{post.title}</span>
+                          {brokenVideos.has(post.id) && <VideoWarningDot />}
+                        </div>
                         <div className="text-xs text-[var(--color-ink-soft)] truncate max-w-xs">{post.slug}</div>
                       </td>
                       <td className="p-4" data-label="Kategori">
