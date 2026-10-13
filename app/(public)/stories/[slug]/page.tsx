@@ -9,12 +9,12 @@ import { Metadata } from "next";
 import { formatTimestamp, splitCategories } from "@/lib/format";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
 import { siteUrl } from "@/lib/site";
+import { FOUNDER, founderLd, ldJson, organizationLd } from "@/lib/seo";
 import { youtubeEmbedUrl } from "@/lib/youtube";
 import { checkYoutube } from "@/lib/youtube-server";
 
 export const revalidate = 60; // Revalidate every minute
 
-const FOUNDER_NAME = 'Rega Rizkan Azizan';
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -45,17 +45,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const excerpt = excerptOf(post.content);
+  const aboutFounder = post.content.includes(FOUNDER.name);
 
   return {
     title: post.title,
     description: excerpt,
+    // Categories, plus the founder's name for his own stories.
+    keywords: [...splitCategories(post.category), ...(aboutFounder ? [FOUNDER.name, ...FOUNDER.alternateName] : []), 'Refa Learn'],
     alternates: { canonical: `/stories/${post.slug}` },
     openGraph: {
       type: 'article',
       title: post.title,
       description: excerpt,
       publishedTime: post.published_at ?? undefined,
+      modifiedTime: post.updated_at ?? undefined,
+      tags: splitCategories(post.category),
       images: post.cover_image_url ? [post.cover_image_url] : [],
+    },
+    twitter: {
+      card: post.cover_image_url ? 'summary_large_image' : 'summary',
+      title: post.title,
+      description: excerpt,
+      images: post.cover_image_url ? [post.cover_image_url] : undefined,
     },
   };
 }
@@ -94,22 +105,18 @@ export default async function NewsDetailPage({ params }: Props) {
   const video = youtube?.ok ? youtube : null;
 
   const url = `${siteUrl()}/stories/${post.slug}`;
-  const refaLearn = { '@type': 'Organization', name: 'Refa Learn', url: siteUrl() };
+  const refaLearn = organizationLd();
   // Stories are published by Refa Learn, but many are the founder's own story.
   // Marking him as the subject lets searches for his name find these pages.
-  const founder = post.content.includes(FOUNDER_NAME)
-    ? {
-        '@type': 'Person',
-        name: FOUNDER_NAME,
-        jobTitle: 'Founder & Lead Tutor',
-        worksFor: refaLearn,
-        url: 'https://zenrega.my.id/',
-      }
-    : undefined;
+  const founder = post.content.includes(FOUNDER.name) ? founderLd() : undefined;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: post.title,
+    description: excerptOf(post.content),
+    keywords: splitCategories(post.category).join(', ') || undefined,
+    articleSection: splitCategories(post.category)[0],
+    inLanguage: 'en',
     datePublished: post.published_at,
     dateModified: post.updated_at,
     image: post.cover_image_url ? [post.cover_image_url] : undefined,
@@ -121,7 +128,7 @@ export default async function NewsDetailPage({ params }: Props) {
 
   return (
     <PaperBackground>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }} />
       <article className="pt-24 pb-20 relative">
         <div className="container-main max-w-3xl mx-auto">
 
