@@ -59,7 +59,8 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       clearCart();
-      router.push("/dashboard/materials");
+      // Free orders are confirmed at once; paid ones go to their payment page.
+      router.push(data.order?.status === "confirmed" ? "/dashboard/materials" : `/dashboard/materials/pay/${data.order.id}`);
     } catch (err) {
       setSubmitting(false);
       alert(`Gagal membuat pesanan: ${err instanceof Error ? err.message : ""}`);
@@ -119,7 +120,7 @@ export default function CheckoutPage() {
                 <div className="text-sm text-[var(--color-ink-soft)]">Total ({items.length} materi)</div>
                 <div className="text-2xl font-bold text-[var(--color-brand-blue)]">{formatPrice(total)}</div>
                 <p className="text-xs text-[var(--color-ink-soft)] mt-1">
-                  Setelah pesanan dibuat, instruksi transfer & upload bukti ada di menu Materi Saya.
+                  Setelah pesanan dibuat, kamu langsung diarahkan ke halaman pembayaran QRIS & upload bukti.
                 </p>
               </div>
               <Button onClick={handleCheckout} isLoading={submitting} className="w-full sm:w-auto">

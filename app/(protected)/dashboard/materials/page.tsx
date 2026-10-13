@@ -6,11 +6,9 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
-import { PaymentInstructions, type BankDetails, type EwalletDetails } from "@/components/ui/PaymentInstructions";
-import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock, GraduationCap } from "lucide-react";
+import { freshChannel } from "@/lib/supabase/realtime-channel";
+import { BookOpen, Upload, RefreshCw, AlertCircle, Download, Lock, GraduationCap, Clock } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
-import { uploadPaymentProof } from "@/lib/storage";
 import { formatTimestamp } from "@/lib/format";
 import { useRouter } from "next/navigation";
 import { FreeCourses } from "@/components/course/FreeCourses";
@@ -33,24 +31,17 @@ type Material = {
   course_slug: string | null;
 };
 
-const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
-
 export default function StudentMaterialsDashboard() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [orders, setOrders] = useState<(Order & { materials: Material[] })[]>([]);
   const [loading, setLoading] = useState(true);
   const [studentId, setStudentId] = useState<string | null>(null);
-  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
-  const [ewalletDetails, setEwalletDetails] = useState<EwalletDetails | null>(null);
 
-  // Upload modal state
-  const [uploadingOrder, setUploadingOrder] = useState<Order | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
+  // `quiet` refreshes (live updates) keep the list on screen instead of
+  // flashing the loading state.
+  const fetchOrders = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -59,19 +50,11 @@ export default function StudentMaterialsDashboard() {
     }
     setStudentId(user.id);
 
-    const [{ data: ordersData }, { data: settingsData }] = await Promise.all([
-      supabase
-        .from('material_orders')
-        .select('*')
-        .eq('student_id', user.id)
-        .order('created_at', { ascending: false }),
-      supabase.from('site_settings').select('key, value').in('key', ['bank_details', 'ewallet_details']),
-    ]);
-
-    settingsData?.forEach((row) => {
-      if (row.key === 'bank_details') setBankDetails(row.value);
-      if (row.key === 'ewallet_details') setEwalletDetails(row.value);
-    });
+    const { data: ordersData } = await supabase
+      .from('material_orders')
+      .select('*')
+      .eq('student_id', user.id)
+      .order('created_at', { ascending: false });
 
     if (ordersData && ordersData.length > 0) {
       const allMaterialIds = Array.from(new Set(ordersData.flatMap((o) => o.material_ids as string[])));
@@ -102,27 +85,16 @@ export default function StudentMaterialsDashboard() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const handleSubmitProof = async () => {
-    if (!proofFile || !uploadingOrder || !studentId) return;
-
-    setSubmitting(true);
-    try {
-      const path = await uploadPaymentProof("orders", studentId, uploadingOrder.id, proofFile);
-      const { error } = await supabase
-        .from('material_orders')
-        .update({ proof_url: path, status: 'proof_uploaded' })
-        .eq('id', uploadingOrder.id);
-      if (error) throw error;
-
-      setUploadingOrder(null);
-      setProofFile(null);
-      fetchOrders();
-    } catch (err) {
-      alert(`Gagal mengirim bukti: ${errorText(err)}`);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // Live status: when an admin verifies an order, it unlocks here at once.
+  useEffect(() => {
+    if (!studentId) return;
+    const channel = freshChannel(supabase, `material_orders_${studentId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'material_orders', filter: `student_id=eq.${studentId}` }, () => fetchOrders(true))
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, studentId, fetchOrders]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -146,40 +118,13 @@ export default function StudentMaterialsDashboard() {
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" href="/materials" size="sm">Cari Materi Lain</Button>
-            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3" aria-label="Muat ulang">
+            <Button variant="ghost" onClick={() => fetchOrders()} size="sm" className="px-3" aria-label="Muat ulang">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
         <FreeCourses />
-
-        {uploadingOrder && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <Card className="w-full max-w-md space-y-6 my-8">
-              <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
-                Upload Bukti Pembayaran
-              </h3>
-              <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
-                Total transfer: <strong>{formatPrice(uploadingOrder.total_amount)}</strong>
-              </p>
-              <PaymentInstructions bank={bankDetails} ewallet={ewalletDetails} />
-              <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                Setelah transfer, unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF, maks. 5 MB).
-              </p>
-              <Input
-                type="file"
-                label="File Bukti Transfer"
-                accept="image/*,application/pdf"
-                onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-              />
-              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-line)]">
-                <Button variant="ghost" onClick={() => { setUploadingOrder(null); setProofFile(null); }}>Batal</Button>
-                <Button onClick={handleSubmitProof} isLoading={submitting} disabled={!proofFile}>Kirim Bukti</Button>
-              </div>
-            </Card>
-          </div>
-        )}
 
         {loading ? (
           <div className="text-center py-12 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
@@ -213,14 +158,13 @@ export default function StudentMaterialsDashboard() {
                     {getStatusBadge(order.status)}
 
                     {['pending', 'rejected'].includes(order.status) && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setUploadingOrder(order);
-                          setProofFile(null);
-                        }}
-                      >
-                        <Upload className="w-4 h-4 mr-2" /> Upload Bukti
+                      <Button size="sm" href={`/dashboard/materials/pay/${order.id}`}>
+                        <Upload className="w-4 h-4 mr-2" /> Bayar & Upload Bukti
+                      </Button>
+                    )}
+                    {order.status === 'proof_uploaded' && (
+                      <Button size="sm" variant="secondary" href={`/dashboard/materials/pay/${order.id}`}>
+                        <Clock className="w-4 h-4 mr-2" /> Lihat Status
                       </Button>
                     )}
                   </div>
