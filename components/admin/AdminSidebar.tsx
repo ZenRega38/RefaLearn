@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     LayoutDashboard,
     CalendarClock,
@@ -22,9 +22,14 @@ import {
     Handshake,
     Gift,
     CalendarPlus,
+    PanelLeftClose,
+    PanelLeftOpen,
 } from "lucide-react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+
+// Desktop sidebar collapsed to icons only; remembered per browser.
+const COLLAPSED_KEY = "refalearn-admin-sidebar-collapsed";
 
 const navItems = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
@@ -46,13 +51,13 @@ const navItems = [
 
 // Declared at module level (not inside AdminSidebar) so React doesn't treat
 // it as a brand-new component type on every render.
-function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigate: () => void }) {
+function NavLinks({ pathname, onNavigate, collapsed = false }: { pathname: string | null; onNavigate: () => void; collapsed?: boolean }) {
     const isActive = (href: string, exact?: boolean) =>
         exact ? pathname === href : pathname === href || pathname?.startsWith(href + "/");
 
     return (
         <nav className="flex-1 overflow-y-auto py-4">
-            <ul className="space-y-1 px-3">
+            <ul className={`space-y-1 ${collapsed ? "px-2" : "px-3"}`}>
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item.href, item.exact);
@@ -61,13 +66,15 @@ function NavLinks({ pathname, onNavigate }: { pathname: string | null; onNavigat
                             <Link
                                 href={item.href}
                                 onClick={onNavigate}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium font-[var(--font-inter)] transition-colors ${active
+                                title={collapsed ? item.label : undefined}
+                                aria-label={collapsed ? item.label : undefined}
+                                className={`flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium font-[var(--font-inter)] transition-colors ${collapsed ? "justify-center px-0" : "px-3"} ${active
                                     ? "bg-[var(--color-brand-blue)] text-white"
                                     : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)]"
                                     }`}
                             >
-                                <Icon className="w-4 h-4 shrink-0" />
-                                {item.label}
+                                <Icon className={`shrink-0 ${collapsed ? "w-5 h-5" : "w-4 h-4"}`} />
+                                {!collapsed && item.label}
                             </Link>
                         </li>
                     );
@@ -82,6 +89,29 @@ export function AdminSidebar() {
     const router = useRouter();
     const [supabase] = useState(() => createClient());
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
+
+    // Read the saved choice after mount (localStorage isn't available while
+    // rendering on the server).
+    useEffect(() => {
+        try {
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- restore a saved UI preference
+            if (window.localStorage.getItem(COLLAPSED_KEY) === "1") setCollapsed(true);
+        } catch {
+            /* storage blocked: keep the default */
+        }
+    }, []);
+
+    const toggleCollapsed = () => {
+        setCollapsed((c) => {
+            try {
+                window.localStorage.setItem(COLLAPSED_KEY, c ? "0" : "1");
+            } catch {
+                /* storage blocked: the choice lasts until reload */
+            }
+            return !c;
+        });
+    };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -129,21 +159,39 @@ export function AdminSidebar() {
                 </div>
             )}
 
-            {/* Desktop sidebar */}
-            <aside className="hidden md:flex md:flex-col md:w-64 md:h-screen md:sticky md:top-0 bg-[var(--color-paper-bg)] border-r border-[var(--color-line)]">
-                <div className="h-16 flex items-center gap-2 px-5 border-b border-[var(--color-line)]">
-                    <Image src="/RefaLearn-Logo.png" alt="" width={32} height={32} className="rounded-md" />
-                    <span className="font-[var(--font-kalam)] text-xl font-bold text-[var(--color-brand-blue)]">
-                        Refa Learn
-                    </span>
+            {/* Desktop sidebar — collapses to an icon rail */}
+            <aside
+                className={`hidden md:flex md:flex-col md:h-screen md:sticky md:top-0 shrink-0 bg-[var(--color-paper-bg)] border-r border-[var(--color-line)] transition-[width] duration-200 ${collapsed ? "md:w-[72px]" : "md:w-64"}`}
+            >
+                <div className={`h-16 flex items-center border-b border-[var(--color-line)] ${collapsed ? "justify-center px-2" : "gap-2 px-5"}`}>
+                    {!collapsed && (
+                        <>
+                            <Image src="/RefaLearn-Logo.png" alt="" width={32} height={32} className="rounded-md" />
+                            <span className="font-[var(--font-kalam)] text-xl font-bold text-[var(--color-brand-blue)] flex-1 truncate">
+                                Refa Learn
+                            </span>
+                        </>
+                    )}
+                    <button
+                        type="button"
+                        onClick={toggleCollapsed}
+                        aria-expanded={!collapsed}
+                        aria-label={collapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                        title={collapsed ? "Buka sidebar" : "Ciutkan sidebar"}
+                        className="p-2 rounded-lg text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-brand-blue)] transition-colors"
+                    >
+                        {collapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+                    </button>
                 </div>
-                <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-                <div className="p-3 border-t border-[var(--color-line)]">
+                <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} collapsed={collapsed} />
+                <div className={`border-t border-[var(--color-line)] ${collapsed ? "p-2" : "p-3"}`}>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium font-[var(--font-inter)] text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10 transition-colors"
+                        title={collapsed ? "Keluar" : undefined}
+                        aria-label={collapsed ? "Keluar" : undefined}
+                        className={`flex items-center gap-3 w-full py-2.5 rounded-lg text-sm font-medium font-[var(--font-inter)] text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10 transition-colors ${collapsed ? "justify-center px-0" : "px-3"}`}
                     >
-                        <LogOut className="w-4 h-4" /> Keluar
+                        <LogOut className={collapsed ? "w-5 h-5" : "w-4 h-4"} /> {!collapsed && "Keluar"}
                     </button>
                 </div>
             </aside>
