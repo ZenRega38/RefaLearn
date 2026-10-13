@@ -17,7 +17,11 @@ type Profile = {
   full_name: string;
   phone: string;
   birth_date?: string | null;
+  is_adult?: boolean | null;
   guardian_name?: string | null;
+  guardian_phone?: string | null;
+  school_name?: string | null;
+  nisn_nim?: string | null;
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -31,8 +35,26 @@ function StudentVerification({ profile }: { profile: Profile | null | undefined 
   const age = isValidBirthDate(profile.birth_date, today) ? ageOn(profile.birth_date, today) : null;
   return (
     <div className="mt-2 space-y-0.5 text-xs text-[var(--color-ink-soft)] max-w-xs">
-      {age !== null && <div>Usia {age} tahun</div>}
-      {profile.guardian_name && <div>Wali: <span className="text-[var(--color-ink)]">{profile.guardian_name}</span></div>}
+      {age !== null && <div>Usia {age} tahun{profile.is_adult ? " · menyatakan 21+" : ""}</div>}
+      {profile.school_name && (
+        <div>
+          Sekolah/kampus: <span className="text-[var(--color-ink)]">{profile.school_name}</span>
+          {profile.nisn_nim && <> · NISN/NIM <span className="text-[var(--color-ink)]">{profile.nisn_nim}</span></>}
+        </div>
+      )}
+      {(profile.guardian_name || profile.guardian_phone) && (
+        <div>
+          Wali: <span className="text-[var(--color-ink)]">{profile.guardian_name || "-"}</span>
+          {profile.guardian_phone && (
+            <>
+              {" "}·{" "}
+              <a href={`tel:${profile.guardian_phone.replace(/[^\d+]/g, "")}`} className="text-[var(--color-brand-blue)] hover:underline">
+                {profile.guardian_phone}
+              </a>
+            </>
+          )}
+        </div>
+      )}
       {profile.address && <div className="whitespace-pre-line">{profile.address}</div>}
       {isValidCoordinate(profile.latitude, profile.longitude) && (
         <a
@@ -95,7 +117,7 @@ export default function AdminSessionsPage() {
     setLoading(true);
     let query = supabase
       .from('sessions')
-      .select('*, profiles(full_name, phone, birth_date, guardian_name, address, latitude, longitude)');
+      .select('*, profiles(full_name, phone, birth_date, is_adult, guardian_name, guardian_phone, school_name, nisn_nim, address, latitude, longitude)');
 
     const today = todayStr();
 

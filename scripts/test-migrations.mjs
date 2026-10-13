@@ -243,5 +243,17 @@ await expectFail("students cannot fake an activity day", () => as("authenticated
 await expectFail("students cannot call record_activity", () => as("authenticated", S1,
   `select public.record_activity($1, '2026-10-13', true, true, 'quiz_passed', 'y', 500)`, [S1]), /permission denied/);
 
+console.log("\nProfile: guardian, school & NISN/NIM:");
+await expectOk("student saves guardian phone, school, NISN/NIM and the 21+ tick", () => as("authenticated", S1,
+  `update profiles set guardian_phone='081234567890', school_name='SMA Negeri 1 Tarakan', nisn_nim='0081234567', is_adult=true where id=$1`, [S1]));
+await expectOk("a campus NIM with dots is accepted", () => as("authenticated", S1,
+  `update profiles set nisn_nim='A11.2020.12345' where id=$1`, [S1]));
+await expectFail("NISN/NIM must be at least five characters", () => as("authenticated", S1,
+  `update profiles set nisn_nim='1234' where id=$1`, [S1]), /profiles_nisn_nim_format/);
+await expectFail("NISN/NIM rejects spaces and symbols", () => as("authenticated", S1,
+  `update profiles set nisn_nim='0081 2345; drop' where id=$1`, [S1]), /profiles_nisn_nim_format/);
+const otherProfile = await as("authenticated", S2, `select nisn_nim from profiles where id=$1`, [S1]);
+check(otherProfile.rows.length === 0 || otherProfile.rows[0].nisn_nim === null, "another student cannot read someone's NISN/NIM", JSON.stringify(otherProfile.rows));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);
