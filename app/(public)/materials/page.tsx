@@ -10,7 +10,7 @@ import { PillDropdown } from "@/components/ui/PillDropdown";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { Badge } from "@/components/ui/Badge";
 import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
-import { compareAtPrice } from "@/lib/pricing";
+import { validBefore } from "@/lib/pricing";
 import Link from "next/link";
 
 type Material = {
@@ -19,6 +19,7 @@ type Material = {
   slug: string;
   category: string;
   price: number;
+  compare_at_price: number | null;
   cover_image_url: string;
   description: string;
 };
@@ -181,7 +182,7 @@ export default function MaterialsCatalogPage() {
                     )}
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                       <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
-                      {compareAtPrice(material.price) && <Badge variant="coral" className="shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent">Promo</Badge>}
+                      {validBefore(material.price, material.compare_at_price) && <Badge variant="coral" className="shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent">Promo</Badge>}
                       {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">Dimiliki</Badge>}
                     </div>
                   </div>
@@ -192,7 +193,7 @@ export default function MaterialsCatalogPage() {
                     </h3>
 
                     <div className="mt-auto pt-4 flex items-end justify-between gap-3">
-                      <PriceTag price={material.price} size="md" stacked />
+                      <PriceTag price={material.price} before={material.compare_at_price} size="md" stacked />
                       <Button variant="ghost" size="sm" className="bg-[var(--color-accent-coral)]/10 text-[var(--color-accent-coral)] hover:bg-[var(--color-accent-coral)] hover:text-white px-3 transition-colors">
                         <ShoppingBag className="w-4 h-4 mr-2" /> Detail
                       </Button>

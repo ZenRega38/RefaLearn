@@ -53,7 +53,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     isFreeCourse(admin, slug),
     admin
       .from("materials")
-      .select("slug, price")
+      .select("slug, price, compare_at_price")
       .eq("course_slug", slug)
       .eq("is_active", true)
       .order("price", { ascending: true })
@@ -101,7 +101,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     quizSecondsPerQuestion: course.quizSecondsPerQuestion ?? null,
     loggedIn,
     access,
-    store: material ? { slug: material.slug, price: material.price } : null,
+    store: material ? { slug: material.slug, price: material.price, before: material.compare_at_price } : null,
     progress: { completed: unlocks.completedItems, total: unlocks.totalItems },
     levels: course.levels.map((level) => ({
       id: level.id,

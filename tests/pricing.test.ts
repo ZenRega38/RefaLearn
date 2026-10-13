@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareAtPrice, discountPercent, SESSION_PRICES } from "@/lib/pricing";
+import { compareAtPrice, discountPercent, SESSION_PRICES, validBefore } from "@/lib/pricing";
 
 describe("harga coret", () => {
   it("anchors every session price higher than the real one", () => {
@@ -8,10 +8,17 @@ describe("harga coret", () => {
     expect(compareAtPrice(SESSION_PRICES.sunday)).toBe(250000);
   });
 
-  it("anchors material prices and leaves others plain", () => {
-    expect([49000, 99000, 199000, 249000].map(compareAtPrice)).toEqual([100000, 150000, 300000, 400000]);
+  it("leaves non-session prices plain", () => {
+    expect(compareAtPrice(49000)).toBeNull();
     expect(compareAtPrice(0)).toBeNull();
-    expect(compareAtPrice(75000)).toBeNull();
+  });
+
+  it("only accepts a material's before price above its real price", () => {
+    expect(validBefore(49000, 100000)).toBe(100000);
+    expect(validBefore(0, 100000)).toBe(100000);
+    expect(validBefore(49000, 49000)).toBeNull();
+    expect(validBefore(49000, null)).toBeNull();
+    expect(discountPercent(0, 100000)).toBe(100);
   });
 
   it("rounds the discount percentage", () => {

@@ -682,6 +682,7 @@ body {
 
     .responsive-table td > * {
       grid-column: 2;
+      justify-self: start;
       min-width: 0;
       max-width: 100%;
     }
