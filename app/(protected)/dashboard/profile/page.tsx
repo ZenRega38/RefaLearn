@@ -7,7 +7,7 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { UserCircle, Phone, Mail, Lock, User, Calendar, Users, MapPin, LocateFixed, CheckCircle2, AlertCircle, ArrowRight, ExternalLink } from "lucide-react";
+import { UserCircle, Phone, Mail, Lock, User, Calendar, Users, MapPin, LocateFixed, CheckCircle2, AlertCircle, ArrowRight, ExternalLink, School, IdCard } from "lucide-react";
 import { todayStr } from "@/lib/time";
 import {
   ADULT_AGE,
@@ -17,9 +17,11 @@ import {
   googleMapsUrl,
   isValidBirthDate,
   isValidCoordinate,
+  isValidNisnNim,
   missingProfileFields,
   needsGuardian,
   parseCoordinates,
+  requiresGuardianContact,
   type ProfileCompletion,
 } from "@/lib/profile";
 
@@ -50,7 +52,11 @@ export default function StudentProfilePage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [isAdult, setIsAdult] = useState(false);
   const [guardianName, setGuardianName] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [nisnNim, setNisnNim] = useState("");
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -84,7 +90,11 @@ export default function StudentProfilePage() {
       setFullName(p?.full_name || "");
       setPhone(p?.phone || "");
       setBirthDate(p?.birth_date || "");
+      setIsAdult(!!p?.is_adult);
       setGuardianName(p?.guardian_name || "");
+      setGuardianPhone(p?.guardian_phone || "");
+      setSchoolName(p?.school_name || "");
+      setNisnNim(p?.nisn_nim || "");
       setAddress(p?.address || "");
       setLatitude(p?.latitude ?? null);
       setLongitude(p?.longitude ?? null);
@@ -94,7 +104,9 @@ export default function StudentProfilePage() {
   }, [supabase]);
 
   const hasLocation = isValidCoordinate(latitude, longitude);
-  const showGuardian = needsGuardian(birthDate, today);
+  // A birth date under 21 rules out the "21 and over" tick.
+  const minorByBirthDate = needsGuardian(birthDate, today);
+  const guardianRequired = requiresGuardianContact({ is_adult: isAdult, birth_date: birthDate }, today);
   const age = isValidBirthDate(birthDate, today) ? ageOn(birthDate, today) : null;
   const missingSaved = missingProfileFields(savedProfile, today);
   const isComplete = !loading && missingSaved.length === 0;
@@ -146,14 +158,25 @@ export default function StudentProfilePage() {
       setProfileMsg({ ok: false, text: "Tanggal lahir tidak valid." });
       return;
     }
+    if (isAdult && minorByBirthDate) {
+      setProfileMsg({ ok: false, text: `Tanggal lahirmu menunjukkan usia di bawah ${ADULT_AGE} tahun, jadi centang "${ADULT_AGE} tahun ke atas" tidak bisa dipakai.` });
+      return;
+    }
+    if (nisnNim.trim() && !isValidNisnNim(nisnNim)) {
+      setProfileMsg({ ok: false, text: "NISN/NIM tidak valid. Isi NISN 10 digit, atau NIM sesuai kartu mahasiswa (tanpa spasi)." });
+      return;
+    }
     setSavingProfile(true);
     setProfileMsg(null);
     const update: ProfileCompletion = {
       full_name: fullName.trim(),
       phone: phone.trim() || null,
       birth_date: birthDate || null,
-      // Only kept while it is required, so an adult profile carries no stale guardian.
-      guardian_name: showGuardian ? guardianName.trim() || null : null,
+      is_adult: isAdult && !minorByBirthDate,
+      guardian_name: guardianName.trim() || null,
+      guardian_phone: guardianPhone.trim() || null,
+      school_name: schoolName.trim() || null,
+      nisn_nim: nisnNim.trim() || null,
       address: address.trim() || null,
       latitude: hasLocation ? latitude : null,
       longitude: hasLocation ? longitude : null,
@@ -267,18 +290,70 @@ export default function StudentProfilePage() {
                 max={today}
                 onChange={(e) => setBirthDate(e.target.value)}
                 icon={<Calendar className="w-4 h-4" />}
-                helperText={age !== null ? `Usia ${age} tahun.` : `Jika usia di bawah ${ADULT_AGE} tahun, nama orang tua/wali wajib diisi.`}
+                helperText={age !== null ? `Usia ${age} tahun.` : undefined}
               />
-              {showGuardian && (
+              <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)] p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+                  <Users className="w-4 h-4 text-[var(--color-brand-blue)]" /> Orang Tua / Wali
+                </div>
+                <label className={`flex items-start gap-2.5 text-sm font-[var(--font-inter)] ${minorByBirthDate ? "opacity-60" : "cursor-pointer"}`}>
+                  <input
+                    type="checkbox"
+                    checked={isAdult && !minorByBirthDate}
+                    disabled={minorByBirthDate}
+                    onChange={(e) => setIsAdult(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[var(--color-brand-blue)]"
+                  />
+                  <span>
+                    <span className="font-semibold text-[var(--color-ink)]">Saya sudah berusia {ADULT_AGE} tahun ke atas</span>
+                    <span className="block text-xs text-[var(--color-ink-soft)]">
+                      {minorByBirthDate
+                        ? `Tanggal lahirmu menunjukkan usia di bawah ${ADULT_AGE} tahun, jadi data orang tua/wali wajib diisi.`
+                        : "Kalau dicentang, data orang tua/wali boleh dikosongkan."}
+                    </span>
+                  </span>
+                </label>
                 <Input
-                  label="Nama Orang Tua/Wali"
+                  label={`Nama Orang Tua/Wali${guardianRequired ? "" : " (opsional)"}`}
                   value={guardianName}
                   onChange={(e) => setGuardianName(e.target.value)}
-                  icon={<Users className="w-4 h-4" />}
-                  helperText={`Wajib karena usia di bawah ${ADULT_AGE} tahun.`}
+                  icon={<User className="w-4 h-4" />}
                   placeholder="Nama lengkap orang tua/wali"
                 />
-              )}
+                <Input
+                  label={`Nomor HP Orang Tua/Wali${guardianRequired ? "" : " (opsional)"}`}
+                  type="tel"
+                  value={guardianPhone}
+                  onChange={(e) => setGuardianPhone(e.target.value)}
+                  icon={<Phone className="w-4 h-4" />}
+                  placeholder="08xxxxxxxxxx"
+                  helperText={guardianRequired ? "Wajib untuk booking jadwal. Isi nomor yang aktif dan bisa dihubungi." : undefined}
+                />
+              </div>
+
+              <div className="space-y-3 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)] p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+                  <School className="w-4 h-4 text-[var(--color-brand-blue)]" /> Data Sekolah / Kampus
+                </div>
+                <Input
+                  label="Asal Sekolah / Kampus"
+                  value={schoolName}
+                  onChange={(e) => setSchoolName(e.target.value)}
+                  icon={<School className="w-4 h-4" />}
+                  placeholder="Contoh: SMA Negeri 1 Tarakan / Universitas Borneo Tarakan"
+                  helperText="Tempat kamu belajar sekarang, atau yang terakhir kalau sudah lulus."
+                />
+                <Input
+                  label="NISN / NIM"
+                  value={nisnNim}
+                  onChange={(e) => setNisnNim(e.target.value.replace(/\s/g, "").slice(0, 25))}
+                  icon={<IdCard className="w-4 h-4" />}
+                  maxLength={25}
+                  placeholder="NISN 10 digit atau NIM"
+                  error={nisnNim.length >= 5 && !isValidNisnNim(nisnNim) ? "Format NISN/NIM tidak valid." : undefined}
+                  helperText="NISN (10 digit, ada di kartu pelajar/rapor/ijazah) atau NIM kalau kuliah. Sudah lulus? Tetap isi NISN/NIM terakhirmu — datanya tetap bisa dicek tanpa NIK."
+                />
+              </div>
 
               <div className="w-full flex flex-col gap-1.5">
                 <label htmlFor="address" className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">

@@ -82,7 +82,7 @@ export function XpBadge() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="animate-xp-pop flex items-center gap-2 rounded-full bg-[var(--color-brand-blue)] text-white px-4 py-2 shadow-[var(--shadow-float)] text-sm font-bold"
+            className="animate-xp-pop flex items-center gap-2 whitespace-nowrap rounded-full bg-[var(--color-brand-blue)] text-white px-4 py-2 shadow-[var(--shadow-float)] text-sm font-bold"
             style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
           >
             <Zap className="w-4 h-4 fill-[var(--color-accent-yellow)] text-[var(--color-accent-yellow)]" />

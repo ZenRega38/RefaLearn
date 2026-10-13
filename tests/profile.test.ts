@@ -3,6 +3,7 @@ import {
   ageOn,
   isProfileComplete,
   isValidBirthDate,
+  isValidNisnNim,
   missingProfileFields,
   needsGuardian,
   parseCoordinates,
@@ -16,7 +17,11 @@ const adult: ProfileCompletion = {
   full_name: "Rega Rizkan",
   phone: "0812 3456 7890",
   birth_date: "2000-05-01",
+  is_adult: true,
   guardian_name: null,
+  guardian_phone: null,
+  school_name: "Universitas Borneo Tarakan",
+  nisn_nim: "1907051001",
   address: "Jl. Mulawarman No. 12, RT 03, Karang Anyar, Tarakan Barat",
   latitude: 3.3,
   longitude: 117.6,
@@ -48,31 +53,67 @@ describe("needsGuardian", () => {
 });
 
 describe("missingProfileFields", () => {
-  it("accepts a complete adult profile without a guardian", () => {
+  it("accepts a complete profile that ticked 21+ without guardian details", () => {
     expect(missingProfileFields(adult, TODAY)).toEqual([]);
     expect(isProfileComplete(adult, TODAY)).toBe(true);
   });
 
-  it("requires a guardian name for students under 21", () => {
+  it("requires guardian name and phone when the 21+ box is not ticked", () => {
+    const unticked = { ...adult, is_adult: false };
+    expect(missingProfileFields(unticked, TODAY)).toEqual(["Nama orang tua/wali", "Nomor HP orang tua/wali"]);
+    expect(isProfileComplete({ ...unticked, guardian_name: "Siti Aminah", guardian_phone: "0812 9876 5432" }, TODAY)).toBe(true);
+  });
+
+  it("does not let a minor skip the guardian by ticking 21+", () => {
     const minor = { ...adult, birth_date: "2012-03-15" };
     expect(missingProfileFields(minor, TODAY)).toEqual([
-      "Nama orang tua/wali (wajib untuk usia di bawah 21 tahun)",
+      'Centang "di atas 21 tahun" tidak sesuai tanggal lahir',
+      "Nama orang tua/wali",
+      "Nomor HP orang tua/wali",
     ]);
-    expect(isProfileComplete({ ...minor, guardian_name: "Siti Aminah" }, TODAY)).toBe(true);
+    expect(isProfileComplete({ ...minor, is_adult: false, guardian_name: "Siti Aminah", guardian_phone: "081298765432" }, TODAY)).toBe(true);
+  });
+
+  it("requires a school or campus and a NISN/NIM", () => {
+    expect(missingProfileFields({ ...adult, school_name: null, nisn_nim: null }, TODAY)).toEqual(["Asal sekolah/kampus", "NISN/NIM"]);
   });
 
   it("lists every missing field for a fresh account", () => {
     expect(
       missingProfileFields(
-        { full_name: "Budi", phone: null, birth_date: null, guardian_name: null, address: null, latitude: null, longitude: null },
+        { full_name: "Budi", phone: null, birth_date: null, is_adult: false, guardian_name: null, guardian_phone: null, school_name: null, nisn_nim: null, address: null, latitude: null, longitude: null },
         TODAY
       )
-    ).toEqual(["Nomor WhatsApp", "Tanggal lahir", "Alamat lengkap domisili", "Titik lokasi (koordinat)"]);
+    ).toEqual([
+      "Nomor WhatsApp",
+      "Tanggal lahir",
+      "Nama orang tua/wali",
+      "Nomor HP orang tua/wali",
+      "Asal sekolah/kampus",
+      "NISN/NIM",
+      "Alamat lengkap domisili",
+      "Titik lokasi (koordinat)",
+    ]);
   });
 
   it("rejects a too-short address and a 0,0 location", () => {
     expect(missingProfileFields({ ...adult, address: "Tarakan" }, TODAY)).toEqual(["Alamat lengkap domisili"]);
     expect(missingProfileFields({ ...adult, latitude: 0, longitude: 0 }, TODAY)).toEqual(["Titik lokasi (koordinat)"]);
+  });
+});
+
+describe("isValidNisnNim", () => {
+  it("accepts a 10-digit NISN and campus NIM formats", () => {
+    expect(isValidNisnNim("0081234567")).toBe(true);
+    expect(isValidNisnNim("A11.2020.12345")).toBe(true);
+    expect(isValidNisnNim("19/445566/SA/12345")).toBe(true);
+  });
+
+  it("rejects short, spaced or digit-less values", () => {
+    expect(isValidNisnNim("1234")).toBe(false);
+    expect(isValidNisnNim("0081 234567")).toBe(false);
+    expect(isValidNisnNim("ABCDEFG")).toBe(false);
+    expect(isValidNisnNim(null)).toBe(false);
   });
 });
 

@@ -1,9 +1,11 @@
 /**
  * Profile completeness rules for booking a class.
  *
- * Any logged-in student can grab free materials, but booking a schedule
- * needs a complete profile so the admin can verify the student by hand
- * before accepting the booking. Shared by the profile page, the schedule
+ * Any logged-in student can grab free or paid materials with an incomplete
+ * profile, but booking a schedule needs a complete one so the admin can
+ * verify the student by hand before accepting the booking: contact details,
+ * school or campus and NISN/NIM, domicile, and a parent/guardian's name and phone — unless
+ * the student declares they are over 21. Shared by the profile page, the schedule
  * page and POST /api/bookings so all three agree on what "complete" means.
  */
 
@@ -13,13 +15,19 @@ export const ADULT_AGE = 21;
 export const MIN_ADDRESS_LENGTH = 15;
 
 /** Columns to select from `profiles` for a completeness check. */
-export const PROFILE_COMPLETION_COLUMNS = "full_name, phone, birth_date, guardian_name, address, latitude, longitude";
+export const PROFILE_COMPLETION_COLUMNS =
+  "full_name, phone, birth_date, is_adult, guardian_name, guardian_phone, school_name, nisn_nim, address, latitude, longitude";
 
 export type ProfileCompletion = {
   full_name: string | null;
   phone: string | null;
   birth_date: string | null;
+  /** The student ticked "I am over 21": guardian details become optional. */
+  is_adult: boolean | null;
   guardian_name: string | null;
+  guardian_phone: string | null;
+  school_name: string | null;
+  nisn_nim: string | null;
   address: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -49,6 +57,33 @@ export function needsGuardian(birthDate: string | null | undefined, today: strin
   return isValidBirthDate(birthDate, today) && ageOn(birthDate, today) < ADULT_AGE;
 }
 
+/** The "over 21" tick contradicts a birth date that says otherwise. */
+export function adultClaimConflicts(p: Pick<Partial<ProfileCompletion>, "is_adult" | "birth_date">, today: string): boolean {
+  return !!p.is_adult && needsGuardian(p.birth_date, today);
+}
+
+/** Guardian name and phone are needed unless the student credibly ticked "over 21". */
+export function requiresGuardianContact(p: Pick<Partial<ProfileCompletion>, "is_adult" | "birth_date">, today: string): boolean {
+  return !p.is_adult || adultClaimConflicts(p, today);
+}
+
+export const digitsOf = (value: string | null | undefined) => (value ?? "").replace(/\D/g, "");
+
+export function isValidPhone(value: string | null | undefined): boolean {
+  return digitsOf(value).length >= 9;
+}
+
+/**
+ * NISN (school, 10 digits) or NIM (university, format varies by campus).
+ * Either can be checked against national records even after graduating,
+ * without asking for a NIK. Accepts 5–25 letters, digits, dots, dashes or
+ * slashes with at least five digits.
+ */
+export function isValidNisnNim(value: string | null | undefined): boolean {
+  const v = (value ?? "").trim();
+  return /^[A-Za-z0-9./-]{5,25}$/.test(v) && digitsOf(v).length >= 5;
+}
+
 export function isValidCoordinate(lat: number | null | undefined, lng: number | null | undefined): boolean {
   return (
     typeof lat === "number" &&
@@ -71,12 +106,17 @@ export function missingProfileFields(p: Partial<ProfileCompletion> | null | unde
   const missing: string[] = [];
   if (!p) return ["Data profil"];
   if (!p.full_name || p.full_name.trim().length < 2) missing.push("Nama lengkap");
-  if (!p.phone || p.phone.replace(/\D/g, "").length < 9) missing.push("Nomor WhatsApp");
-  if (!isValidBirthDate(p.birth_date, today)) {
-    missing.push("Tanggal lahir");
-  } else if (needsGuardian(p.birth_date, today) && (!p.guardian_name || p.guardian_name.trim().length < 2)) {
-    missing.push(`Nama orang tua/wali (wajib untuk usia di bawah ${ADULT_AGE} tahun)`);
+  if (!isValidPhone(p.phone)) missing.push("Nomor WhatsApp");
+  if (!isValidBirthDate(p.birth_date, today)) missing.push("Tanggal lahir");
+  if (adultClaimConflicts(p, today)) {
+    missing.push(`Centang "di atas ${ADULT_AGE} tahun" tidak sesuai tanggal lahir`);
   }
+  if (requiresGuardianContact(p, today)) {
+    if (!p.guardian_name || p.guardian_name.trim().length < 2) missing.push("Nama orang tua/wali");
+    if (!isValidPhone(p.guardian_phone)) missing.push("Nomor HP orang tua/wali");
+  }
+  if (!p.school_name || p.school_name.trim().length < 3) missing.push("Asal sekolah/kampus");
+  if (!isValidNisnNim(p.nisn_nim)) missing.push("NISN/NIM");
   if (!p.address || p.address.trim().length < MIN_ADDRESS_LENGTH) missing.push("Alamat lengkap domisili");
   if (!isValidCoordinate(p.latitude, p.longitude)) missing.push("Titik lokasi (koordinat)");
   return missing;
