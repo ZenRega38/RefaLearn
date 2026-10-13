@@ -650,8 +650,12 @@ body {
       width: 100%;
     }
 
+    .responsive-table tbody {
+      padding: 0.75rem;
+    }
+
     .responsive-table tbody tr {
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
       border: 1px solid var(--color-line);
       border-radius: var(--radius-card);
       overflow: hidden;
@@ -662,14 +666,24 @@ body {
       margin-bottom: 0;
     }
 
+    /* Label kolom di kiri (kolom 1), isi sel di kanan (kolom 2), rata kiri.
+       Isi yang lebih dari satu elemen (mis. judul + slug) tetap bertumpuk,
+       dan teks panjang dibungkus, bukan dipotong. */
     .responsive-table td {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.75rem 1rem !important;
+      display: grid;
+      grid-template-columns: 5.5rem minmax(0, 1fr);
+      column-gap: 0.75rem;
+      align-items: start;
+      padding: 0.6rem 1rem !important;
       border-bottom: 1px dashed var(--color-line);
-      text-align: right;
+      text-align: left !important;
+      overflow-wrap: anywhere;
+    }
+
+    .responsive-table td > * {
+      grid-column: 2;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .responsive-table td:last-child {
@@ -678,12 +692,36 @@ body {
 
     .responsive-table td::before {
       content: attr(data-label);
+      grid-column: 1;
+      grid-row: 1 / span 6;
       font-weight: 600;
       font-size: 0.75rem;
       color: var(--color-ink-soft);
       text-align: left;
-      white-space: nowrap;
-      padding-top: 0.1rem;
+      padding-top: 0.15rem;
+    }
+
+    /* Kolom pertama jadi judul kartu: tanpa label, selebar kartu. */
+    .responsive-table td:first-child {
+      display: block;
+      background: var(--color-paper-bg-alt);
+      padding: 0.75rem 1rem !important;
+    }
+
+    .responsive-table td:first-child::before {
+      content: none;
+    }
+
+    /* Tombol aksi & isi yang di desktop rata kanan/tengah: di kartu rata kiri. */
+    .responsive-table td .justify-end,
+    .responsive-table td .justify-center {
+      justify-content: flex-start;
+    }
+
+    .responsive-table td .truncate {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
     }
 
     /* Baris header rangkaian & baris "Memuat/Kosong" (colSpan) gak usah

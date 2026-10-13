@@ -241,7 +241,7 @@ export default function CourseHomePage() {
                     {(() => {
                       const p = level.pretest;
                       const row = (
-                        <div className={`flex items-center gap-4 p-4 font-[var(--font-inter)] bg-[var(--color-accent-yellow)]/10 ${p.unlocked ? "hover:bg-[var(--color-accent-yellow)]/20" : "opacity-60"}`}>
+                        <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 font-[var(--font-inter)] bg-[var(--color-accent-yellow)]/10 ${p.unlocked ? "hover:bg-[var(--color-accent-yellow)]/20" : "opacity-60"}`}>
                           <span className="w-8 h-8 rounded-full bg-[var(--color-accent-yellow)] flex items-center justify-center shrink-0">
                             {p.passed ? <CheckCircle2 className="w-5 h-5 text-white" /> : p.unlocked ? <Target className="w-4 h-4 text-white" /> : <Lock className="w-4 h-4 text-white" />}
                           </span>
@@ -260,7 +260,7 @@ export default function CourseHomePage() {
                 )}
                 {level.lessons.map((lesson, i) => {
                   const row = (
-                    <div className={`flex items-center gap-4 p-4 font-[var(--font-inter)] ${lesson.unlocked ? "hover:bg-[var(--color-paper-bg-alt)]/60" : "opacity-60"}`}>
+                    <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 font-[var(--font-inter)] ${lesson.unlocked ? "hover:bg-[var(--color-paper-bg-alt)]/60" : "opacity-60"}`}>
                       <span className="w-8 h-8 rounded-full border-2 border-[var(--color-line)] flex items-center justify-center text-xs font-bold text-[var(--color-ink-soft)] shrink-0">
                         {lesson.done ? <CheckCircle2 className="w-5 h-5 text-[var(--color-success-green)]" /> : lesson.unlocked ? i + 1 : <Lock className="w-4 h-4" />}
                       </span>
@@ -268,8 +268,8 @@ export default function CourseHomePage() {
                         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-soft)]">
                           <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {t.skills[lesson.skill]}{lesson.minutes ? ` · ${t.minutes(lesson.minutes)}` : ""}
                         </div>
-                        <p className="font-semibold text-[var(--color-ink)] truncate">{lesson.title}</p>
-                        <p className="text-xs text-[var(--color-ink-soft)] line-clamp-1">{lesson.summary}</p>
+                        <p className="font-semibold text-[var(--color-ink)] leading-snug">{lesson.title}</p>
+                        <p className="text-xs text-[var(--color-ink-soft)] line-clamp-2 sm:line-clamp-1">{lesson.summary}</p>
                       </div>
                     </div>
                   );
@@ -279,7 +279,7 @@ export default function CourseHomePage() {
                   {(() => {
                     const q = level.quiz;
                     const row = (
-                      <div className={`flex items-center gap-4 p-4 font-[var(--font-inter)] bg-[var(--color-brand-blue)]/5 ${q.unlocked ? "hover:bg-[var(--color-brand-blue)]/10" : "opacity-60"}`}>
+                      <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 font-[var(--font-inter)] bg-[var(--color-brand-blue)]/5 ${q.unlocked ? "hover:bg-[var(--color-brand-blue)]/10" : "opacity-60"}`}>
                         <span className="w-8 h-8 rounded-full bg-[var(--color-brand-blue)] flex items-center justify-center shrink-0">
                           {q.passed ? <CheckCircle2 className="w-5 h-5 text-white" /> : q.unlocked ? <ClipboardCheck className="w-4 h-4 text-white" /> : <Lock className="w-4 h-4 text-white" />}
                         </span>

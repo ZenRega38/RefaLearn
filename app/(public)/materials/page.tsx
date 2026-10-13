@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { PillDropdown } from "@/components/ui/PillDropdown";
 import { Badge } from "@/components/ui/Badge";
 import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
@@ -115,20 +116,12 @@ export default function MaterialsCatalogPage() {
 
         {/* Filters & Search */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/50 p-4 rounded-xl border border-[var(--color-line)] shadow-sm">
-          <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar">
-            {filters.map(f => (
-              <button
-                key={f.key}
-                onClick={() => setSelectedCategory(f.key)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${selectedCategory === f.key
-                  ? 'bg-[var(--color-brand-blue)] text-white'
-                  : 'bg-white border border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]'
-                  }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <PillDropdown
+            options={filters}
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+            className="w-full md:w-auto"
+          />
 
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-soft)]" />

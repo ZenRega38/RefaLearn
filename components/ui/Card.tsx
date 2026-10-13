@@ -13,7 +13,11 @@ export function Card({
   className = "",
   onClick,
 }: CardProps) {
-  const baseClass = "bg-white rounded-[var(--radius-card)] p-6 transition-all duration-300";
+  // A padding passed in (p-0, p-4, …) replaces the default p-6. Both would
+  // otherwise land in the class list and the CSS order, not the caller,
+  // would decide which one wins.
+  const customPadding = /(^|\s)p-(\d|\[)/.test(className);
+  const baseClass = `bg-white rounded-[var(--radius-card)] ${customPadding ? "" : "p-6 "}transition-all duration-300`;
 
   const variantClasses = {
     default: "border border-[var(--color-line)] shadow-sm",

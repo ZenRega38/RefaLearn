@@ -135,12 +135,11 @@ export default function StudentMaterialsDashboard() {
   };
 
   return (
-    <PaperBackground className="pt-24 pb-20 min-h-screen">
+    <PaperBackground className="pt-8 md:pt-12 pb-20 min-h-screen">
       <div className="container-main max-w-4xl mx-auto space-y-8">
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" href="/dashboard" className="px-2">← Kembali</Button>
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
               <BookOpen className="w-8 h-8 text-[var(--color-brand-blue)]" /> Materi Saya
             </h1>

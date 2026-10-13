@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
+import { PillDropdown } from "@/components/ui/PillDropdown";
 import { splitCategories } from "@/lib/format";
 import { Calendar, ArrowRight, LayoutGrid, List } from "lucide-react";
 
@@ -28,20 +29,12 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold font-[var(--font-inter)] transition-colors ${category === cat
-                ? "bg-[var(--color-brand-blue)] text-white"
-                : "bg-white border border-[var(--color-line)] text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]"
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        <PillDropdown
+          options={categories.map((c) => ({ key: c, label: c }))}
+          value={category}
+          onChange={setCategory}
+          className="w-full md:w-auto"
+        />
         <div className="flex gap-1 bg-white border border-[var(--color-line)] rounded-full p-1 shrink-0">
           <button
             onClick={() => setView("grid")}

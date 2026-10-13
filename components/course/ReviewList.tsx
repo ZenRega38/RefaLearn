@@ -29,7 +29,7 @@ export function ReviewList({ items, passages = [], numberFrom = 1 }: { items: Re
             <button onClick={() => setOpen(isOpen ? null : item.id)} className="w-full flex items-center gap-3 p-3 text-left hover:bg-[var(--color-paper-bg-alt)]/60">
               {item.correct ? <CheckCircle2 className="w-5 h-5 text-[var(--color-success-green)] shrink-0" /> : <XCircle className="w-5 h-5 text-[var(--color-danger-red)] shrink-0" />}
               <span className="text-sm font-semibold text-[var(--color-ink)] w-8">{n}.</span>
-              <span className="text-sm text-[var(--color-ink-soft)] flex-1 truncate">
+              <span className="text-sm text-[var(--color-ink-soft)] flex-1 min-w-0 line-clamp-2 sm:truncate">
                 {item.response ? (item.correct ? t.right : t.wrong) : t.unanswered} · {t.key} {answerText(item.question)}
               </span>
               <ChevronDown className={`w-4 h-4 text-[var(--color-ink-soft)] transition-transform ${isOpen ? "rotate-180" : ""}`} />
