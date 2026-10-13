@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
+import { XpBadge } from "@/components/gamification/XpBadge";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -110,6 +111,10 @@ export function Navbar() {
             })}
           </ul>
 
+          <div className="flex items-center gap-2 md:gap-3">
+          {/* XP & streak (signed in) — one instance for desktop and mobile */}
+          {profile && <XpBadge key={profile.id} />}
+
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             {authLoading ? null : profile ? (
@@ -173,6 +178,7 @@ export function Navbar() {
                 }`}
             />
           </button>
+          </div>
         </nav>
       </header>
 

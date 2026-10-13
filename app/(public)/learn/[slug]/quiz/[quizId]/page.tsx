@@ -13,6 +13,7 @@ import type { Passage, PublicQuestion, Response } from "@/lib/course/types";
 import { Picture } from "@/components/course/pictures";
 import { useCourseText } from "@/components/course/lang";
 import { ArrowLeft, ArrowRight, RefreshCw, Trophy, RotateCcw, ClipboardCheck } from "lucide-react";
+import { announceXp } from "@/lib/gamification";
 
 type QuizPayload = {
   isPretest: boolean;
@@ -108,6 +109,7 @@ export default function LevelQuizPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setResult(json);
+      announceXp(json.xp, json.isPretest ? "Pretest selesai" : json.passed ? "Quiz lulus" : "Quiz selesai");
     } catch (err) {
       alert(err instanceof Error ? err.message : t.submitFailed);
     } finally {

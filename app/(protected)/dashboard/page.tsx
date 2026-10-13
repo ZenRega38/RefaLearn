@@ -19,6 +19,7 @@ import { FREE_CANCELLATION_NOTICE_HOURS } from "@/lib/policy";
 import { uploadPaymentProof } from "@/lib/storage";
 import { dateStrToLocalDate, localDateToDateStr, APP_TIMEZONE_LABEL } from "@/lib/time";
 import { formatDateStr, hhmm } from "@/lib/format";
+import { ProgressCard } from "@/components/gamification/ProgressCard";
 import { CalendarCheck, Clock, RefreshCw, AlertTriangle, Repeat, X, Info, Wallet, FileText } from "lucide-react";
 
 type SessionRow = {
@@ -396,6 +397,8 @@ export default function StudentSessionsDashboard() {
             </Button>
           </div>
         </div>
+
+        <ProgressCard />
 
         {totalUnpaidFee > 0 && (
           <div className="flex items-start gap-3 p-4 rounded-[var(--radius-card)] bg-amber-50 border border-amber-300 text-amber-800 font-[var(--font-inter)] text-sm">

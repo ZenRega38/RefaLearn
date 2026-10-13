@@ -4,6 +4,8 @@ import { getExam } from "@/lib/course/content";
 import { toPublicQuestion } from "@/lib/course/grading";
 import { buildExamResult, courseContext, examMinutes } from "@/lib/course/server";
 import type { Exam, ExamKind, Response } from "@/lib/course/types";
+import { recordActivity } from "@/lib/gamification-server";
+import { XP } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +138,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       .eq("id", attempt.id);
     if (error) return jsonError(error.message, 500);
 
-    return NextResponse.json({ result, layout: layoutOf(ctx.exam) });
+    const xp = await recordActivity(ctx.admin, ctx.user.id, { study: true, award: { source: "exam", ref: `${slug}:${ctx.kind}`, xp: XP.exam } });
+    return NextResponse.json({ result, layout: layoutOf(ctx.exam), xp });
   }
 
   return jsonError("Aksi tidak dikenal.");

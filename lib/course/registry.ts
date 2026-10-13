@@ -32,6 +32,11 @@ export const COURSES = [
   { slug: "business-english", title: "Business English (B1–B2)", uiLang: "en" },
   // English Day runs its whole quiz experience in English (see ui-text.ts).
   { slug: "english-day", title: "English Day — Everyday English for Work", uiLang: "en" },
+  // EA Champion English Olympiad: one module per tutoring session, each its own store material.
+  { slug: "eac-olympiad-1", title: "Modul 1 EA Champion - Olympiad", uiLang: "en" },
+  { slug: "eac-olympiad-2", title: "Modul 2 EA Champion - Olympiad", uiLang: "en" },
+  { slug: "eac-olympiad-3", title: "Modul 3 EA Champion - Olympiad", uiLang: "en" },
+  { slug: "eac-olympiad-4", title: "Modul 4 EA Champion - Olympiad", uiLang: "en" },
 ] as const satisfies readonly Entry[];
 
 export type CourseSlug = (typeof COURSES)[number]["slug"];

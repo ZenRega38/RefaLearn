@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { jsonError } from "@/lib/api-auth";
 import { findLesson } from "@/lib/course/content";
 import { courseContext } from "@/lib/course/server";
+import { recordActivity } from "@/lib/gamification-server";
+import { XP } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +23,12 @@ export async function GET(_req: Request, { params }: Params) {
   if (!found) return jsonError("Materi tidak ditemukan.", 404);
   if (!ctx.unlocks.unlocked.has(lessonId)) return jsonError("Selesaikan materi sebelumnya terlebih dahulu.", 403);
 
+  // Reading a lesson counts as a study day (and pays a little XP the first time).
+  const xp = await recordActivity(ctx.admin, ctx.user.id, { study: true, award: { source: "lesson_read", ref: `${slug}:${lessonId}`, xp: XP.lessonRead } });
+
   const lessons = found.level.lessons;
   return NextResponse.json({
+    xp,
     lesson: found.lesson,
     level: { id: found.level.id, title: found.level.title },
     position: { index: found.index, total: lessons.length },
@@ -60,5 +66,6 @@ export async function POST(_req: Request, { params }: Params) {
   );
   if (error) return jsonError(error.message, 500);
 
-  return NextResponse.json({ ok: true });
+  const xp = await recordActivity(ctx.admin, ctx.user.id, { study: true, award: { source: "lesson_done", ref: `${slug}:${lessonId}`, xp: XP.lessonDone } });
+  return NextResponse.json({ ok: true, xp });
 }
