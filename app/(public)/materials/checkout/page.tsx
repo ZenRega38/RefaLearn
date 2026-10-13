@@ -8,8 +8,9 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { BookOpen, ArrowLeft, Trash2, ShoppingCart } from "lucide-react";
-import { formatPrice } from "@/lib/pricing";
+import { compareAtPrice, formatPrice } from "@/lib/pricing";
 import { clearCart, removeFromCart, useCart } from "@/lib/cart";
 
 type CartItem = { id: string; title: string; slug: string; category: string; price: number; cover_image_url: string | null };
@@ -41,6 +42,7 @@ export default function CheckoutPage() {
   }, [cart, supabase]);
 
   const total = items.reduce((sum, i) => sum + i.price, 0);
+  const totalBefore = items.reduce((sum, i) => sum + (compareAtPrice(i.price) ?? i.price), 0);
 
   const handleCheckout = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -102,12 +104,16 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <Badge variant="amber" className="mb-1 text-[10px] px-1.5 py-0">{item.category}</Badge>
-                    <Link href={`/materials/${item.slug}`} className="block font-bold text-[var(--color-ink)] font-[var(--font-inter)] truncate hover:text-[var(--color-brand-blue)]">
+                    <Link href={`/materials/${item.slug}`} className="block font-bold text-[var(--color-ink)] font-[var(--font-inter)] leading-snug line-clamp-2 hover:text-[var(--color-brand-blue)]">
                       {item.title}
                     </Link>
+                    {/* Phones: price under the title, so the title keeps its width. */}
+                    <div className="mt-1 sm:hidden">
+                      <PriceTag price={item.price} size="sm" />
+                    </div>
                   </div>
-                  <div className="font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)] whitespace-nowrap">
-                    {item.price === 0 ? "Gratis" : formatPrice(item.price)}
+                  <div className="hidden sm:block whitespace-nowrap">
+                    <PriceTag price={item.price} size="sm" stacked align="end" />
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="px-2 text-[var(--color-danger-red)]" aria-label="Hapus dari keranjang">
                     <Trash2 className="w-4 h-4" />
@@ -118,7 +124,16 @@ export default function CheckoutPage() {
             <div className="bg-[var(--color-paper-bg-alt)] border-t border-[var(--color-line)] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="font-[var(--font-inter)]">
                 <div className="text-sm text-[var(--color-ink-soft)]">Total ({items.length} materi)</div>
+                {totalBefore > total && (
+                  <div className="text-sm text-[var(--color-ink-soft)] line-through">{formatPrice(totalBefore)}</div>
+                )}
                 <div className="text-2xl font-bold text-[var(--color-brand-blue)]">{formatPrice(total)}</div>
+                {totalBefore > total && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-[var(--color-success-green)]">Kamu hemat {formatPrice(totalBefore - total)}</span>
+                    <LimitedOffer />
+                  </div>
+                )}
                 <p className="text-xs text-[var(--color-ink-soft)] mt-1">
                   Setelah pesanan dibuat, kamu langsung diarahkan ke halaman pembayaran QRIS & upload bukti.
                 </p>

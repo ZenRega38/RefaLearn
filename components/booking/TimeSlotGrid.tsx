@@ -1,8 +1,9 @@
 "use client";
 
+import { PriceTag } from "@/components/ui/PriceTag";
 import { Slot } from "@/lib/rrule-helpers";
 import { Clock } from "lucide-react";
-import { formatPrice, getSessionPrice } from "@/lib/pricing";
+import { getSessionPrice } from "@/lib/pricing";
 import { APP_TIMEZONE_LABEL } from "@/lib/time";
 
 interface TimeSlotGridProps {
@@ -59,9 +60,7 @@ export function TimeSlotGrid({ slots, selectedSlot, onSelect, isLoading = false 
               <span className={`text-[10px] font-normal ${isSelected ? 'text-white/80' : 'text-[var(--color-ink-soft)]'}`}>{APP_TIMEZONE_LABEL}</span>
             </div>
 
-            <div className={`text-xs ${isSelected ? 'text-white/90' : 'text-[var(--color-ink-soft)]'}`}>
-              {formatPrice(price)}
-            </div>
+            <PriceTag price={price} size="sm" stacked align="center" inverted={isSelected} />
           </button>
         );
       })}

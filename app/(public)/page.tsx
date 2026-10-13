@@ -8,7 +8,8 @@ import { SketchUnderline } from "@/components/sketch/SketchUnderline";
 import { SketchDivider } from "@/components/sketch/SketchDivider";
 import { Calendar, BookOpen, MessageCircle, FileText, CheckCircle2, ArrowRight } from "lucide-react";
 import { createPublicClient } from "@/lib/supabase/public";
-import { SESSION_PRICES, formatPrice } from "@/lib/pricing";
+import { SESSION_PRICES } from "@/lib/pricing";
+import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { formatTimestamp } from "@/lib/format";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
 
@@ -182,6 +183,7 @@ export default async function Home() {
                 <div className="bg-[var(--color-brand-blue)] px-6 py-4 text-center">
                   <h3 className="text-white font-bold font-[var(--font-inter)] text-2xl mb-1">Paket Privat 1-on-1</h3>
                   <p className="text-orange-400 text-base sm:text-lg font-[var(--font-kalam)]">Harga per Sesi Private 90 Menit</p>
+                  <LimitedOffer inverted className="mt-2" />
                 </div>
                 <div className="p-4 sm:p-6 bg-white overflow-x-auto">
                   <table className="w-full border-collapse text-sm sm:text-base">
@@ -203,8 +205,8 @@ export default async function Home() {
                         <td className="py-3 border-b border-dashed border-[var(--color-line)] font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
                           Senin - Jumat
                         </td>
-                        <td className="py-3 text-center border-b border-dashed border-[var(--color-line)] font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                          {formatPrice(SESSION_PRICES.weekday)}
+                        <td className="py-3 text-center border-b border-dashed border-[var(--color-line)]">
+                          <PriceTag price={SESSION_PRICES.weekday} size="md" stacked align="center" />
                         </td>
                         <td rowSpan={2} className="py-3 text-center align-middle border-b border-dashed border-l border-[var(--color-line)] font-bold font-[var(--font-inter)] text-[var(--color-ink-soft)]">
                           Rp 736.250*
@@ -214,8 +216,8 @@ export default async function Home() {
                         <td className="py-3 border-b border-dashed border-[var(--color-line)] font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
                           Sabtu
                         </td>
-                        <td className="py-3 text-center border-b border-dashed border-[var(--color-line)] font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                          {formatPrice(SESSION_PRICES.saturday)}
+                        <td className="py-3 text-center border-b border-dashed border-[var(--color-line)]">
+                          <PriceTag price={SESSION_PRICES.saturday} size="md" stacked align="center" />
                         </td>
                       </tr>
                       <tr>
@@ -223,7 +225,7 @@ export default async function Home() {
                           Minggu
                         </td>
                         <td className="py-3 text-center font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                          <SketchCircleHighlight color="var(--color-accent-coral)" strokeWidth={2} padding={5}>{formatPrice(SESSION_PRICES.sunday)}</SketchCircleHighlight>
+                          <PriceTag price={SESSION_PRICES.sunday} size="md" stacked align="center" />
                         </td>
                         <td className="py-3 text-center border-l border-[var(--color-line)] font-bold font-[var(--font-inter)] text-[var(--color-ink-soft)]">
                           ✕ Tutup
