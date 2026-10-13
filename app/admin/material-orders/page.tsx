@@ -10,6 +10,8 @@ import { ShoppingBag, Check, X, RefreshCw, ExternalLink } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import { getSignedProofUrl } from "@/lib/storage";
 import { formatTimestamp, isSafeHttpUrl } from "@/lib/format";
+import { orderCode } from "@/lib/payments";
+import { freshChannel } from "@/lib/supabase/realtime-channel";
 
 type Order = {
   id: string;
@@ -52,8 +54,9 @@ export default function AdminMaterialOrdersPage() {
     }
   };
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
+  // `quiet` refreshes (live updates) keep the table on screen.
+  const fetchOrders = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     let query = supabase
       .from('material_orders')
       .select('*, profiles(full_name, phone)')
@@ -83,6 +86,16 @@ export default function AdminMaterialOrdersPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- data load on filter change
     fetchOrders();
   }, [fetchOrders]);
+
+  // New proofs and status changes show up without a refresh.
+  useEffect(() => {
+    const channel = freshChannel(supabase, 'admin_material_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'material_orders' }, () => fetchOrders(true))
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchOrders]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase
@@ -134,7 +147,7 @@ export default function AdminMaterialOrdersPage() {
               <option value="confirmed">Lunas & Selesai</option>
               <option value="all">Semua Pembelian</option>
             </select>
-            <Button variant="ghost" onClick={fetchOrders} size="sm" className="px-3" aria-label="Muat ulang">
+            <Button variant="ghost" onClick={() => fetchOrders()} size="sm" className="px-3" aria-label="Muat ulang">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -164,6 +177,7 @@ export default function AdminMaterialOrdersPage() {
                         <div className="font-bold text-[var(--color-ink)]">
                           {formatTimestamp(order.created_at, 'dd MMM yyyy HH:mm')}
                         </div>
+                        <div className="text-[0.7rem] font-bold tracking-wider text-[var(--color-ink-soft)]">{orderCode(order.id)}</div>
                         <ul className="text-xs text-[var(--color-ink-soft)] mt-1 space-y-0.5">
                           {order.material_ids.map((mid) => (
                             <li key={mid}>• {titles[mid] || 'Materi dihapus'}</li>
