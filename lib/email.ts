@@ -2,6 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { APP_TIMEZONE_LABEL } from "@/lib/time";
+import { siteUrl } from "@/lib/site";
 
 // Server-only. RESEND_API_KEY and the service-role client must never reach
 // the browser bundle — the `server-only` import enforces that at build time.
@@ -9,7 +10,6 @@ import { APP_TIMEZONE_LABEL } from "@/lib/time";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Refa Learn <onboarding@resend.dev>";
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 
 /** Escapes user-supplied text before it goes into email HTML. */
 export function escapeHtml(value: string): string {
@@ -69,7 +69,7 @@ function layout(bodyHtml: string) {
 }
 
 function button(path: string, label: string) {
-    return `<p><a href="${SITE_URL}${path}" style="display:inline-block;background:#E8734A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;">${label}</a></p>`;
+    return `<p><a href="${siteUrl()}${path}" style="display:inline-block;background:#E8734A;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;">${label}</a></p>`;
 }
 
 const greet = (name: string) => `<p>Halo ${escapeHtml(name)},</p>`;
