@@ -14,6 +14,7 @@ import { SkillIcon } from "@/components/course/skill";
 import { speak, speechSupported } from "@/components/course/speech";
 import type { ExamResult, Passage, PublicQuestion, Response, Skill } from "@/lib/course/types";
 import { ArrowLeft, ArrowRight, Clock, Headphones, RefreshCw, AlertTriangle, Volume2 } from "lucide-react";
+import { announceXp } from "@/lib/gamification";
 
 type ExamSectionView = {
   skill: Skill;
@@ -103,6 +104,7 @@ function ExamRunner() {
       if (!res.ok) throw new Error(json.error);
       try { localStorage.removeItem(`refalearn-exam-${attemptId}`); } catch { /* ignore */ }
       setResult(json);
+      announceXp(json.xp, "Ujian selesai");
       setPhase("result");
       window.history.replaceState(null, "", `/learn/${slug}/exam/${kind}?attempt=${attemptId}`);
     } catch (err) {

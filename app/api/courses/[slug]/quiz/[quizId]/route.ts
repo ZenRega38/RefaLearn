@@ -4,6 +4,8 @@ import { findLevelQuiz } from "@/lib/course/content";
 import { toPublicQuestion } from "@/lib/course/grading";
 import { courseContext, gradeQuestions } from "@/lib/course/server";
 import type { Response } from "@/lib/course/types";
+import { recordActivity } from "@/lib/gamification-server";
+import { XP } from "@/lib/gamification";
 
 export const dynamic = "force-dynamic";
 
@@ -74,5 +76,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (error) return jsonError(error.message, 500);
   }
 
-  return NextResponse.json({ score, max, passed, isPretest: found.isPretest, passPercent: found.quiz.passPercent, review });
+  // XP: once for taking a pretest or quiz, once more for passing a quiz.
+  const ref = `${slug}:${quizId}`;
+  let xp = await recordActivity(ctx.admin, ctx.user.id, {
+    study: true,
+    award: found.isPretest ? { source: "pretest", ref, xp: XP.pretest } : { source: "quiz_done", ref, xp: XP.quizDone },
+  });
+  if (!found.isPretest && passed) {
+    xp += await recordActivity(ctx.admin, ctx.user.id, { study: true, award: { source: "quiz_passed", ref, xp: XP.quizPassed } });
+  }
+
+  return NextResponse.json({ score, max, passed, isPretest: found.isPretest, passPercent: found.quiz.passPercent, review, xp });
 }

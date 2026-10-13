@@ -13,6 +13,7 @@ import { SkillIcon } from "@/components/course/skill";
 import { useCourseText } from "@/components/course/lang";
 import type { Lesson } from "@/lib/course/types";
 import { ArrowLeft, ArrowRight, CheckCircle2, Flag, RefreshCw, Clock } from "lucide-react";
+import { announceXp } from "@/lib/gamification";
 
 type LessonPayload = {
   lesson: Lesson;
@@ -40,6 +41,7 @@ export default function LessonPage() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error);
         setData(json);
+        announceXp(json.xp, "Membaca materi");
       })
       .catch((err: Error) => setError(err.message));
   }, [slug, lessonId]);
@@ -80,6 +82,7 @@ export default function LessonPage() {
       const res = await fetch(`/api/courses/${slug}/lessons/${lessonId}`, { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
+      announceXp(json.xp, "Materi selesai");
       router.push(data.nextIsQuiz ? `/learn/${slug}/quiz/${data.nextId}` : `/learn/${slug}/lesson/${data.nextId}`);
     } catch (err) {
       setSaving(false);

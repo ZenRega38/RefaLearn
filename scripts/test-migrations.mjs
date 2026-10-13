@@ -225,5 +225,23 @@ await as("service_role", null, `update live_sessions set status='ended' where id
 await expectOk("a PIN can be reused after the session ends", () => as("service_role", null,
   `insert into live_sessions (pin, course_slug, level_id, title, question_count) values ('123456','english-day','ed-m2','Live',5)`));
 
+console.log("\nXP & streaks:");
+const award = async (source, ref, xp, login = false, study = true) =>
+  (await as("service_role", null, `select public.record_activity($1, '2026-10-12', $2, $3, $4, $5, $6) as xp`, [S1, login, study, source, ref, xp])).rows[0].xp;
+check((await award("lesson_done", "eac-olympiad-1:eac1-l1", 20)) === 20, "first lesson completion pays XP", "");
+check((await award("lesson_done", "eac-olympiad-1:eac1-l1", 20)) === 0, "the same lesson never pays twice", "");
+await award("daily_login", "2026-10-12", 5, true, false);
+const day = (await as("service_role", null, `select logged_in, studied, xp from daily_activity where user_id=$1 and day='2026-10-12'`, [S1])).rows[0];
+check(day && day.logged_in && day.studied && day.xp === 25, "the day records login, study and its XP", JSON.stringify(day));
+const ownXp = await as("authenticated", S1, `select xp from xp_events`);
+const otherXp = await as("authenticated", S2, `select xp from xp_events`);
+check(ownXp.rows.length === 2 && otherXp.rows.length === 0, "students only see their own XP", `${ownXp.rows.length}/${otherXp.rows.length}`);
+await expectFail("students cannot give themselves XP", () => as("authenticated", S1,
+  `insert into xp_events (user_id, source, ref, xp) values ($1,'quiz_passed','x',1000)`, [S1]), /row-level security/);
+await expectFail("students cannot fake an activity day", () => as("authenticated", S1,
+  `insert into daily_activity (user_id, day, logged_in, studied) values ($1,'2026-10-13',true,true)`, [S1]), /row-level security/);
+await expectFail("students cannot call record_activity", () => as("authenticated", S1,
+  `select public.record_activity($1, '2026-10-13', true, true, 'quiz_passed', 'y', 500)`, [S1]), /permission denied/);
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);
