@@ -11,7 +11,7 @@ import { Checkpoint } from "@/components/course/Checkpoint";
 import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
 import { SkillIcon } from "@/components/course/skill";
 import { useCourseText } from "@/components/course/lang";
-import type { Lesson } from "@/lib/course/types";
+import type { Lesson, Response } from "@/lib/course/types";
 import { ArrowLeft, ArrowRight, CheckCircle2, Flag, RefreshCw, Clock } from "lucide-react";
 import { announceXp } from "@/lib/gamification";
 
@@ -76,10 +76,14 @@ export default function LessonPage() {
   const steps = [...lesson.sections.map((s) => s.title), t.checkpoint];
   const onCheckpoint = step === lesson.sections.length;
 
-  const complete = async () => {
+  const complete = async ({ responses }: { responses: Record<string, Response | null> }) => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/courses/${slug}/lessons/${lessonId}`, { method: "POST" });
+      const res = await fetch(`/api/courses/${slug}/lessons/${lessonId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses }),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       announceXp(json.xp, "Materi selesai");

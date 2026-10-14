@@ -90,6 +90,30 @@ export async function courseContext(slug: string) {
   return { ok: true as const, course, user: auth.user, profile: auth.profile, admin, access, progress, unlocks };
 }
 
+export type SubmissionKind = "level_pretest" | "level_quiz" | "checkpoint" | "writing";
+
+/**
+ * Appends one attempt to the work log (course_submissions) so the admin can
+ * review it later. Never fails the student's request: progress is already
+ * saved, and losing a log row beats losing a finished quiz.
+ */
+export async function logSubmission(
+  admin: SupabaseClient,
+  row: { studentId: string; slug: string; itemId: string; kind: SubmissionKind; score?: number | null; maxScore?: number | null; passed?: boolean | null; answers: unknown }
+) {
+  const { error } = await admin.from("course_submissions").insert({
+    student_id: row.studentId,
+    course_slug: row.slug,
+    item_id: row.itemId,
+    kind: row.kind,
+    score: row.score ?? null,
+    max_score: row.maxScore ?? null,
+    passed: row.passed ?? null,
+    answers: row.answers,
+  });
+  if (error) console.error("[course] work log failed:", error.message);
+}
+
 /** Grades a set of responses against questions; unanswered = wrong. */
 export function gradeQuestions(questions: Question[], responses: Record<string, Response | null>) {
   return questions.map((q) => {

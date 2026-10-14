@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jsonError, readJson } from "@/lib/api-auth";
 import { findLevelQuiz } from "@/lib/course/content";
 import { toPublicQuestion } from "@/lib/course/grading";
-import { courseContext, gradeQuestions } from "@/lib/course/server";
+import { courseContext, gradeQuestions, logSubmission } from "@/lib/course/server";
 import type { Response } from "@/lib/course/types";
 import { recordActivity } from "@/lib/gamification-server";
 import { XP } from "@/lib/gamification";
@@ -39,7 +39,7 @@ export async function GET(_req: Request, { params }: Params) {
   });
 }
 
-/** POST { responses } — grade, record the best result, return the review. */
+/** POST { responses } — grade, log the attempt, record the best result, return the review. */
 export async function POST(request: NextRequest, { params }: Params) {
   const { slug, quizId } = await params;
   const ctx = await courseContext(slug);
@@ -56,6 +56,18 @@ export async function POST(request: NextRequest, { params }: Params) {
   const max = review.length;
   // A chapter pretest is diagnostic: taking it is enough to move on.
   const passed = found.isPretest || (score / max) * 100 >= found.quiz.passPercent;
+
+  // Every attempt goes into the work log with its answers, for the admin.
+  await logSubmission(ctx.admin, {
+    studentId: ctx.user.id,
+    slug,
+    itemId: quizId,
+    kind: found.isPretest ? "level_pretest" : "level_quiz",
+    score,
+    maxScore: max,
+    passed,
+    answers: Object.fromEntries(review.map((r) => [r.id, r.response])),
+  });
 
   // Keep the best attempt: never downgrade a pass or a higher score.
   const previous = ctx.progress.find((p) => p.itemId === quizId);

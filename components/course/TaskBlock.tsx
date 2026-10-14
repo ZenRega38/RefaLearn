@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, PenLine, Square, RotateCcw, Timer, Volume2, Eye, EyeOff, CheckSquare, Square as Box } from "lucide-react";
+import { useParams } from "next/navigation";
+import { Mic, Send, PenLine, Square, RotateCcw, Timer, Volume2, Eye, EyeOff, CheckSquare, Square as Box } from "lucide-react";
 import type { TaskBlock as Task } from "@/lib/course/types";
 import { Md } from "@/components/course/Md";
 import { Picture } from "@/components/course/pictures";
@@ -140,6 +141,29 @@ function WritingArea({ task }: { task: Task }) {
   const words = countWords(text);
   const target = t.task.wordTarget(task.minWords, task.maxWords);
   const inRange = (!task.minWords || words >= task.minWords) && (!task.maxWords || words <= task.maxWords);
+  // Only on a course lesson page can the answer be handed in.
+  const { slug, lessonId } = useParams<{ slug?: string; lessonId?: string }>();
+  const [sending, setSending] = useState(false);
+  const [sentAt, setSentAt] = useState<string | null>(null);
+  const [sendError, setSendError] = useState(false);
+
+  const send = async () => {
+    setSending(true);
+    setSendError(false);
+    try {
+      const res = await fetch(`/api/courses/${slug}/tasks/${task.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error();
+      setSentAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    } catch {
+      setSendError(true);
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -170,6 +194,15 @@ function WritingArea({ task }: { task: Task }) {
         ) : null}
       </div>
       <p className="text-[11px] text-[var(--color-ink-soft)]">{t.task.savedLocally}</p>
+      {slug && lessonId && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={send} isLoading={sending} disabled={words === 0}>
+            <Send className="w-4 h-4" /> {t.task.send}
+          </Button>
+          {sentAt && <span className="text-xs font-semibold text-[var(--color-success-green)]">{t.task.sent(sentAt)}</span>}
+          {sendError && <span className="text-xs font-semibold text-[var(--color-danger-red)]">{t.task.sendFailed}</span>}
+        </div>
+      )}
     </div>
   );
 }

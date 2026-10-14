@@ -288,5 +288,17 @@ check(created.rows.every((r) => r.status === "accepted" && r.signed && r.auto_ex
 await expectFail("an offer cannot be accepted twice", () => as("service_role", null,
   `select public.accept_schedule_offer($1,$2,'Siswa Satu','student',null,null,null)`, [offer, contract]), /no longer waiting/);
 
+console.log("\nWork log (course_submissions):");
+await expectFail("students cannot write their own work log", () => as("authenticated", S1,
+  `insert into course_submissions (student_id, course_slug, item_id, kind, score, max_score) values ($1,'english-sd-3','sd3-b1-quiz','level_quiz',10,10)`, [S1]), /row-level security/);
+await as("service_role", null,
+  `insert into course_submissions (student_id, course_slug, item_id, kind, score, max_score, passed, answers) values ($1,'english-sd-3','sd3-b1-quiz','level_quiz',3,10,false,'{"q1":{"type":"mc","choice":2}}')`, [S1]);
+const ownLog = await as("authenticated", S1, `select student_id from course_submissions`);
+const otherLog = await as("authenticated", S2, `select student_id from course_submissions`);
+const adminLog = await as("authenticated", ADMIN, `select id from course_submissions`);
+check(ownLog.rows.length === 1 && ownLog.rows[0].student_id === S1 && otherLog.rows.length === 0,
+  "students only see their own work log", `${ownLog.rows.length}/${otherLog.rows.length}`);
+check(adminLog.rows.length === (await db.query(`select id from course_submissions`)).rows.length, "the admin sees every student's work log", String(adminLog.rows.length));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);
