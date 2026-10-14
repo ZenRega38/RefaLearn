@@ -196,7 +196,7 @@ export default async function Home() {
                           Refa Learn
                         </th>
                         <th className="text-center pb-3 border-b-2 border-l border-[var(--color-line)] font-[var(--font-inter)] font-semibold text-[var(--color-ink-soft)]">
-                          EAC by Ruangguru
+                          Bimbel Privat Lain
                         </th>
                       </tr>
                     </thead>
@@ -234,7 +234,7 @@ export default async function Home() {
                     </tbody>
                   </table>
                   <p className="text-[10px] text-[var(--color-ink-soft)] font-[var(--font-inter)] italic mt-3">
-                    *Estimasi harga per sesi EAC by Ruangguru, dihitung dari paket termurah mereka (4 Sesi Private / 3 Bulan = Rp 2.945.000).
+                    *Estimasi harga per sesi les privat di salah satu bimbel online besar, dihitung dari paket termurahnya (4 sesi privat / 3 bulan = Rp 2.945.000).
                   </p>
                 </div>
                 <div className="bg-[var(--color-paper-bg-alt)] p-4 text-center border-t border-[var(--color-line)]">

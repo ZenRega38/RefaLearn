@@ -29,7 +29,7 @@ export default async function AlumniPage() {
         <div className="container-main text-center">
           <h1 className="text-4xl md:text-5xl mb-6">Cerita <SketchBox color="var(--color-accent-coral)">Sukses</SketchBox> Alumni</h1>
           <p className="text-lg text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Bergabunglah dengan ratusan siswa lainnya yang telah mencapai target mereka bersama Refa Learn.
+            Bergabunglah dengan siswa lainnya yang telah mencapai target mereka bersama Refa Learn.
           </p>
         </div>
       </section>
