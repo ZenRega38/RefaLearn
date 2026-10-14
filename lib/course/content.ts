@@ -1,5 +1,5 @@
 import "server-only";
-import type { Course, ExamKind, Lesson, Level, LevelQuiz, ProgressItem } from "@/lib/course/types";
+import type { Course, ExamKind, Lesson, Level, LevelQuiz, ProgressItem, TaskBlock } from "@/lib/course/types";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
 import { ENGLISH_DAY } from "@/content/english-day";
@@ -47,6 +47,20 @@ export function findLevelQuiz(course: Course, quizId: string): { level: Level; q
   for (const level of course.levels) {
     if (level.quiz.id === quizId) return { level, quiz: level.quiz, isPretest: false };
     if (level.pretest?.id === quizId) return { level, quiz: level.pretest, isPretest: true };
+  }
+  return null;
+}
+
+/** A writing/speaking task by id, with the lesson it sits in. */
+export function findTask(course: Course, taskId: string): { level: Level; lesson: Lesson; task: TaskBlock } | null {
+  for (const level of course.levels) {
+    for (const lesson of level.lessons) {
+      for (const section of lesson.sections) {
+        for (const block of section.blocks) {
+          if (block.type === "task" && block.id === taskId) return { level, lesson, task: block };
+        }
+      }
+    }
   }
   return null;
 }

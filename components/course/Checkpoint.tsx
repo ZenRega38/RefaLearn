@@ -26,7 +26,8 @@ export function Checkpoint({
   title: string;
   questions: Question[];
   passages?: Passage[];
-  onComplete: (stats: { firstTry: number; total: number }) => void;
+  /** `responses`: each question's first answer, for the admin's work log. */
+  onComplete: (stats: { firstTry: number; total: number; responses: Record<string, Response | null> }) => void;
   completing?: boolean;
   /** Picture family (e.g. "owl") that reacts to answers; trophy/icons when absent. */
   mascot?: string;
@@ -38,6 +39,7 @@ export function Checkpoint({
   const [checked, setChecked] = useState<null | boolean>(null);
   const [cleared, setCleared] = useState<Set<string>>(new Set());
   const [missed, setMissed] = useState<Set<string>>(new Set());
+  const [first, setFirst] = useState<Record<string, Response | null>>({});
 
   const current = queue[0];
   const finished = !current;
@@ -47,6 +49,7 @@ export function Checkpoint({
     if (!current) return;
     const ok = isCorrect(current, response);
     setChecked(ok);
+    if (!(current.id in first)) setFirst((f) => ({ ...f, [current.id]: response }));
     if (ok) setCleared((s) => new Set(s).add(current.id));
     else setMissed((s) => new Set(s).add(current.id));
   };
@@ -79,7 +82,7 @@ export function Checkpoint({
           <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             {t.firstTry} <strong>{questions.length - missed.size}/{questions.length}</strong>
           </p>
-          <Button onClick={() => onComplete({ firstTry: questions.length - missed.size, total: questions.length })} isLoading={completing}>
+          <Button onClick={() => onComplete({ firstTry: questions.length - missed.size, total: questions.length, responses: first })} isLoading={completing}>
             {t.next}
           </Button>
         </div>

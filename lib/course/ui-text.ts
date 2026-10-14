@@ -129,6 +129,9 @@ const id = {
     selfCheck: "Cek dirimu sendiri",
     checked: (n: number, total: number) => `${n}/${total} terpenuhi`,
     savedLocally: "Draf tersimpan di browser ini.",
+    send: "Kirim ke guru",
+    sent: (time: string) => `Terkirim ke guru pukul ${time}. Kamu boleh memperbaiki lalu kirim lagi.`,
+    sendFailed: "Gagal mengirim. Coba lagi.",
   },
 
   skills: {
@@ -259,6 +262,9 @@ const en: UiText = {
     selfCheck: "Check yourself",
     checked: (n, total) => `${n}/${total} done`,
     savedLocally: "Your draft is saved in this browser.",
+    send: "Send to teacher",
+    sent: (time) => `Sent to your teacher at ${time}. You can improve it and send again.`,
+    sendFailed: "Could not send. Please try again.",
   },
 
   skills: {
