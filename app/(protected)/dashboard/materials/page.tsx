@@ -154,16 +154,16 @@ export default function StudentMaterialsDashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
                     {getStatusBadge(order.status)}
 
                     {['pending', 'rejected'].includes(order.status) && (
-                      <Button size="sm" href={`/dashboard/materials/pay/${order.id}`}>
+                      <Button size="sm" href={`/dashboard/materials/pay/${order.id}`} className="w-full sm:w-auto whitespace-nowrap">
                         <Upload className="w-4 h-4 mr-2" /> Bayar & Upload Bukti
                       </Button>
                     )}
                     {order.status === 'proof_uploaded' && (
-                      <Button size="sm" variant="secondary" href={`/dashboard/materials/pay/${order.id}`}>
+                      <Button size="sm" variant="secondary" href={`/dashboard/materials/pay/${order.id}`} className="w-full sm:w-auto whitespace-nowrap">
                         <Clock className="w-4 h-4 mr-2" /> Lihat Status
                       </Button>
                     )}
