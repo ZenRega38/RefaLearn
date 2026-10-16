@@ -277,7 +277,8 @@ export default function AdminAlumniPage() {
                 ) : (
                   alumni.map((item) => (
                     <tr key={item.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4 flex items-center gap-3 !justify-start" data-label="Alumni">
+                      <td className="p-4" data-label="Alumni">
+                        <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[var(--color-paper-bg)] border border-[var(--color-line)] flex items-center justify-center overflow-hidden shrink-0">
                           {item.photo_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -288,6 +289,7 @@ export default function AdminAlumniPage() {
                         </div>
                         <div>
                           <div className="font-semibold text-[var(--color-ink)]">{item.name}</div>
+                        </div>
                         </div>
                       </td>
                       <td className="p-4" data-label="Pencapaian">

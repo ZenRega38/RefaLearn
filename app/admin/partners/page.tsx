@@ -164,7 +164,8 @@ export default function AdminPartnersPage() {
                 ) : (
                   partners.map((p) => (
                     <tr key={p.id} className="border-b border-[var(--color-line)] hover:bg-[var(--color-paper-bg-alt)]/50 transition-colors">
-                      <td className="p-4 flex items-center gap-3 !justify-start" data-label="Partner">
+                      <td className="p-4" data-label="Partner">
+                        <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded bg-white border border-[var(--color-line)] flex items-center justify-center overflow-hidden shrink-0">
                           {p.logo_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -174,8 +175,9 @@ export default function AdminPartnersPage() {
                           )}
                         </div>
                         <span className="font-semibold text-[var(--color-ink)]">{p.name}</span>
+                        </div>
                       </td>
-                      <td className="p-4 text-xs text-[var(--color-ink-soft)] truncate max-w-[200px]" data-label="Link">{p.url || "-"}</td>
+                      <td className="p-4 text-xs text-[var(--color-ink-soft)]" data-label="Link"><span className="block truncate max-w-[200px]">{p.url || "-"}</span></td>
                       <td className="p-4 text-center" data-label="Urutan">{p.order_index}</td>
                       <td className="p-4 text-right" data-label="Aksi">
                         <div className="flex justify-end gap-2">
