@@ -48,7 +48,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const isAdmin = role === "admin";
   // Students only enter opened levels; the admin sees every level (to
   // preview and host it) but also gets the real open state to manage it.
-  const [studentOpen, free, { data: material }, { data: running }] = await Promise.all([
+  const [studentOpen, free, { data: material }, { data: running }, { data: slideRows }] = await Promise.all([
     course.adminLocks ? loadOpenLevels(admin, slug) : Promise.resolve(undefined),
     isFreeCourse(admin, slug),
     admin
@@ -68,12 +68,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
           .gte("created_at", new Date(Date.now() - 6 * 3600_000).toISOString())
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: null }),
+    course.slideLinks
+      ? admin.from("course_level_slides").select("level_id, url").eq("course_slug", slug)
+      : Promise.resolve({ data: null }),
   ]);
   const openLevels = isAdmin && course.adminLocks ? new Set(course.levels.map((l) => l.id)) : studentOpen;
   const unlocks = computeUnlocks(course, progress, openLevels);
   const byId = new Map(progress.map((p) => [p.itemId, p]));
   const liveByLevel = new Map<string, { id: string; pin: string; status: string }>();
   for (const s of running || []) if (!liveByLevel.has(s.level_id)) liveByLevel.set(s.level_id, { id: s.id, pin: s.pin, status: s.status });
+  const slidesByLevel = new Map((slideRows || []).map((r) => [r.level_id as string, r.url as string]));
 
   const count = (e: NonNullable<typeof course.pretest>) => e.sections.reduce((n, s) => n + s.questions.length, 0);
   const quizInfo = (q: { id: string; title: string; questions: unknown[]; passPercent: number }) => ({
@@ -97,6 +101,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     free,
     openOrder: !!course.openOrder,
     adminLocks: !!course.adminLocks,
+    slideLinks: !!course.slideLinks,
     isAdmin,
     quizSecondsPerQuestion: course.quizSecondsPerQuestion ?? null,
     loggedIn,
@@ -114,6 +119,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       // Admin-only: whether students can enter this level, and its running live quiz.
       openForStudents: isAdmin ? (course.adminLocks ? !!studentOpen?.has(level.id) : true) : undefined,
       live: isAdmin ? liveByLevel.get(level.id) ?? null : undefined,
+      // The module's slide deck, for those who may enter the module.
+      slides: isAdmin || (access && !unlocks.lockedLevels.has(level.id)) ? slidesByLevel.get(level.id) ?? null : null,
       pretest: level.pretest ? quizInfo(level.pretest) : null,
       lessons: level.lessons.map((l) => ({
         id: l.id,

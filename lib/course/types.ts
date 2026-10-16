@@ -209,6 +209,8 @@ export type Course = {
   quizSecondsPerQuestion?: number;
   /** Mascot picture family (e.g. "owl" → owl-cheer, owl-think…) that cheers students on. */
   mascot?: string;
+  /** The admin can attach a slide deck link to each level (course_level_slides). */
+  slideLinks?: boolean;
 };
 
 // ---------------------------------------------------------------------------
