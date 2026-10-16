@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Picture } from "@/components/course/pictures";
 import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
 import { AdminLevelControls } from "@/components/course/AdminLevelControls";
+import { ModuleSlides } from "@/components/course/ModuleSlides";
 import { SkillIcon } from "@/components/course/skill";
 import { useCourseText } from "@/components/course/lang";
 import type { Skill } from "@/lib/course/types";
@@ -30,6 +31,7 @@ type Outline = {
   free: boolean;
   openOrder: boolean;
   adminLocks: boolean;
+  slideLinks: boolean;
   isAdmin: boolean;
   quizSecondsPerQuestion: number | null;
   loggedIn: boolean;
@@ -46,6 +48,7 @@ type Outline = {
     hasLive: boolean;
     openForStudents?: boolean;
     live?: { id: string; pin: string; status: string } | null;
+    slides: string | null;
     pretest: QuizInfo | null;
     lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number | null; unlocked: boolean; done: boolean }[];
     quiz: QuizInfo;
@@ -130,7 +133,7 @@ export default function CourseHomePage() {
             <Radio className="w-5 h-5 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
             <p className="text-[var(--color-ink-soft)]">
               <strong className="text-[var(--color-brand-blue)]">Mode admin.</strong> Anda melihat semua modul, termasuk yang masih terkunci untuk peserta.
-              Di bawah setiap modul ada kontrol untuk {outline.adminLocks ? "membuka atau mengunci modul dan " : ""}memulai Live Quiz. Harga dan status gratis diatur dari menu admin Materi.
+              Di bawah setiap modul ada kontrol untuk {outline.slideLinks ? "menambah slide, " : ""}{outline.adminLocks ? "membuka atau mengunci modul dan " : ""}memulai Live Quiz. Harga dan status gratis diatur dari menu admin Materi.
             </p>
           </div>
         )}
@@ -299,6 +302,16 @@ export default function CourseHomePage() {
                 </li>
               </ul>
             </Card>
+            )}
+            {outline.slideLinks && (
+              <ModuleSlides
+                slug={slug}
+                levelId={level.id}
+                levelTitle={level.title}
+                url={level.slides}
+                isAdmin={outline.isAdmin}
+                onChanged={load}
+              />
             )}
             {outline.isAdmin ? (
               (outline.adminLocks || level.hasLive) && (

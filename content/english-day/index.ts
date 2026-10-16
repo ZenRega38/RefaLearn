@@ -31,6 +31,7 @@ export const ENGLISH_DAY: Course = {
   labels: { level: "Module", quiz: "Module Quiz" },
   mascot: "owl",
   adminLocks: true,
+  slideLinks: true,
   openOrder: true,
   quizSecondsPerQuestion: 45,
   levels: [M1, M2, M3, M4, M5, M6, M7, M8, M9, M10].map((m) => ({

@@ -300,5 +300,16 @@ check(ownLog.rows.length === 1 && ownLog.rows[0].student_id === S1 && otherLog.r
   "students only see their own work log", `${ownLog.rows.length}/${otherLog.rows.length}`);
 check(adminLog.rows.length === (await db.query(`select id from course_submissions`)).rows.length, "the admin sees every student's work log", String(adminLog.rows.length));
 
+console.log("\nModule slides (course_level_slides):");
+await expectFail("student cannot attach a slide deck", () => as("authenticated", S1,
+  `insert into course_level_slides (course_slug, level_id, url) values ('english-day','ed-m1','https://docs.google.com/presentation/d/abc1234567/edit')`), /row-level security/);
+await expectOk("admin attaches a slide deck", () => as("authenticated", ADMIN,
+  `insert into course_level_slides (course_slug, level_id, url) values ('english-day','ed-m1','https://docs.google.com/presentation/d/abc1234567/edit')`));
+await expectFail("a slide link must be a web link", () => as("authenticated", ADMIN,
+  `insert into course_level_slides (course_slug, level_id, url) values ('english-day','ed-m2','javascript:alert(1)')`), /check constraint/);
+const studentSlides = await as("authenticated", S1, `select url from course_level_slides`);
+const anonSlides = await as("anon", null, `select url from course_level_slides`);
+check(studentSlides.rows.length === 0 && anonSlides.rows.length === 0, "slide links reach students only through the course API", `${studentSlides.rows.length}/${anonSlides.rows.length}`);
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);
