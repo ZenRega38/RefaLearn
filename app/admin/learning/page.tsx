@@ -165,10 +165,10 @@ export default function AdminLearningPage() {
                           {e.studentRole === "admin" && <Badge variant="outline">admin</Badge>}
                           <Badge variant={info.badge}>{info.label}</Badge>
                         </div>
-                        <p className="text-sm text-[var(--color-ink)] truncate">
+                        <p className="text-sm text-[var(--color-ink)] line-clamp-2 md:line-clamp-1">
                           {e.levelTitle ? `${e.levelTitle} · ` : ""}{e.itemTitle}
                         </p>
-                        <p className="text-xs text-[var(--color-ink-soft)] truncate">
+                        <p className="text-xs text-[var(--color-ink-soft)] line-clamp-2 md:line-clamp-1">
                           {e.courseTitle} · {formatTimestamp(e.at, "dd MMM yyyy, HH:mm")}
                           {!e.hasAnswers && " · jawaban tidak tercatat"}
                         </p>

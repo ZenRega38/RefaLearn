@@ -507,7 +507,7 @@ export default function AdminMaterialsPage() {
             ))}
           </div>
           <div className="flex gap-2 max-w-md">
-            <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Kategori baru, mis. SMA 10" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }} />
+            <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Mis. SMA 10" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }} />
             <Button variant="secondary" onClick={addCategory} className="shrink-0">Tambah</Button>
           </div>
         </Card>

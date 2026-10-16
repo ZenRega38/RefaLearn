@@ -44,7 +44,7 @@ export function ImageUploadField({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-end gap-2">
         <div className="flex-1">
-          <Input label={label} value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://... atau upload" error={error} />
+          <Input label={label} value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://…" error={error} />
         </div>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
         <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()} isLoading={uploading} className="shrink-0 mb-[1px]">

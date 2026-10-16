@@ -60,7 +60,15 @@ body {
   color: var(--color-ink);
   font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
   line-height: 1.7;
+  /* Nothing may widen the page sideways. `hidden` on body alone is ignored by
+     mobile Safari/Chrome (the page still swipes right), so clip on html too.
+     `clip` (unlike `hidden`) makes no scroll container: sticky bars keep working. */
   overflow-x: hidden;
+  overflow-x: clip;
+}
+
+html {
+  overflow-x: clip;
 }
 
 /* Selection */
