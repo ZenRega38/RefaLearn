@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { PillDropdown } from "@/components/ui/PillDropdown";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { Badge } from "@/components/ui/Badge";
+import { PartnerBadge, type Partner } from "@/components/ui/PartnerBadge";
 import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
 import { validBefore } from "@/lib/pricing";
 import Link from "next/link";
@@ -22,6 +23,7 @@ type Material = {
   compare_at_price: number | null;
   cover_image_url: string;
   description: string;
+  partner: Partner | null;
 };
 
 // Special filters sit before the real categories. Keys can't clash with a
@@ -49,7 +51,7 @@ export default function MaterialsCatalogPage() {
       const [{ data }, { data: { user } }] = await Promise.all([
         supabase
           .from('materials')
-          .select('*')
+          .select('*, partner:partners(name, logo_url, url)')
           .eq('is_active', true)
           .order('created_at', { ascending: false }),
         supabase.auth.getUser(),
@@ -185,6 +187,11 @@ export default function MaterialsCatalogPage() {
                       {validBefore(material.price, material.compare_at_price) && <Badge variant="coral" className="shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent">Promo</Badge>}
                       {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">Dimiliki</Badge>}
                     </div>
+                    {material.partner && (
+                      <div className="absolute bottom-3 left-3 right-3 flex">
+                        <PartnerBadge partner={material.partner} variant="chip" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5 flex-1 flex flex-col">

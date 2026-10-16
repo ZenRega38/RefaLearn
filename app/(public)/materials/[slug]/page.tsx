@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
+import { PartnerBadge, type Partner } from "@/components/ui/PartnerBadge";
 import { BookOpen, ShoppingBag, ArrowLeft, CheckCircle2, ShieldCheck, ShoppingCart, GraduationCap, Target } from "lucide-react";
 import { validBefore } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
@@ -26,6 +27,7 @@ type Material = {
   created_at: string;
   updated_at: string | null;
   course_slug: string | null;
+  partner: Partner | null;
 };
 
 type Ownership = "none" | "pending" | "owned";
@@ -50,7 +52,7 @@ export default function MaterialDetailPage() {
 
       const { data: matData } = await supabase
         .from('materials')
-        .select('*')
+        .select('*, partner:partners(name, logo_url, url)')
         .eq('slug', slug)
         .eq('is_active', true)
         .maybeSingle();
@@ -249,6 +251,11 @@ export default function MaterialDetailPage() {
                 <span className="w-1 h-1 rounded-full bg-[var(--color-line)]" />
                 <span>Kategori: {material.category}</span>
               </div>
+              {material.partner && (
+                <div className="mt-4">
+                  <PartnerBadge partner={material.partner} variant="full" />
+                </div>
+              )}
             </div>
 
             {material.course_slug && (

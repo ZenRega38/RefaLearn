@@ -311,5 +311,14 @@ const studentSlides = await as("authenticated", S1, `select url from course_leve
 const anonSlides = await as("anon", null, `select url from course_level_slides`);
 check(studentSlides.rows.length === 0 && anonSlides.rows.length === 0, "slide links reach students only through the course API", `${studentSlides.rows.length}/${anonSlides.rows.length}`);
 
+console.log("\nMaterial partner:");
+const partner = (await db.query(`insert into partners (name, logo_url) values ('Telkomsel Branch Tarakan','https://example.com/logo.png') returning id`)).rows[0].id;
+const partnered = (await db.query(`insert into materials (title, slug, category, price, is_active, partner_id) values ('English Day','english-day-test','Kursus',0,true,$1) returning id`, [partner])).rows[0].id;
+const shown = await as("anon", null, `select p.name from materials m join partners p on p.id = m.partner_id where m.id = $1`, [partnered]);
+check(shown.rows[0]?.name === "Telkomsel Branch Tarakan", "visitors see a material's partner", JSON.stringify(shown.rows));
+await db.query(`delete from partners where id = $1`, [partner]);
+const unlinked = await db.query(`select partner_id from materials where id = $1`, [partnered]);
+check(unlinked.rows.length === 1 && unlinked.rows[0].partner_id === null, "removing a partner keeps the material and clears the link", JSON.stringify(unlinked.rows));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

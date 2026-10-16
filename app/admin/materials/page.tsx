@@ -54,6 +54,9 @@ export default function AdminMaterialsPage() {
   const [coverUrl, setCoverUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [courseSlug, setCourseSlug] = useState("");
+  const [partnerId, setPartnerId] = useState("");
+  // Partners come from Admin → Partners (also listed on /about).
+  const [partners, setPartners] = useState<{ id: string; name: string }[]>([]);
   // The rich-text editor only reads its content when it mounts; bump this to
   // remount it after filling the description in from code.
   const [editorKey, setEditorKey] = useState(0);
@@ -77,11 +80,17 @@ export default function AdminMaterialsPage() {
     setCategoryList(Array.isArray(list) ? list : []);
   }, [supabase]);
 
+  const fetchPartners = useCallback(async () => {
+    const { data } = await supabase.from('partners').select('id, name').order('order_index', { ascending: true });
+    setPartners(data || []);
+  }, [supabase]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
     fetchMaterials();
     fetchCategories();
-  }, [fetchMaterials, fetchCategories]);
+    fetchPartners();
+  }, [fetchMaterials, fetchCategories, fetchPartners]);
 
   const saveCategories = async (next: string[]) => {
     const prev = categoryList;
@@ -125,6 +134,7 @@ export default function AdminMaterialsPage() {
       setCoverUrl(data.cover_image_url || "");
       setIsActive(data.is_active);
       setCourseSlug(data.course_slug || "");
+      setPartnerId(data.partner_id || "");
       setIsEditing(true);
     }
   };
@@ -143,6 +153,7 @@ export default function AdminMaterialsPage() {
     setCoverUrl("");
     setIsActive(true);
     setCourseSlug("");
+    setPartnerId("");
     setIsEditing(true);
   };
 
@@ -214,6 +225,7 @@ export default function AdminMaterialsPage() {
         cover_image_url: coverUrl,
         is_active: isActive,
         course_slug: courseSlug || null,
+        partner_id: partnerId || null,
       };
 
       let error;
@@ -419,6 +431,22 @@ export default function AdminMaterialsPage() {
               </select>
               <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                 Pembeli yang pembayarannya dikonfirmasi otomatis mendapat akses ke kursus ini di /learn. Judul dan deskripsi terisi otomatis dari kursus yang dipilih, dan tetap bisa diedit.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
+                Partner (Opsional)
+              </label>
+              <select className="input-field" value={partnerId} onChange={(e) => setPartnerId(e.target.value)}>
+                <option value="">Tidak ada</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                Menampilkan logo dan &quot;In partnership with …&quot; di kartu katalog dan halaman detail. Tambah partner dan logonya di menu{" "}
+                <a href="/admin/partners" target="_blank" className="text-[var(--color-brand-blue)] hover:underline">Partners</a>.
               </p>
             </div>
 
