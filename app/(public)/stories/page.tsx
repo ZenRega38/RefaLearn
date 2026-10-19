@@ -13,9 +13,13 @@ export const metadata = {
 
 export const revalidate = 60; // Revalidate every minute
 
-const excerptOf = (html: string, length = 120) => {
+// Long enough to fill a card under even a one-line title; the card itself
+// clamps it to the space that is left (see FillText in NewsBrowser).
+const excerptOf = (html: string, length = 600) => {
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  return text.length > length ? `${text.substring(0, length)}...` : text;
+  if (text.length <= length) return text;
+  const cut = text.substring(0, length);
+  return `${cut.substring(0, cut.lastIndexOf(" "))}...`;
 };
 
 export default async function NewsIndexPage() {

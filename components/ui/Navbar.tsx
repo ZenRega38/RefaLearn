@@ -12,8 +12,8 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/stories", label: "Stories" },
   { href: "/alumni", label: "Alumni" },
-  { href: "/schedule", label: "Jadwal" },
-  { href: "/materials", label: "Materi" },
+  { href: "/schedule", label: "Schedule" },
+  { href: "/materials", label: "Courses" },
   { href: "/about", label: "About" },
 ];
 
@@ -69,7 +69,7 @@ export function Navbar() {
             </div>
             <div className="flex flex-col leading-none">
               <span
-                className="font-[var(--font-kalam)] text-xl font-bold text-[var(--color-brand-blue)]"
+                className="font-[var(--font-kalam)] text-xl font-bold whitespace-nowrap text-[var(--color-brand-blue)]"
                 style={{ fontFamily: "var(--font-kalam), Kalam, cursive" }}
               >
                 Refa Learn
@@ -83,8 +83,10 @@ export function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Nav */}
-          <ul className="hidden md:flex items-center gap-1">
+          {/* Desktop Nav: from xl up. Below ~1180px a signed-in user's XP badge and
+              account links no longer fit beside the six links, so smaller
+              screens use the drawer. */}
+          <ul className="hidden xl:flex items-center gap-1">
             {navLinks.map((link) => {
               const isActive =
                 link.href === "/"
@@ -95,7 +97,7 @@ export function Navbar() {
                   <Link
                     href={link.href}
                     id={`nav-${link.label.toLowerCase()}`}
-                    className={`relative px-3 py-2 text-sm font-medium rounded-md transition-all duration-200 ${isActive
+                    className={`relative px-3 py-2 text-sm font-medium whitespace-nowrap rounded-md transition-all duration-200 ${isActive
                       ? "text-[var(--color-brand-blue)]"
                       : "text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
                       }`}
@@ -116,7 +118,7 @@ export function Navbar() {
           {profile && <XpBadge key={profile.id} />}
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden xl:flex items-center gap-3 whitespace-nowrap">
             {authLoading ? null : profile ? (
               <>
                 <Link
@@ -161,7 +163,7 @@ export function Navbar() {
           {/* Mobile Hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden flex flex-col items-center justify-center w-10 h-10 gap-[5px] rounded-md hover:bg-[var(--color-paper-bg-alt)] transition-colors"
+            className="xl:hidden flex flex-col items-center justify-center w-10 h-10 gap-[5px] rounded-md hover:bg-[var(--color-paper-bg-alt)] transition-colors"
             aria-label="Toggle menu"
             id="nav-hamburger"
           >
