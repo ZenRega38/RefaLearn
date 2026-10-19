@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
@@ -60,7 +60,8 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada story di kategori ini.</p>
         </div>
       ) : view === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        // auto-rows-fr: every card is as tall as the tallest one, across rows too.
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr gap-8">
           {visible.map((post) => (
             <Link href={`/stories/${post.slug}`} key={post.id} className="group h-full flex">
               <Card variant="sketch" className="p-0 overflow-hidden flex flex-col w-full hover:border-[var(--color-brand-blue)] transition-colors duration-300">
@@ -88,16 +89,17 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
                     </div>
                   </div>
 
-                  <h2 className="text-xl font-bold font-[var(--font-inter)] leading-snug mb-3 group-hover:text-[var(--color-brand-blue)] transition-colors">
+                  <h2 className="text-xl font-bold font-[var(--font-inter)] leading-snug mb-3 line-clamp-3 group-hover:text-[var(--color-brand-blue)] transition-colors">
                     {post.title}
                   </h2>
 
-                  <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] text-sm mb-6 flex-1 line-clamp-3">
-                    {post.excerpt}
-                  </p>
+                  {/* The excerpt fills whatever height the title leaves, at least 3 lines. */}
+                  <div className="relative flex-1 min-h-[3.75rem] mb-6">
+                    <FillText text={post.excerpt} className="absolute inset-x-0 top-0 text-[var(--color-ink-soft)] font-[var(--font-inter)] text-sm" />
+                  </div>
 
                   <div className="mt-auto flex items-center gap-2 text-sm font-semibold text-[var(--color-accent-coral)] font-[var(--font-inter)]">
-                    Baca selengkapnya <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    Read more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </Card>
@@ -136,5 +138,48 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Paragraph that shows as many whole lines as fit its parent's height and
+ * ends with an ellipsis, so cards with short titles get more excerpt instead
+ * of empty space. Starts at 3 lines until measured. The paragraph's own height
+ * is capped at exactly that many lines: with -webkit-line-clamp alone, a box
+ * taller than the clamped lines still shows a sliver of the next line.
+ */
+function FillText({ text, className }: { text: string; className: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [fit, setFit] = useState<{ lines: number; lineHeight: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const box = el?.parentElement;
+    if (!el || !box) return;
+    const measure = () => {
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      if (lineHeight > 0) setFit({ lines: Math.max(1, Math.floor(box.clientHeight / lineHeight)), lineHeight });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+
+  const lines = fit?.lines ?? 3;
+  return (
+    <p
+      ref={ref}
+      className={className}
+      style={{
+        display: "-webkit-box",
+        WebkitBoxOrient: "vertical",
+        WebkitLineClamp: lines,
+        overflow: "hidden",
+        maxHeight: fit ? fit.lines * fit.lineHeight : undefined,
+      }}
+    >
+      {text}
+    </p>
   );
 }
