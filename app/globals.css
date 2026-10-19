@@ -679,6 +679,61 @@ html {
   color: var(--color-ink-soft);
 }
 
+/* Tabel di isi story (mis. hasil riset). Di layar sempit tabel bisa digeser
+   ke samping sendiri, jadi halamannya tidak ikut melebar. */
+.story-content table,
+.ProseMirror table {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1.5rem auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.story-content th,
+.story-content td,
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid var(--color-line);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+@media (max-width: 480px) {
+  .story-content th,
+  .story-content td {
+    padding: 0.4rem 0.5rem;
+  }
+}
+
+.story-content th,
+.ProseMirror th {
+  background: var(--color-paper-bg-alt);
+  font-weight: 600;
+}
+
+/* Tiptap membungkus isi tiap sel dengan <p>. */
+.story-content th p,
+.story-content td p,
+.ProseMirror th p,
+.ProseMirror td p {
+  margin: 0;
+}
+
+/* Keterangan tabel: pola yang sama dengan keterangan foto di atas. */
+.story-content table + p:has(> em:only-child) {
+  margin-top: -0.75rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-ink-soft);
+}
+
 @layer components {
 
   /* Tabel yang dikasih class ini otomatis jadi kartu bertumpuk di layar

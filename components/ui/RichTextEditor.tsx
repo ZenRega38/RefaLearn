@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
+import { TableKit } from '@tiptap/extension-table'
 import { Bold, Italic, List, ListOrdered, Link as LinkIcon, Image as ImageIcon } from 'lucide-react'
 
 interface RichTextEditorProps {
@@ -21,6 +22,9 @@ export function RichTextEditor({ content, onChange, className = "" }: RichTextEd
       Link.configure({
         openOnClick: false,
       }),
+      // No toolbar button for tables; this keeps tables in pasted or stored
+      // HTML (e.g. research stories) from being stripped when saved here.
+      TableKit.configure({ table: { resizable: false } }),
     ],
     content,
     // These pages are server-rendered first; rendering the editor on the
