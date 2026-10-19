@@ -13,7 +13,7 @@ export function PillDropdown({
   options,
   value,
   onChange,
-  label = "Kategori",
+  label = "Category",
   className = "",
 }: {
   options: PillOption[];

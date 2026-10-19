@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!data) return { title: "Materi Tidak Ditemukan" };
+  if (!data) return { title: "Course Not Found" };
 
   const description = (data.description || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
   return {

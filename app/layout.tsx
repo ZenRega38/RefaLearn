@@ -69,7 +69,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="id"
+      lang="en"
       className={`${inter.variable} ${kalam.variable} ${caveat.variable}`}
     >
       <body className="min-h-screen flex flex-col">

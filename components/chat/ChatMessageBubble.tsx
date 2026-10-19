@@ -26,7 +26,7 @@ export function ChatMessageBubble({ msg, isMe, maxWidth = "max-w-[80%]" }: { msg
       const url = await getSignedChatAttachmentUrl(msg.attachment_url);
       window.open(url, "_blank", "noopener");
     } catch {
-      alert("Gagal membuka lampiran.");
+      alert("Couldn't open the attachment.");
     } finally {
       setOpening(false);
     }

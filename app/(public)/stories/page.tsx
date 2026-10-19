@@ -39,7 +39,7 @@ export default async function NewsIndexPage() {
     category: post.category,
     cover_image_url: post.cover_image_url,
     excerpt: excerptOf(post.content),
-    formattedDate: post.published_at ? formatTimestamp(post.published_at) : '',
+    formattedDate: post.published_at ? formatTimestamp(post.published_at, 'dd MMM yyyy', 'en') : '',
   }));
 
   return (
@@ -48,7 +48,7 @@ export default async function NewsIndexPage() {
         <div className="container-main text-center">
           <h1 className="text-4xl md:text-5xl mb-6"><SketchBox color="var(--color-accent-yellow)">Stories</SketchBox></h1>
           <p className="text-lg text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Cerita, pengalaman, tips belajar, dan kabar terbaru dari Refa Learn.
+            Stories, experiences, study tips and the latest news from Refa Learn.
           </p>
         </div>
       </section>
@@ -57,7 +57,7 @@ export default async function NewsIndexPage() {
         <div className="container-main">
           {items.length === 0 ? (
             <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada story yang diterbitkan.</p>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">No stories have been published yet.</p>
             </div>
           ) : (
             <NewsBrowser posts={items} />

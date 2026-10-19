@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const body = await readJson<{ sessionIds?: string[]; preview?: boolean }>(request);
     const ids = Array.from(new Set(body?.sessionIds || [])).filter((x) => typeof x === "string");
-    if (ids.length === 0) return jsonError("Tidak ada sesi yang dipilih.");
+    if (ids.length === 0) return jsonError("No sessions selected.");
 
     const admin = createAdminClient();
     const { data: sessions, error } = await admin
@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
         .in("id", ids);
 
     if (error) return jsonError(errorMessage(error), 500);
-    if (!sessions || sessions.length !== ids.length) return jsonError("Sesi tidak ditemukan.", 404);
+    if (!sessions || sessions.length !== ids.length) return jsonError("Session not found.", 404);
 
     if (sessions.some((s) => !["pending", "accepted"].includes(s.status))) {
-        return jsonError("Hanya sesi yang menunggu konfirmasi atau terjadwal yang bisa dibatalkan.");
+        return jsonError("Only sessions that are awaiting confirmation or scheduled can be cancelled.");
     }
     if (sessions.some((s) => hasStarted(s))) {
-        return jsonError("Sesi yang sudah dimulai atau lewat tidak bisa dibatalkan.");
+        return jsonError("Sessions that have started or passed can't be cancelled.");
     }
 
     const fee = cancellationFeeFor(sessions);
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) return jsonError(errorMessage(updateError), 500);
     if (!updated || updated.length !== ids.length) {
-        return jsonError("Status sesi berubah saat diproses. Muat ulang halaman.", 409);
+        return jsonError("The session status changed while processing. Please reload the page.", 409);
     }
 
     // A pending reschedule for a cancelled session is moot.

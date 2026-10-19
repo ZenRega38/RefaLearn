@@ -22,9 +22,10 @@ function safeName(file: File): string {
 }
 
 function assertProofFile(file: File) {
-    if (file.size > MAX_PROOF_BYTES) throw new Error("Ukuran file maksimal 5 MB.");
+    // Payment proofs are uploaded by students, so these messages are English.
+    if (file.size > MAX_PROOF_BYTES) throw new Error("The file can be at most 5 MB.");
     if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-        throw new Error("Format file harus gambar (JPG/PNG) atau PDF.");
+        throw new Error("The file must be an image (JPG/PNG) or a PDF.");
     }
 }
 
@@ -99,7 +100,7 @@ export async function uploadPublicImage(folder: "materials" | "news" | "alumni" 
 
 /** Uploads a chat attachment into the conversation's folder; returns the path. */
 export async function uploadChatAttachment(conversationId: string, file: File): Promise<string> {
-    if (file.size > MAX_ATTACHMENT_BYTES) throw new Error("Ukuran lampiran maksimal 10 MB.");
+    if (file.size > MAX_ATTACHMENT_BYTES) throw new Error("Attachments can be at most 10 MB.");
     const supabase = createClient();
     const path = `${conversationId}/${Date.now()}-${safeName(file)}`;
 

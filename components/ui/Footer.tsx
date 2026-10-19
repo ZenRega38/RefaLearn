@@ -67,34 +67,34 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-sm text-[var(--color-ink-soft)] mb-6 font-[var(--font-inter)] leading-relaxed">
-              Bridging Borders, Embracing The World! Les private Bahasa Inggris di Tarakan, online maupun tatap muka, murah dan berkualitas, dengan sistem bayar setelah kelas.
+              Bridging Borders, Embracing The World! Private English lessons in Tarakan, online or face to face, affordable and high quality, and you only pay after class.
             </p>
           </div>
 
           {/* Links Col 1 */}
           <div>
-            <h3 className="font-[var(--font-kalam)] text-lg text-[var(--color-brand-blue)] mb-4">Navigasi</h3>
+            <h3 className="font-[var(--font-kalam)] text-lg text-[var(--color-brand-blue)] mb-4">Navigation</h3>
             <ul className="flex flex-col gap-2">
               <li><Link href="/" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Home</Link></li>
-              <li><Link href="/about" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Tentang Kami</Link></li>
+              <li><Link href="/about" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">About Us</Link></li>
               <li><Link href="/stories" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Stories</Link></li>
-              <li><Link href="/alumni" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Testimoni Alumni</Link></li>
+              <li><Link href="/alumni" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Alumni Testimonials</Link></li>
             </ul>
           </div>
 
           {/* Links Col 2 */}
           <div>
-            <h3 className="font-[var(--font-kalam)] text-lg text-[var(--color-brand-blue)] mb-4">Layanan</h3>
+            <h3 className="font-[var(--font-kalam)] text-lg text-[var(--color-brand-blue)] mb-4">Services</h3>
             <ul className="flex flex-col gap-2">
-              <li><Link href="/schedule" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Booking Kelas</Link></li>
-              <li><Link href="/materials" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Beli Materi</Link></li>
+              <li><Link href="/schedule" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Book a Class</Link></li>
+              <li><Link href="/materials" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Buy Courses</Link></li>
               <li><Link href="/login" className="text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)]">Student Login</Link></li>
             </ul>
           </div>
 
           {/* Contact Col */}
           <div>
-            <h3 className="font-[var(--font-kalam)] text-lg text-[var(--color-brand-blue)] mb-4">Hubungi Kami</h3>
+            <h3 className="font-[var(--font-kalam)] text-lg text-[var(--color-brand-blue)] mb-4">Contact Us</h3>
             <ul className="flex flex-col gap-3">
               <li className="flex items-start gap-2">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-coral)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-[2px] shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -130,8 +130,8 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Refa Learn. All rights reserved.
           </p>
           <div className="flex gap-4">
-            <Link href="/terms" className="text-xs text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors font-[var(--font-inter)]">Syarat & Ketentuan</Link>
-            <Link href="/privacy" className="text-xs text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors font-[var(--font-inter)]">Kebijakan Privasi</Link>
+            <Link href="/terms" className="text-xs text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors font-[var(--font-inter)]">Terms & Conditions</Link>
+            <Link href="/privacy" className="text-xs text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] transition-colors font-[var(--font-inter)]">Privacy Policy</Link>
           </div>
         </div>
       </div>

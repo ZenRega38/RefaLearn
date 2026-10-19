@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
             .eq("status", "confirmed")
             .contains("material_ids", [materialId])
             .limit(1);
-        if (!orders || orders.length === 0) return jsonError("Anda belum memiliki akses ke materi ini.", 403);
+        if (!orders || orders.length === 0) return jsonError("You don't have access to this material yet.", 403);
     }
 
     const { data: material } = await admin.from("materials").select("file_url").eq("id", materialId).maybeSingle();
-    if (!material?.file_url) return jsonError("File materi belum diunggah admin. Silakan hubungi admin.", 404);
+    if (!material?.file_url) return jsonError("The admin hasn't uploaded this file yet. Please contact the admin.", 404);
 
     // Legacy rows (seed data) may hold an external link instead of a path.
     if (isSafeHttpUrl(material.file_url)) {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await admin.storage.from(MATERIAL_FILES_BUCKET).createSignedUrl(material.file_url, 300);
-    if (error || !data) return jsonError("Gagal membuat link unduhan.", 500);
+    if (error || !data) return jsonError("Couldn't create the download link.", 500);
 
     return NextResponse.redirect(data.signedUrl);
 }

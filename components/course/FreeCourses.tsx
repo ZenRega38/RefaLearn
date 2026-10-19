@@ -12,7 +12,7 @@ type FreeCourse = { id: string; title: string; course_slug: string; cover_image_
  * material that links to a course and costs 0. The admin manages them on
  * the materials page like any other product.
  */
-export function FreeCourses({ title = "Kursus Gratis" }: { title?: string }) {
+export function FreeCourses({ title = "Free Courses" }: { title?: string }) {
   const [supabase] = useState(() => createClient());
   const [courses, setCourses] = useState<FreeCourse[]>([]);
 
@@ -53,7 +53,7 @@ export function FreeCourses({ title = "Kursus Gratis" }: { title?: string }) {
               </span>
             )}
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-success-green)]">Gratis · Interaktif</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-success-green)]">Free · Interactive</span>
               <p className="font-bold text-[var(--color-ink)] leading-snug">{c.title}</p>
               {c.category && <p className="text-xs text-[var(--color-ink-soft)]">{c.category}</p>}
             </div>

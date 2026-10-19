@@ -59,7 +59,7 @@ type Prepayment = {
 type BankDetails = { bank_name?: string; account_number?: string; account_name?: string };
 type EwalletDetails = { provider?: string; number?: string; account_name?: string };
 
-const errorText = (err: unknown) => (err instanceof Error ? err.message : "Terjadi kesalahan.");
+const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
 
 export default function StudentSessionsDashboard() {
   const router = useRouter();
@@ -169,7 +169,7 @@ export default function StudentSessionsDashboard() {
       if (!res.ok) throw new Error(data.error);
       setAllSlots(data.slots as Slot[]);
     } catch (err) {
-      alert(`Gagal memuat jadwal: ${errorText(err)}`);
+      alert(`Couldn't load the schedule: ${errorText(err)}`);
       setRescheduleTarget(null);
     } finally {
       setSlotsLoading(false);
@@ -193,11 +193,11 @@ export default function StudentSessionsDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      alert("Permintaan reschedule terkirim, menunggu persetujuan admin.");
+      alert("Reschedule request sent. It's waiting for the admin's approval.");
       setRescheduleTarget(null);
       fetchData();
     } catch (err) {
-      alert(`Gagal mengirim permintaan: ${errorText(err)}`);
+      alert(`Couldn't send the request: ${errorText(err)}`);
     } finally {
       setSubmittingReschedule(false);
     }
@@ -233,13 +233,13 @@ export default function StudentSessionsDashboard() {
       const { fee } = await callCancel(cancelTarget.map(s => s.id), false);
       alert(
         fee > 0
-          ? `${cancelTarget.length} sesi dibatalkan. Biaya pembatalan ${formatPrice(fee)} akan masuk ke tagihan berikutnya.`
-          : `${cancelTarget.length} sesi dibatalkan tanpa biaya.`
+          ? `${cancelTarget.length === 1 ? "Session" : `${cancelTarget.length} sessions`} cancelled. A cancellation fee of ${formatPrice(fee)} will be added to your next invoice.`
+          : `${cancelTarget.length === 1 ? "Session" : `${cancelTarget.length} sessions`} cancelled at no charge.`
       );
       setCancelTarget(null);
       fetchData();
     } catch (err) {
-      alert(`Gagal membatalkan: ${errorText(err)}`);
+      alert(`Couldn't cancel: ${errorText(err)}`);
     } finally {
       setCancelling(false);
     }
@@ -259,7 +259,7 @@ export default function StudentSessionsDashboard() {
       setProofFile(null);
       fetchData();
     } catch (err) {
-      alert(`Gagal mengirim bukti: ${errorText(err)}`);
+      alert(`Couldn't send the proof: ${errorText(err)}`);
     } finally {
       setSubmittingProof(false);
     }
@@ -267,12 +267,12 @@ export default function StudentSessionsDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <Badge variant="amber">Menunggu Konfirmasi</Badge>;
-      case 'accepted': return <Badge variant="blue">Terjadwal</Badge>;
-      case 'declined': return <Badge variant="red">Ditolak</Badge>;
-      case 'completed': return <Badge variant="green">Selesai</Badge>;
-      case 'cancelled': return <Badge variant="outline">Dibatalkan</Badge>;
-      case 'no_show': return <Badge variant="red">Tidak Hadir</Badge>;
+      case 'pending': return <Badge variant="amber">Awaiting Confirmation</Badge>;
+      case 'accepted': return <Badge variant="blue">Scheduled</Badge>;
+      case 'declined': return <Badge variant="red">Declined</Badge>;
+      case 'completed': return <Badge variant="green">Completed</Badge>;
+      case 'cancelled': return <Badge variant="outline">Cancelled</Badge>;
+      case 'no_show': return <Badge variant="red">No-show</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -319,14 +319,14 @@ export default function StudentSessionsDashboard() {
         {group.series && (
           <div className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)] flex items-center gap-1.5 uppercase tracking-wide">
-              <Repeat className="w-3.5 h-3.5" /> Rangkaian Mingguan ({group.sessions.length} sesi)
+              <Repeat className="w-3.5 h-3.5" /> Weekly Series ({group.sessions.length} sessions)
             </span>
             {cancellableInGroup.length > 1 && (
               <button
                 onClick={() => openCancel(cancellableInGroup)}
                 className="text-xs font-[var(--font-inter)] text-[var(--color-danger-red)] hover:underline flex items-center gap-1"
               >
-                <X className="w-3.5 h-3.5" /> Batalkan Sisa Rangkaian ({cancellableInGroup.length})
+                <X className="w-3.5 h-3.5" /> Cancel Rest of Series ({cancellableInGroup.length})
               </button>
             )}
           </div>
@@ -337,7 +337,7 @@ export default function StudentSessionsDashboard() {
             <div key={session.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="font-semibold text-[var(--color-ink)] font-[var(--font-inter)] flex items-center gap-2">
-                  {formatDateStr(session.date, 'EEEE, dd MMM yyyy')}
+                  {formatDateStr(session.date, 'EEEE, dd MMM yyyy', 'en')}
                 </div>
                 <div className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5 mt-1">
                   <Clock className="w-3.5 h-3.5" />
@@ -345,7 +345,7 @@ export default function StudentSessionsDashboard() {
                 </div>
                 {hasPendingReschedule(session.id) && (
                   <div className="text-xs text-[var(--color-brand-blue)] font-[var(--font-inter)] flex items-center gap-1 mt-1">
-                    <Info className="w-3.5 h-3.5" /> Menunggu persetujuan reschedule
+                    <Info className="w-3.5 h-3.5" /> Reschedule awaiting approval
                   </div>
                 )}
               </div>
@@ -363,7 +363,7 @@ export default function StudentSessionsDashboard() {
                       onClick={() => openCancel([session])}
                       className="text-xs text-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)]/10"
                     >
-                      Batalkan
+                      Cancel
                     </Button>
                   </>
                 )}
@@ -375,7 +375,7 @@ export default function StudentSessionsDashboard() {
         {version ? (
           <div className="px-4 py-2 border-t border-dashed border-[var(--color-line)] text-xs font-[var(--font-inter)] text-[var(--color-ink-soft)]">
             <Link href={`/terms?version=${version}`} target="_blank" className="inline-flex items-center gap-1 hover:text-[var(--color-brand-blue)]">
-              <FileText className="w-3.5 h-3.5" /> Perjanjian yang disetujui (v{version})
+              <FileText className="w-3.5 h-3.5" /> Agreement you accepted (v{version})
             </Link>
           </div>
         ) : null}
@@ -389,11 +389,11 @@ export default function StudentSessionsDashboard() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
-            <CalendarCheck className="w-8 h-8 text-[var(--color-brand-blue)]" /> Sesi Saya
+            <CalendarCheck className="w-8 h-8 text-[var(--color-brand-blue)]" /> My Sessions
           </h1>
           <div className="flex gap-2">
-            <Button variant="secondary" href="/schedule" size="sm">Booking Sesi Baru</Button>
-            <Button variant="ghost" onClick={fetchData} size="sm" className="px-3" aria-label="Muat ulang">
+            <Button variant="secondary" href="/schedule" size="sm">Book a New Session</Button>
+            <Button variant="ghost" onClick={fetchData} size="sm" className="px-3" aria-label="Refresh">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -407,8 +407,8 @@ export default function StudentSessionsDashboard() {
           <div className="flex items-start gap-3 p-4 rounded-[var(--radius-card)] bg-amber-50 border border-amber-300 text-amber-800 font-[var(--font-inter)] text-sm">
             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
             <p>
-              Anda punya biaya pembatalan yang belum lunas sebesar <strong>{formatPrice(totalUnpaidFee)}</strong>.
-              Ini akan otomatis ditambahkan ke tagihan berikutnya — atau dihapus jika Anda memilih bayar di muka saat booking.
+              You have unpaid cancellation fees of <strong>{formatPrice(totalUnpaidFee)}</strong>.
+              They will be added to your next invoice automatically, or waived if you choose to pay up front when booking.
             </p>
           </div>
         )}
@@ -418,17 +418,17 @@ export default function StudentSessionsDashboard() {
             <div className="flex items-start gap-3">
               <Wallet className="w-5 h-5 shrink-0 mt-0.5 text-[var(--color-brand-blue)]" />
               <div>
-                <p className="font-semibold text-[var(--color-ink)]">Pembayaran di muka — {formatPrice(p.total_amount)}</p>
+                <p className="font-semibold text-[var(--color-ink)]">Up-front payment: {formatPrice(p.total_amount)}</p>
                 <p className="text-xs text-[var(--color-ink-soft)]">
-                  {p.status === 'pending' && "Menunggu transfer & bukti pembayaran."}
-                  {p.status === 'rejected' && "Bukti ditolak admin. Silakan unggah ulang."}
-                  {p.status === 'proof_uploaded' && "Bukti terkirim, sedang direview admin."}
+                  {p.status === 'pending' && "Waiting for your transfer and payment proof."}
+                  {p.status === 'rejected' && "The admin rejected the proof. Please upload it again."}
+                  {p.status === 'proof_uploaded' && "Proof sent and being reviewed by the admin."}
                 </p>
               </div>
             </div>
             {['pending', 'rejected'].includes(p.status) && (
               <Button size="sm" onClick={() => { setPayingPrepayment(p); setProofFile(null); }}>
-                Upload Bukti
+                Upload Proof
               </Button>
             )}
           </div>
@@ -437,23 +437,23 @@ export default function StudentSessionsDashboard() {
         {loading ? (
           <div className="text-center py-12 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-            Memuat sesi...
+            Loading sessions...
           </div>
         ) : upcomingGroups.length === 0 && pastGroups.length === 0 ? (
           <Card className="text-center py-16 bg-white/50 border-dashed border-[var(--color-line)]">
             <CalendarCheck className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
-            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">Belum ada sesi</h3>
-            <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-6">Anda belum melakukan booking kelas.</p>
-            <Button href="/schedule">Booking Sekarang</Button>
+            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">No sessions yet</h3>
+            <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-6">You haven&apos;t booked any classes yet.</p>
+            <Button href="/schedule">Book Now</Button>
           </Card>
         ) : (
           <div className="space-y-8">
             <div className="space-y-6">
               <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
-                Akan Datang
+                Upcoming
               </h2>
               {upcomingGroups.length === 0 ? (
-                <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">Tidak ada sesi yang akan datang.</p>
+                <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">No upcoming sessions.</p>
               ) : (
                 upcomingGroups.map(renderGroup)
               )}
@@ -462,7 +462,7 @@ export default function StudentSessionsDashboard() {
             {pastGroups.length > 0 && (
               <div className="space-y-6">
                 <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
-                  Riwayat
+                  History
                 </h2>
                 {pastGroups.map(renderGroup)}
               </div>
@@ -476,34 +476,34 @@ export default function StudentSessionsDashboard() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md space-y-4">
             <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-danger-red)] flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6" /> Batalkan {cancelTarget.length > 1 ? `${cancelTarget.length} Sesi` : "Sesi"}?
+              <AlertTriangle className="w-6 h-6" /> Cancel {cancelTarget.length > 1 ? `${cancelTarget.length} Sessions` : "Session"}?
             </h3>
             {cancelFee === null ? (
-              <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">Menghitung biaya pembatalan...</p>
+              <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">Calculating the cancellation fee...</p>
             ) : cancelFee > 0 ? (
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
-                Pembatalan kurang dari {FREE_CANCELLATION_NOTICE_HOURS} jam sebelum sesi terjadwal dikenakan biaya
-                {" "}<strong>satu kali {formatPrice(cancelFee)}</strong>
-                {cancelTarget.length > 1 && <> (bukan per sesi, meski Anda membatalkan {cancelTarget.length} sesi sekaligus)</>}.
-                Biaya akan masuk ke tagihan berikutnya.
+                Cancelling less than {FREE_CANCELLATION_NOTICE_HOURS} hours before a scheduled session costs
+                {" "}<strong>a one-time fee of {formatPrice(cancelFee)}</strong>
+                {cancelTarget.length > 1 && <> (not per session, even though you&apos;re cancelling {cancelTarget.length} sessions at once)</>}.
+                The fee will be added to your next invoice.
               </p>
             ) : (
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
-                Pembatalan ini <strong>tidak dikenakan biaya</strong>.
+                This cancellation is <strong>free of charge</strong>.
               </p>
             )}
             <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-              Pertimbangkan <strong>Reschedule</strong> sebagai gantinya kalau Anda cuma perlu pindah jadwal — itu tidak kena biaya.
+              If you only need to move the session, consider <strong>Reschedule</strong> instead. It&apos;s free.
             </p>
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => setCancelTarget(null)}>Batal</Button>
+              <Button variant="ghost" onClick={() => setCancelTarget(null)}>Keep Session</Button>
               <Button
                 onClick={confirmCancel}
                 isLoading={cancelling}
                 disabled={cancelFee === null}
                 className="bg-[var(--color-danger-red)] hover:bg-[var(--color-danger-red)] border-transparent text-white"
               >
-                Ya, Batalkan
+                Yes, Cancel
               </Button>
             </div>
           </Card>
@@ -515,25 +515,25 @@ export default function StudentSessionsDashboard() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md space-y-4">
             <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">
-              Bayar di Muka — {formatPrice(payingPrepayment.total_amount)}
+              Pay Up Front: {formatPrice(payingPrepayment.total_amount)}
             </h3>
             <div className="bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-[var(--radius-card)] p-4 font-[var(--font-inter)] text-sm space-y-2">
               {bankDetails?.account_number && (
-                <p>{bankDetails.bank_name}: <strong>{bankDetails.account_number}</strong> a.n. {bankDetails.account_name}</p>
+                <p>{bankDetails.bank_name}: <strong>{bankDetails.account_number}</strong> (account name: {bankDetails.account_name})</p>
               )}
               {ewalletDetails?.number && (
-                <p>{ewalletDetails.provider}: <strong>{ewalletDetails.number}</strong> a.n. {ewalletDetails.account_name}</p>
+                <p>{ewalletDetails.provider}: <strong>{ewalletDetails.number}</strong> (account name: {ewalletDetails.account_name})</p>
               )}
             </div>
             <Input
               type="file"
-              label="Upload Bukti Transfer"
+              label="Upload Payment Proof"
               accept="image/*,application/pdf"
               onChange={(e) => setProofFile(e.target.files?.[0] || null)}
             />
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setPayingPrepayment(null)}>Batal</Button>
-              <Button onClick={submitPrepaymentProof} isLoading={submittingProof} disabled={!proofFile}>Kirim Bukti</Button>
+              <Button variant="ghost" onClick={() => setPayingPrepayment(null)}>Cancel</Button>
+              <Button onClick={submitPrepaymentProof} isLoading={submittingProof} disabled={!proofFile}>Send Proof</Button>
             </div>
           </Card>
         </div>
@@ -544,13 +544,13 @@ export default function StudentSessionsDashboard() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <Card className="w-full max-w-2xl space-y-4 my-8">
             <div className="flex items-center justify-between">
-              <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">Reschedule Sesi</h3>
-              <button onClick={() => setRescheduleTarget(null)} aria-label="Tutup" className="p-2 text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] rounded-full">
+              <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">Reschedule Session</h3>
+              <button onClick={() => setRescheduleTarget(null)} aria-label="Close" className="p-2 text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-              Jadwal semula: {formatDateStr(rescheduleTarget.date, 'EEEE, dd MMM yyyy')}, {hhmm(rescheduleTarget.start_time)} {APP_TIMEZONE_LABEL}
+              Current time: {formatDateStr(rescheduleTarget.date, 'EEEE, dd MMM yyyy', 'en')}, {hhmm(rescheduleTarget.start_time)} {APP_TIMEZONE_LABEL}
             </p>
 
             <div className="flex flex-col md:flex-row gap-6">
@@ -570,23 +570,23 @@ export default function StudentSessionsDashboard() {
                     isLoading={slotsLoading}
                   />
                 ) : (
-                  <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] italic">Pilih tanggal dulu di sebelah kiri.</p>
+                  <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] italic">Choose a date on the left first.</p>
                 )}
               </div>
             </div>
 
             <Textarea
-              label="Alasan (opsional)"
+              label="Reason (optional)"
               value={rescheduleReason}
               onChange={(e) => setRescheduleReason(e.target.value)}
-              placeholder="Misal: ada acara keluarga mendadak"
+              placeholder="E.g. an unexpected family event"
               rows={2}
             />
 
             <div className="flex justify-end gap-3 pt-2 border-t border-[var(--color-line)]">
-              <Button variant="ghost" onClick={() => setRescheduleTarget(null)}>Batal</Button>
+              <Button variant="ghost" onClick={() => setRescheduleTarget(null)}>Cancel</Button>
               <Button onClick={submitReschedule} isLoading={submittingReschedule} disabled={!rescheduleSlot}>
-                Kirim Permintaan
+                Send Request
               </Button>
             </div>
           </Card>

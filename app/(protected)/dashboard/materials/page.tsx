@@ -98,10 +98,10 @@ export default function StudentMaterialsDashboard() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return <Badge variant="amber">Menunggu Pembayaran</Badge>;
-      case 'proof_uploaded': return <Badge variant="blue">Sedang Direview</Badge>;
-      case 'confirmed': return <Badge variant="green">Lunas & Aktif</Badge>;
-      case 'rejected': return <Badge variant="red">Bukti Ditolak</Badge>;
+      case 'pending': return <Badge variant="amber">Awaiting Payment</Badge>;
+      case 'proof_uploaded': return <Badge variant="blue">Under Review</Badge>;
+      case 'confirmed': return <Badge variant="green">Paid & Active</Badge>;
+      case 'rejected': return <Badge variant="red">Proof Rejected</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -113,12 +113,12 @@ export default function StudentMaterialsDashboard() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
-              <BookOpen className="w-8 h-8 text-[var(--color-brand-blue)]" /> Materi Saya
+              <BookOpen className="w-8 h-8 text-[var(--color-brand-blue)]" /> My Courses
             </h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" href="/materials" size="sm">Cari Materi Lain</Button>
-            <Button variant="ghost" onClick={() => fetchOrders()} size="sm" className="px-3" aria-label="Muat ulang">
+            <Button variant="secondary" href="/materials" size="sm">Find More Courses</Button>
+            <Button variant="ghost" onClick={() => fetchOrders()} size="sm" className="px-3" aria-label="Refresh">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -129,16 +129,16 @@ export default function StudentMaterialsDashboard() {
         {loading ? (
           <div className="text-center py-12 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-            Memuat materi...
+            Loading courses...
           </div>
         ) : orders.length === 0 ? (
           <Card className="text-center py-16 bg-white/50 border-dashed border-[var(--color-line)]">
             <BookOpen className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
-            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">Belum ada materi</h3>
+            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">No courses yet</h3>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-6">
-              Anda belum membeli materi belajar apapun.
+              You haven&apos;t bought or claimed any courses yet.
             </p>
-            <Button href="/materials">Lihat Katalog Materi</Button>
+            <Button href="/materials">Browse the Course Catalog</Button>
           </Card>
         ) : (
           <div className="space-y-6">
@@ -147,10 +147,10 @@ export default function StudentMaterialsDashboard() {
                 <div className="bg-[var(--color-paper-bg-alt)] border-b border-[var(--color-line)] p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <div className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] uppercase tracking-wider font-bold mb-1">
-                      Pesanan {formatTimestamp(order.created_at, 'dd MMM yyyy')}
+                      Order from {formatTimestamp(order.created_at, 'dd MMM yyyy', 'en')}
                     </div>
                     <div className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
-                      {order.source === 'grant' ? "Diberikan oleh Refa Learn 🎁" : order.total_amount === 0 ? "Gratis" : formatPrice(order.total_amount)}
+                      {order.source === 'grant' ? "A gift from Refa Learn 🎁" : order.total_amount === 0 ? "Free" : formatPrice(order.total_amount)}
                     </div>
                   </div>
 
@@ -159,12 +159,12 @@ export default function StudentMaterialsDashboard() {
 
                     {['pending', 'rejected'].includes(order.status) && (
                       <Button size="sm" href={`/dashboard/materials/pay/${order.id}`} className="w-full sm:w-auto whitespace-nowrap">
-                        <Upload className="w-4 h-4 mr-2" /> Bayar & Upload Bukti
+                        <Upload className="w-4 h-4 mr-2" /> Pay & Upload Proof
                       </Button>
                     )}
                     {order.status === 'proof_uploaded' && (
                       <Button size="sm" variant="secondary" href={`/dashboard/materials/pay/${order.id}`} className="w-full sm:w-auto whitespace-nowrap">
-                        <Clock className="w-4 h-4 mr-2" /> Lihat Status
+                        <Clock className="w-4 h-4 mr-2" /> View Status
                       </Button>
                     )}
                   </div>
@@ -173,14 +173,14 @@ export default function StudentMaterialsDashboard() {
                 {order.status === 'rejected' && (
                   <div className="px-6 py-3 bg-[var(--color-danger-red)]/10 text-[var(--color-danger-red)] text-sm flex gap-2 border-b border-[var(--color-line)]">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <p>Bukti pembayaran ditolak. Silakan upload ulang bukti yang valid.</p>
+                    <p>Your payment proof was rejected. Please upload a valid proof again.</p>
                   </div>
                 )}
 
                 {order.status === 'proof_uploaded' && (
                   <div className="px-6 py-3 bg-blue-50 text-blue-700 text-sm flex gap-2 border-b border-[var(--color-line)]">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <p>Admin sedang mereview pembayaran Anda. Akses materi akan terbuka setelah lunas.</p>
+                    <p>The admin is reviewing your payment. The course unlocks once it&apos;s confirmed.</p>
                   </div>
                 )}
 
@@ -203,7 +203,7 @@ export default function StudentMaterialsDashboard() {
                       <div className="mt-2 sm:mt-0 w-full sm:w-auto flex justify-end">
                         {order.status === 'confirmed' && material.course_slug ? (
                           <Button href={`/learn/${material.course_slug}`} className="w-full sm:w-auto">
-                            <GraduationCap className="w-4 h-4 mr-2" /> Buka Kursus
+                            <GraduationCap className="w-4 h-4 mr-2" /> Open Course
                           </Button>
                         ) : order.status === 'confirmed' ? (
                           <Button
@@ -211,7 +211,7 @@ export default function StudentMaterialsDashboard() {
                             onClick={() => window.open(`/api/materials/download?materialId=${material.id}`, '_blank', 'noopener')}
                             className="w-full sm:w-auto"
                           >
-                            <Download className="w-4 h-4 mr-2" /> Akses Materi
+                            <Download className="w-4 h-4 mr-2" /> Open Material
                           </Button>
                         ) : (
                           <Button
@@ -219,7 +219,7 @@ export default function StudentMaterialsDashboard() {
                             disabled
                             className="w-full sm:w-auto text-[var(--color-ink-soft)] border-dashed border-[var(--color-line)]"
                           >
-                            <Lock className="w-4 h-4 mr-2" /> Terkunci
+                            <Lock className="w-4 h-4 mr-2" /> Locked
                           </Button>
                         )}
                       </div>

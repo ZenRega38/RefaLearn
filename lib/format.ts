@@ -1,25 +1,30 @@
 import { format, parseISO } from "date-fns";
-import { id } from "date-fns/locale";
+import { enUS, id } from "date-fns/locale";
 import { dateStrToLocalDate } from "@/lib/time";
 
-/** Formats a stored yyyy-MM-dd date in Indonesian, without timezone drift. */
-export function formatDateStr(date: string, pattern = "dd MMM yyyy"): string {
-  return format(dateStrToLocalDate(date.slice(0, 10)), pattern, { locale: id });
+/** Interface language: public pages and the student dashboard are English;
+ * admin pages and emails stay Indonesian (the default). */
+export type Lang = "id" | "en";
+const localeOf = (lang: Lang) => (lang === "en" ? enUS : id);
+
+/** Formats a stored yyyy-MM-dd date, without timezone drift. */
+export function formatDateStr(date: string, pattern = "dd MMM yyyy", lang: Lang = "id"): string {
+  return format(dateStrToLocalDate(date.slice(0, 10)), pattern, { locale: localeOf(lang) });
 }
 
-/** Formats a timestamptz (ISO string) in Indonesian. */
-export function formatTimestamp(iso: string, pattern = "dd MMM yyyy"): string {
-  return format(parseISO(iso), pattern, { locale: id });
+/** Formats a timestamptz (ISO string). */
+export function formatTimestamp(iso: string, pattern = "dd MMM yyyy", lang: Lang = "id"): string {
+  return format(parseISO(iso), pattern, { locale: localeOf(lang) });
 }
 
 /** "Oktober 2026" — month is 1-12. */
-export function monthLabel(month: number, year: number): string {
-  return format(new Date(year, month - 1, 1), "MMMM yyyy", { locale: id });
+export function monthLabel(month: number, year: number, lang: Lang = "id"): string {
+  return format(new Date(year, month - 1, 1), "MMMM yyyy", { locale: localeOf(lang) });
 }
 
 /** "Oktober" — month is 1-12. */
-export function monthName(month: number): string {
-  return format(new Date(2000, month - 1, 1), "MMMM", { locale: id });
+export function monthName(month: number, lang: Lang = "id"): string {
+  return format(new Date(2000, month - 1, 1), "MMMM", { locale: localeOf(lang) });
 }
 
 export const hhmm = (time: string) => time.slice(0, 5);

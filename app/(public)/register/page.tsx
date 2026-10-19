@@ -19,13 +19,13 @@ import { Mail, Lock, User, Phone } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, { message: "Nama lengkap wajib diisi" }),
-  phone: z.string().min(9, { message: "Nomor telepon/WA tidak valid" }),
-  email: z.string().email({ message: "Format email tidak valid" }),
-  password: z.string().min(8, { message: "Password minimal 8 karakter" }),
-  confirmPassword: z.string().min(1, { message: "Konfirmasi password wajib diisi" }),
+  fullName: z.string().min(2, { message: "Full name is required" }),
+  phone: z.string().min(9, { message: "Invalid phone/WhatsApp number" }),
+  email: z.string().email({ message: "Invalid email format" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Password dan konfirmasi password tidak sama",
+  message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
@@ -59,7 +59,7 @@ function RegisterForm() {
 
     try {
       if (!captchaToken) {
-        throw new Error("Mohon selesaikan verifikasi captcha terlebih dahulu.");
+        throw new Error("Please complete the captcha first.");
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -94,8 +94,8 @@ function RegisterForm() {
       const message = err instanceof Error ? err.message : "";
       setError(
         message === "User already registered"
-          ? "Email ini sudah terdaftar. Silakan masuk atau gunakan Lupa Password."
-          : message || "Gagal mendaftar. Silakan coba lagi."
+          ? "This email is already registered. Please log in or use Forgot Password."
+          : message || "Sign-up failed. Please try again."
       );
     }
   };
@@ -107,10 +107,10 @@ function RegisterForm() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
-              Mulai Perjalananmu
+              Start Your Journey
             </h1>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Buat akun <SketchBox color="var(--color-accent-yellow)">Refa Learn</SketchBox> sekarang
+              Create your <SketchBox color="var(--color-accent-yellow)">Refa Learn</SketchBox> account
             </p>
           </div>
 
@@ -118,13 +118,13 @@ function RegisterForm() {
             {pendingEmail ? (
               <div className="text-center space-y-4 font-[var(--font-inter)]">
                 <Mail className="w-12 h-12 mx-auto text-[var(--color-brand-blue)]" />
-                <h2 className="text-xl font-bold text-[var(--color-ink)]">Cek Email Anda</h2>
+                <h2 className="text-xl font-bold text-[var(--color-ink)]">Check Your Email</h2>
                 <p className="text-sm text-[var(--color-ink-soft)]">
-                  Kami mengirim link konfirmasi ke <strong>{pendingEmail}</strong>. Klik link tersebut untuk mengaktifkan akun,
-                  lalu Anda akan otomatis masuk.
+                  We&apos;ve sent a confirmation link to <strong>{pendingEmail}</strong>. Click it to activate your account
+                  and you&apos;ll be logged in automatically.
                 </p>
                 <Link href="/login" className="text-sm text-[var(--color-brand-blue)] font-bold hover:underline">
-                  Kembali ke halaman masuk
+                  Back to log in
                 </Link>
               </div>
             ) : (
@@ -135,19 +135,19 @@ function RegisterForm() {
               </div>
             )}
 
-            <GoogleButton label="Daftar dengan Google" next={searchParams.get("next")} />
+            <GoogleButton label="Sign up with Google" next={searchParams.get("next")} />
             <p className="mt-2 text-[11px] text-center text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Dengan mendaftar, Anda menyetujui <Link href="/privacy" className="underline">Kebijakan Privasi</Link>.
+              By signing up, you agree to the <Link href="/privacy" className="underline">Privacy Policy</Link>.
             </p>
-            <OrDivider text="atau daftar dengan email" />
+            <OrDivider text="or sign up with email" />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                Untuk siswa di bawah umur, sebaiknya akun dibuat oleh atau bersama orang tua/wali.
-                Data Anda diproses sesuai <Link href="/privacy" className="underline">Kebijakan Privasi</Link>.
+                For students under 18, the account should be created by or together with a parent/guardian.
+                Your data is processed according to the <Link href="/privacy" className="underline">Privacy Policy</Link>.
               </p>
               <Input
-                label="Nama Lengkap"
+                label="Full Name"
                 type="text"
                 placeholder="Budi Santoso"
                 icon={<User className="w-4 h-4" />}
@@ -156,7 +156,7 @@ function RegisterForm() {
               />
 
               <Input
-                label="Nomor WhatsApp"
+                label="WhatsApp Number"
                 type="tel"
                 placeholder="0812xxxxxx"
                 icon={<Phone className="w-4 h-4" />}
@@ -167,7 +167,7 @@ function RegisterForm() {
               <Input
                 label="Email"
                 type="email"
-                placeholder="email@contoh.com"
+                placeholder="email@example.com"
                 icon={<Mail className="w-4 h-4" />}
                 {...register("email")}
                 error={errors.email?.message}
@@ -183,7 +183,7 @@ function RegisterForm() {
               />
 
               <Input
-                label="Konfirmasi Password"
+                label="Confirm Password"
                 type="password"
                 placeholder="••••••••"
                 icon={<Lock className="w-4 h-4" />}
@@ -205,15 +205,15 @@ function RegisterForm() {
                   isLoading={isSubmitting}
                   disabled={!captchaToken}
                 >
-                  Daftar
+                  Sign up
                 </Button>
               </div>
             </form>
 
             <div className="mt-8 pt-6 border-t border-dashed border-[var(--color-line)] text-center text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-              Sudah punya akun?{" "}
+              Already have an account?{" "}
               <Link href={`/login${searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next')!)}` : ''}`} className="text-[var(--color-brand-blue)] font-bold hover:underline">
-                Masuk di sini
+                Log in here
               </Link>
             </div>
             </>

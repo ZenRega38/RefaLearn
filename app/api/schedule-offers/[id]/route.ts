@@ -34,8 +34,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const admin = createAdminClient();
   const { data: offer } = await admin.from("schedule_offers").select("id, student_id, status, plan").eq("id", id).maybeSingle();
-  if (!offer || offer.student_id !== user.id) return jsonError("Jadwal tidak ditemukan.", 404);
-  if (offer.status !== "pending") return jsonError("Jadwal ini sudah tidak menunggu persetujuan.", 409);
+  if (!offer || offer.student_id !== user.id) return jsonError("Schedule not found.", 404);
+  if (offer.status !== "pending") return jsonError("This schedule is no longer waiting for approval.", 409);
   const summary = planSummary(offer.plan as SchedulePlan);
   const studentName = (profile.full_name || "Siswa").trim();
 
@@ -59,22 +59,22 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ ok: true });
   }
 
-  if (body?.action !== "accept") return jsonError("Aksi tidak dikenal.");
+  if (body?.action !== "accept") return jsonError("Unknown action.");
 
   // Same gate as booking: the admin verifies students from their profile.
   const { data: completion } = await admin.from("profiles").select(PROFILE_COMPLETION_COLUMNS).eq("id", user.id).single();
   const studentProfile = completion as ProfileCompletion | null;
-  const missing = missingProfileFields(studentProfile, todayStr());
+  const missing = missingProfileFields(studentProfile, todayStr(), "en");
   if (missing.length > 0) {
     return NextResponse.json(
-      { error: `Lengkapi profil terlebih dahulu. Data yang masih kurang: ${missing.join(", ")}.`, code: "PROFILE_INCOMPLETE", missing },
+      { error: `Please complete your profile first. Still missing: ${missing.join(", ")}.`, code: "PROFILE_INCOMPLETE", missing },
       { status: 403 }
     );
   }
 
   const contractId = await currentContractId(admin);
   if (!contractId || contractId !== body.contractId) {
-    return jsonError("Versi perjanjian sudah berubah. Silakan muat ulang halaman dan baca perjanjian terbaru.", 409);
+    return jsonError("The agreement has been updated. Please reload the page and read the latest version.", 409);
   }
   const signature = checkSignature(body, studentName, studentProfile);
   if (!signature.ok) return jsonError(signature.error);
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   });
   if (error) {
     if (isSlotConflict(error)) {
-      return jsonError("Sebagian jadwal ini sudah terisi. Silakan hubungi admin untuk menyusun ulang jadwalnya.", 409);
+      return jsonError("Some of these slots are already taken. Please contact the admin to rearrange the schedule.", 409);
     }
-    return jsonError(errorMessage(error, "Gagal menyetujui jadwal."), 500);
+    return jsonError(errorMessage(error, "Couldn't accept the schedule."), 500);
   }
   await notifyAdmins(true);
   return NextResponse.json({ ok: true });

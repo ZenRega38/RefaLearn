@@ -98,27 +98,58 @@ export function isValidCoordinate(lat: number | null | undefined, lng: number | 
   );
 }
 
+const MISSING_LABELS = {
+  id: {
+    profile: "Data profil",
+    fullName: "Nama lengkap",
+    phone: "Nomor WhatsApp",
+    birthDate: "Tanggal lahir",
+    adultClaim: `Centang "di atas ${ADULT_AGE} tahun" tidak sesuai tanggal lahir`,
+    guardianName: "Nama orang tua/wali",
+    guardianPhone: "Nomor HP orang tua/wali",
+    school: "Asal sekolah/kampus",
+    nisn: "NISN/NIM",
+    address: "Alamat lengkap domisili",
+    location: "Titik lokasi (koordinat)",
+  },
+  en: {
+    profile: "Profile details",
+    fullName: "Full name",
+    phone: "WhatsApp number",
+    birthDate: "Date of birth",
+    adultClaim: `The "over ${ADULT_AGE}" box doesn't match your date of birth`,
+    guardianName: "Parent/guardian name",
+    guardianPhone: "Parent/guardian phone number",
+    school: "School/university",
+    nisn: "NISN/NIM",
+    address: "Full home address",
+    location: "Map location (coordinates)",
+  },
+};
+
 /**
- * Human-readable (Indonesian) list of what is still missing. Empty means the
- * profile is complete enough to book.
+ * Human-readable list of what is still missing (Indonesian by default; the
+ * student-facing pages ask for English). Empty means the profile is complete
+ * enough to book.
  */
-export function missingProfileFields(p: Partial<ProfileCompletion> | null | undefined, today: string): string[] {
+export function missingProfileFields(p: Partial<ProfileCompletion> | null | undefined, today: string, lang: "id" | "en" = "id"): string[] {
+  const L = MISSING_LABELS[lang];
   const missing: string[] = [];
-  if (!p) return ["Data profil"];
-  if (!p.full_name || p.full_name.trim().length < 2) missing.push("Nama lengkap");
-  if (!isValidPhone(p.phone)) missing.push("Nomor WhatsApp");
-  if (!isValidBirthDate(p.birth_date, today)) missing.push("Tanggal lahir");
+  if (!p) return [L.profile];
+  if (!p.full_name || p.full_name.trim().length < 2) missing.push(L.fullName);
+  if (!isValidPhone(p.phone)) missing.push(L.phone);
+  if (!isValidBirthDate(p.birth_date, today)) missing.push(L.birthDate);
   if (adultClaimConflicts(p, today)) {
-    missing.push(`Centang "di atas ${ADULT_AGE} tahun" tidak sesuai tanggal lahir`);
+    missing.push(L.adultClaim);
   }
   if (requiresGuardianContact(p, today)) {
-    if (!p.guardian_name || p.guardian_name.trim().length < 2) missing.push("Nama orang tua/wali");
-    if (!isValidPhone(p.guardian_phone)) missing.push("Nomor HP orang tua/wali");
+    if (!p.guardian_name || p.guardian_name.trim().length < 2) missing.push(L.guardianName);
+    if (!isValidPhone(p.guardian_phone)) missing.push(L.guardianPhone);
   }
-  if (!p.school_name || p.school_name.trim().length < 3) missing.push("Asal sekolah/kampus");
-  if (!isValidNisnNim(p.nisn_nim)) missing.push("NISN/NIM");
-  if (!p.address || p.address.trim().length < MIN_ADDRESS_LENGTH) missing.push("Alamat lengkap domisili");
-  if (!isValidCoordinate(p.latitude, p.longitude)) missing.push("Titik lokasi (koordinat)");
+  if (!p.school_name || p.school_name.trim().length < 3) missing.push(L.school);
+  if (!isValidNisnNim(p.nisn_nim)) missing.push(L.nisn);
+  if (!p.address || p.address.trim().length < MIN_ADDRESS_LENGTH) missing.push(L.address);
+  if (!isValidCoordinate(p.latitude, p.longitude)) missing.push(L.location);
   return missing;
 }
 

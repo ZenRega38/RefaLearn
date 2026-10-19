@@ -149,7 +149,7 @@ export function ChatWidget() {
     setSendError(null);
     try {
       const convId = await ensureConversation();
-      if (!convId) throw new Error("Gagal membuka percakapan.");
+      if (!convId) throw new Error("Couldn't open the conversation.");
 
       const attachmentPath = file ? await uploadChatAttachment(convId, file) : null;
 
@@ -164,7 +164,7 @@ export function ChatWidget() {
         .select()
         .single();
 
-      if (error || !inserted) throw error || new Error("Pesan gagal terkirim.");
+      if (error || !inserted) throw error || new Error("Message failed to send.");
 
       const msg = inserted as ChatMessage;
       setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [...prev, msg]));
@@ -178,7 +178,7 @@ export function ChatWidget() {
         body: JSON.stringify({ messageId: msg.id }),
       }).catch(() => {});
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : "Pesan gagal terkirim. Coba lagi.");
+      setSendError(err instanceof Error ? err.message : "Message failed to send. Please try again.");
     } finally {
       setSending(false);
     }
@@ -196,10 +196,10 @@ export function ChatWidget() {
           {/* Header */}
           <div className="bg-[var(--color-brand-blue)] p-4 flex justify-between items-center text-white">
             <div>
-              <h3 className="font-[var(--font-kalam)] text-xl font-bold">Admin Refa Learn</h3>
-              <p className="text-xs font-[var(--font-inter)] opacity-90">Biasanya membalas dalam beberapa jam</p>
+              <h3 className="font-[var(--font-kalam)] text-xl font-bold">Refa Learn Admin</h3>
+              <p className="text-xs font-[var(--font-inter)] opacity-90">Usually replies within a few hours</p>
             </div>
-            <button onClick={() => setIsOpen(false)} aria-label="Tutup chat" className="hover:bg-white/20 p-1 rounded transition-colors">
+            <button onClick={() => setIsOpen(false)} aria-label="Close chat" className="hover:bg-white/20 p-1 rounded transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -208,7 +208,7 @@ export function ChatWidget() {
           <div className="flex-1 md:flex-none md:h-80 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center text-[var(--color-ink-soft)] text-sm mt-10 font-[var(--font-inter)]">
-                Kirim pesan untuk memulai obrolan dengan Admin.
+                Send a message to start chatting with the admin.
               </div>
             ) : (
               messages.map(msg => (
@@ -225,7 +225,7 @@ export function ChatWidget() {
                 {file ? (
                   <span className="text-[var(--color-ink-soft)] truncate flex items-center gap-1">
                     <Paperclip className="w-3.5 h-3.5 shrink-0" /> {file.name}
-                    <button type="button" onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} aria-label="Hapus lampiran" className="ml-1 text-[var(--color-danger-red)]">
+                    <button type="button" onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} aria-label="Remove attachment" className="ml-1 text-[var(--color-danger-red)]">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </span>
@@ -244,14 +244,14 @@ export function ChatWidget() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                aria-label="Lampirkan file"
+                aria-label="Attach a file"
                 className="w-9 h-9 rounded-full text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] flex items-center justify-center shrink-0"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
               <input
                 type="text"
-                placeholder="Ketik pesan..."
+                placeholder="Type a message..."
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
                 className="flex-1 min-w-0 bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-full px-4 py-2 text-sm focus:outline-none focus:border-[var(--color-brand-blue)] font-[var(--font-inter)]"
@@ -259,7 +259,7 @@ export function ChatWidget() {
               <button
                 type="submit"
                 disabled={(!newMessage.trim() && !file) || sending}
-                aria-label="Kirim"
+                aria-label="Send"
                 className="w-9 h-9 rounded-full bg-[var(--color-brand-blue)] text-white flex items-center justify-center hover:bg-[var(--color-brand-blue)]/90 disabled:opacity-50 transition-colors shrink-0"
               >
                 <Send className="w-4 h-4 ml-0.5" />
@@ -272,7 +272,7 @@ export function ChatWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        aria-label={isOpen ? "Tutup chat" : "Buka chat"}
+        aria-label={isOpen ? "Close chat" : "Open chat"}
         className="relative w-14 h-14 rounded-full bg-[var(--color-accent-coral)] text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}

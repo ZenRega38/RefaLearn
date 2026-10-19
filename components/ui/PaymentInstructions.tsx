@@ -33,7 +33,7 @@ export function CopyableRow({ label, value }: { label: string; value: string }) 
         type="button"
         onClick={handleCopy}
         className="p-2 text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] hover:bg-white rounded-md transition-colors shrink-0"
-        title="Salin"
+        title="Copy"
       >
         {copied ? <Check className="w-4 h-4 text-[var(--color-success-green)]" /> : <Copy className="w-4 h-4" />}
       </button>
@@ -50,10 +50,10 @@ export function PaymentInstructions({ bank, ewallet }: { bank: BankDetails | nul
       {bank?.account_number && (
         <div className="pb-2">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ink-soft)] mb-1">
-            <Landmark className="w-3.5 h-3.5" /> Transfer Bank
+            <Landmark className="w-3.5 h-3.5" /> Bank Transfer
           </div>
           <CopyableRow label={bank.bank_name || "Bank"} value={bank.account_number} />
-          <p className="text-xs text-[var(--color-ink-soft)]">a.n. {bank.account_name}</p>
+          <p className="text-xs text-[var(--color-ink-soft)]">Account name: {bank.account_name}</p>
         </div>
       )}
       {ewallet?.number && (
@@ -62,7 +62,7 @@ export function PaymentInstructions({ bank, ewallet }: { bank: BankDetails | nul
             <Wallet className="w-3.5 h-3.5" /> E-Wallet
           </div>
           <CopyableRow label={ewallet.provider || "E-Wallet"} value={ewallet.number} />
-          <p className="text-xs text-[var(--color-ink-soft)]">a.n. {ewallet.account_name}</p>
+          <p className="text-xs text-[var(--color-ink-soft)]">Account name: {ewallet.account_name}</p>
         </div>
       )}
     </div>

@@ -127,7 +127,7 @@ export function Navbar() {
                   className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
                   style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                 >
-                  {profile.role === "admin" ? "Admin Panel" : "Dashboard Saya"}
+                  {profile.role === "admin" ? "Admin Panel" : "My Dashboard"}
                 </Link>
                 {profile.role === "student" && (
                   <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
@@ -140,7 +140,7 @@ export function Navbar() {
                   className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-danger-red)] transition-colors"
                   style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                 >
-                  <LogOut className="w-4 h-4" /> Keluar
+                  <LogOut className="w-4 h-4" /> Log out
                 </button>
               </>
             ) : (
@@ -151,7 +151,7 @@ export function Navbar() {
                   className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
                   style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                 >
-                  Masuk
+                  Log in
                 </Link>
                 <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
                   Book Session
@@ -230,7 +230,7 @@ export function Navbar() {
                   href={profile.role === "admin" ? "/admin" : "/dashboard"}
                   className="btn-secondary text-center text-sm"
                 >
-                  {profile.role === "admin" ? "Admin Panel" : "Dashboard Saya"}
+                  {profile.role === "admin" ? "Admin Panel" : "My Dashboard"}
                 </Link>
                 {profile.role === "student" && (
                   <Link href="/schedule" className="btn-primary text-center text-sm">
@@ -241,13 +241,13 @@ export function Navbar() {
                   onClick={handleLogout}
                   className="flex items-center justify-center gap-2 text-sm font-medium text-[var(--color-danger-red)] py-2"
                 >
-                  <LogOut className="w-4 h-4" /> Keluar
+                  <LogOut className="w-4 h-4" /> Log out
                 </button>
               </>
             ) : (
               <>
                 <Link href="/login" className="btn-secondary text-center text-sm">
-                  Masuk
+                  Log in
                 </Link>
                 <Link href="/schedule" className="btn-primary text-center text-sm">
                   Book Session

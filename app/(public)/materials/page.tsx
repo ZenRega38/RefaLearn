@@ -92,7 +92,7 @@ export default function MaterialsCatalogPage() {
   });
 
   const filters: Filter[] = [
-    { key: ALL, label: "Semua" },
+    { key: ALL, label: "All" },
     ...(isLoggedIn ? [{ key: MINE, label: "My Courses" }] : []),
     ...(materials.some((m) => m.price === 0) ? [{ key: FREE, label: "Free" }] : []),
     ...categories.map((c) => ({ key: c, label: c })),
@@ -105,18 +105,18 @@ export default function MaterialsCatalogPage() {
         {/* Header */}
         <div className="text-center space-y-4 mb-12">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <Badge variant="blue">Materi Belajar</Badge>
+            <Badge variant="blue">Learning Materials</Badge>
             <LimitedOffer />
           </div>
           <h1 className="text-4xl md:text-5xl font-[var(--font-kalam)] text-[var(--color-ink)]">
-            Tingkatkan Skill Bahasa Inggrismu
+            Level Up Your English
           </h1>
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Kumpulan e-book, modul, worksheet, dan video pembelajaran eksklusif yang dirancang khusus untuk mempercepat proses belajarmu.
+            Exclusive e-books, modules, worksheets and video lessons designed to speed up your learning.
           </p>
           {cart.length > 0 && (
             <Button href="/materials/checkout" variant="secondary" size="sm">
-              <ShoppingCart className="w-4 h-4" /> Keranjang ({cart.length})
+              <ShoppingCart className="w-4 h-4" /> Cart ({cart.length})
             </Button>
           )}
         </div>
@@ -134,7 +134,7 @@ export default function MaterialsCatalogPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-soft)]" />
             <input
               type="text"
-              placeholder="Cari materi..."
+              placeholder="Search courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--color-line)] bg-white text-sm focus:outline-none focus:border-[var(--color-brand-blue)] font-[var(--font-inter)]"
@@ -153,12 +153,12 @@ export default function MaterialsCatalogPage() {
           <Card className="text-center py-16 bg-white/50 border-dashed">
             <BookOpen className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
             <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">
-              {selectedCategory === MINE && !searchQuery ? "Belum ada materi di My Courses" : "Materi tidak ditemukan"}
+              {selectedCategory === MINE && !searchQuery ? "Nothing in My Courses yet" : "No courses found"}
             </h3>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
               {selectedCategory === MINE && !searchQuery
-                ? "Materi yang kamu beli, yang diberi akses oleh admin, dan materi gratis yang sudah kamu ambil akan muncul di sini."
-                : "Coba gunakan kata kunci pencarian yang lain atau ubah filter kategori."}
+                ? "Courses you've bought, been given access to by the admin, or claimed for free will appear here."
+                : "Try a different search term or change the category filter."}
             </p>
             <Button variant="secondary" className="mt-6" onClick={() => { setSearchQuery(""); setSelectedCategory(ALL); }}>
               Reset Filter

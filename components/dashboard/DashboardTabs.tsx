@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { CalendarCheck, Receipt, BookOpen, UserCircle } from "lucide-react";
 
 const tabs = [
-    { href: "/dashboard", label: "Sesi Saya", short: "Sesi", icon: CalendarCheck, exact: true },
-    { href: "/dashboard/invoices", label: "Tagihan Saya", short: "Tagihan", icon: Receipt },
-    { href: "/dashboard/materials", label: "Materi Saya", short: "Materi", icon: BookOpen },
-    { href: "/dashboard/profile", label: "Profil", short: "Profil", icon: UserCircle },
+    { href: "/dashboard", label: "My Sessions", short: "Sessions", icon: CalendarCheck, exact: true },
+    { href: "/dashboard/invoices", label: "My Invoices", short: "Invoices", icon: Receipt },
+    { href: "/dashboard/materials", label: "My Courses", short: "Courses", icon: BookOpen },
+    { href: "/dashboard/profile", label: "Profile", short: "Profile", icon: UserCircle },
 ];
 
 export function DashboardTabs() {
