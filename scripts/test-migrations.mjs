@@ -320,5 +320,33 @@ await db.query(`delete from partners where id = $1`, [partner]);
 const unlinked = await db.query(`select partner_id from materials where id = $1`, [partnered]);
 check(unlinked.rows.length === 1 && unlinked.rows[0].partner_id === null, "removing a partner keeps the material and clears the link", JSON.stringify(unlinked.rows));
 
+console.log("\nTimed quiz attempts (course_quiz_attempts):");
+await expectFail("students cannot start an attempt themselves", () => as("authenticated", S1,
+  `insert into course_quiz_attempts (student_id, course_slug, item_id, attempt_no, deadline_at) values ($1,'eac-olympiad-5','eac5-tryout',1, now() + interval '60 minutes')`, [S1]), /row-level security/);
+const qa = (await as("service_role", null,
+  `insert into course_quiz_attempts (student_id, course_slug, item_id, attempt_no, deadline_at) values ($1,'eac-olympiad-5','eac5-tryout',1, now() + interval '60 minutes') returning id, draft, counted`, [S1])).rows[0];
+check(qa && JSON.stringify(qa.draft) === "{}" && qa.counted === true, "a new attempt starts with an empty draft and counts toward the limit", JSON.stringify(qa));
+await expectFail("only one unfinished attempt per quiz", () => as("service_role", null,
+  `insert into course_quiz_attempts (student_id, course_slug, item_id, attempt_no, deadline_at) values ($1,'eac-olympiad-5','eac5-tryout',2, now() + interval '60 minutes')`, [S1]), /duplicate key/);
+await expectFail("the deadline must be after the start", () => as("service_role", null,
+  `insert into course_quiz_attempts (student_id, course_slug, item_id, attempt_no, started_at, deadline_at) values ($1,'eac-olympiad-5','eac5-other',1, now(), now() - interval '1 minute')`, [S1]), /check constraint/);
+await as("service_role", null, `update course_quiz_attempts set submitted_at = now(), score = 30, max_score = 40, passed = true where id = $1`, [qa.id]);
+await expectOk("the next attempt opens once the previous one is submitted", () => as("service_role", null,
+  `insert into course_quiz_attempts (student_id, course_slug, item_id, attempt_no, deadline_at) values ($1,'eac-olympiad-5','eac5-tryout',2, now() + interval '60 minutes')`, [S1]));
+const ownAttempts = await as("authenticated", S1, `select id from course_quiz_attempts`);
+const otherAttempts = await as("authenticated", S2, `select id from course_quiz_attempts`);
+const adminAttempts = await as("authenticated", ADMIN, `select id from course_quiz_attempts`);
+check(ownAttempts.rows.length === 2 && otherAttempts.rows.length === 0 && adminAttempts.rows.length === 2,
+  "students see only their own attempts; the admin sees all", `${ownAttempts.rows.length}/${otherAttempts.rows.length}/${adminAttempts.rows.length}`);
+const selfReset = await as("authenticated", S1, `update course_quiz_attempts set counted = false where student_id = $1 returning id`, [S1]);
+check(selfReset.rows.length === 0, "students cannot clear their attempts directly (starting over goes through the server)", String(selfReset.rows.length));
+const restarted = await as("service_role", null, `update course_quiz_attempts set counted = false where student_id = $1 and submitted_at is not null returning id`, [S1]);
+check(restarted.rows.length === 1, "starting over takes finished attempts out of the limit and keeps them in the log", String(restarted.rows.length));
+const examCols = await db.query(`select counted, auto_submitted, draft from course_attempts`);
+check(examCols.rows.every((r) => r.counted === false && r.auto_submitted === false && r.draft === null),
+  "earlier exam attempts don't count toward the new limit", JSON.stringify(examCols.rows));
+const freshExam = (await as("service_role", null, `insert into course_attempts (student_id, course_slug, kind) values ($1,'toefl-itp','pretest') returning counted`, [S1])).rows[0];
+check(freshExam.counted === true, "new exam attempts count toward the limit", JSON.stringify(freshExam));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

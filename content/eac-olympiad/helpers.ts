@@ -1,5 +1,5 @@
 import "server-only";
-import type { ErrorQuestion, McQuestion } from "@/lib/course/types";
+import type { ErrorQuestion, McQuestion, QuizPart } from "@/lib/course/types";
 import { pick } from "../kit";
 
 // Builders for the EA Champion English Olympiad modules (SMA, Preliminary →
@@ -81,3 +81,11 @@ export const SCORE_FORMULA = {
     ["D", "correct × 4.4", "22"],
   ],
 };
+
+/** The Preliminary paper scored by part on the 100-point scale, in question order (mock tests and tryouts). */
+export const PRELIM_PARTS: QuizPart[] = [
+  { label: "A. Words & Structure", count: 20, points: 35 },
+  { label: "B. Reading", count: 10, points: 27 },
+  { label: "C. Spoken & Written Expression", count: 5, points: 16 },
+  { label: "D. HOTS", count: 5, points: 22 },
+];

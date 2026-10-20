@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
-import { ALL_COURSES, computeUnlocks, findLevelQuiz } from "@/lib/course/content";
+import { ALL_COURSES, computeUnlocks, findLevelQuiz, quizSet, quizSetFor } from "@/lib/course/content";
+import { checkpointSeconds, clock, cooldownMinutes, MAX_ATTEMPTS, quizSeconds } from "@/lib/course/attempt-rules";
+import { partScores } from "@/components/course/PartScores";
 import { COURSES as REGISTRY, courseUiLang } from "@/lib/course/registry";
 import { convertedScore, isCorrect, normalizeAnswer, toPublicQuestion, totalScore } from "@/lib/course/grading";
 import type { Course, Passage, ProgressItem, Question, Response } from "@/lib/course/types";
@@ -21,7 +23,9 @@ function allQuestions(course: Course): Located[] {
       for (const s of lesson.sections) for (const b of s.blocks) if (b.type === "try") out.push({ q: b.question, passages, where: lesson.id });
       for (const q of lesson.checkpoint) out.push({ q, passages: lesson.passages ?? [], where: lesson.id });
     }
-    for (const q of level.quiz.questions) out.push({ q, passages: level.quiz.passages ?? [], where: level.quiz.id });
+    // Tryouts with parallel versions: every set (set 1 is also `questions`).
+    const sets = level.quiz.sets ?? [{ questions: level.quiz.questions, passages: level.quiz.passages }];
+    for (const set of sets) for (const q of set.questions) out.push({ q, passages: set.passages ?? [], where: level.quiz.id });
   }
   for (const exam of [course.pretest, course.tryout]) {
     if (!exam) continue;
@@ -405,3 +409,77 @@ function getCourseOrThrow(slug: string): Course {
   if (!c) throw new Error(`missing course ${slug}`);
   return c;
 }
+
+describe("EAC Modul 5 — Preliminary tryouts", () => {
+  const course = getCourseOrThrow("eac-olympiad-5");
+  const quiz = course.levels[0].quiz;
+  const sets = quiz.sets ?? [];
+
+  it("has three tryouts, the first one doubling as the quiz's questions", () => {
+    expect(sets).toHaveLength(3);
+    expect(quiz.questions.map((q) => q.id)).toEqual(sets[0].questions.map((q) => q.id));
+  });
+
+  it.each([0, 1, 2])("tryout %i follows the Preliminary format exactly", (i) => {
+    const qs = sets[i].questions;
+    expect(qs).toHaveLength(40);
+    expect(sets[i].passages).toHaveLength(2);
+    qs.slice(0, 20).forEach((q) => expect(q.prompt, q.id).toMatch(/^Part A · /));
+    qs.slice(20, 30).forEach((q) => expect(q.prompt, q.id).toMatch(/^Part B · /));
+    expect(new Set(qs.slice(20, 25).map((q) => q.passageId)).size).toBe(1);
+    expect(new Set(qs.slice(25, 30).map((q) => q.passageId)).size).toBe(1);
+    expect(qs[24].hots && qs[29].hots).toBe(true);
+    qs.slice(30, 35).forEach((q) => expect(q.prompt, q.id).toMatch(/^Choose the best response\./));
+    qs.slice(35, 37).forEach((q) => expect(q.prompt, q.id).toMatch(/^Arrange the chunks/));
+    qs.slice(37, 39).forEach((q) => expect(q.prompt, q.id).toMatch(/^Part D · /));
+    expect(qs[39].prompt).toBe("Which sentence is grammatically correct?");
+    expect(qs.slice(35).every((q) => q.hots)).toBe(true);
+  });
+
+  it("never repeats a question — across the tryouts or from Modules 1–4", () => {
+    const key = (q: Question) => (q.type === "mc" ? `${q.prompt}|${[...q.options].sort().join("|")}` : q.id);
+    const earlier = new Set(ALL_COURSES.filter((c) => /^eac-olympiad-[1-4]$/.test(c.slug)).flatMap((c) => allQuestions(c).map((x) => key(x.q))));
+    const mine = sets.flatMap((s) => s.questions.map(key));
+    expect(new Set(mine).size).toBe(mine.length);
+    expect(mine.filter((k) => earlier.has(k))).toEqual([]);
+  });
+
+  it("gives attempt n tryout n, cycling, and finds the set an answer sheet belongs to", () => {
+    expect([1, 2, 3, 4].map((n) => quizSet(quiz, n).questions[0].id)).toEqual(["eac5-t1-1", "eac5-t2-1", "eac5-t3-1", "eac5-t1-1"]);
+    expect(quizSetFor(quiz, { "eac5-t3-7": null }).questions[0].id).toBe("eac5-t3-1");
+    const plain = getCourseOrThrow("eac-olympiad-3").levels[0].quiz;
+    expect(quizSet(plain, 2).questions).toBe(plain.questions);
+  });
+
+  it("scores the tryouts and both mock tests on the 100-point scale", () => {
+    for (const q of [quiz, ...["eac3-mock1", "eac3-mock2"].map((id) => findLevelQuiz(getCourseOrThrow("eac-olympiad-3"), id)!.quiz)]) {
+      expect(q.parts?.reduce((n, p) => n + p.count, 0), q.id).toBe(q.questions.length);
+      expect(q.parts?.reduce((n, p) => n + p.points, 0), q.id).toBe(100);
+    }
+    expect(partScores(quiz.parts!, [...Array(20).fill(true), ...Array(20).fill(false)]).total).toBe(35);
+    expect(partScores(quiz.parts!, Array(40).fill(true)).total).toBe(100);
+  });
+
+  it("runs at the real paper's pace: 60 minutes, a 4-minute break between attempts", () => {
+    expect(quizSeconds(quiz.questions.length, course.quizSecondsPerQuestion)).toBe(3600);
+    expect(cooldownMinutes(quiz.questions.length)).toBe(4);
+  });
+});
+
+describe("attempt rules", () => {
+  it("allows three attempts with a 1–5 minute break by length", () => {
+    expect(MAX_ATTEMPTS).toBe(3);
+    expect([1, 10, 11, 25, 40, 50, 140].map(cooldownMinutes)).toEqual([1, 1, 2, 3, 4, 5, 5]);
+  });
+
+  it("times quizzes by the course pace and checkpoints generously", () => {
+    expect(quizSeconds(10)).toBe(600);
+    expect(quizSeconds(1)).toBe(120);
+    expect(checkpointSeconds(6)).toBe(540);
+    expect(checkpointSeconds(1)).toBe(180);
+  });
+
+  it("formats countdowns", () => {
+    expect([0, 999, 61_000, 3_600_000, 3_661_000].map(clock)).toEqual(["0:00", "0:01", "1:01", "1:00:00", "1:01:01"]);
+  });
+});

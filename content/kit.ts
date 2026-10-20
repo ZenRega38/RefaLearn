@@ -191,7 +191,11 @@ export function balance<Q extends Question>(q: Q): Q {
   }
   return q;
 }
-const balanceQuiz = (quiz: LevelQuiz): LevelQuiz => ({ ...quiz, questions: quiz.questions.map(balance) });
+const balanceQuiz = (quiz: LevelQuiz): LevelQuiz => ({
+  ...quiz,
+  questions: quiz.questions.map(balance),
+  ...(quiz.sets ? { sets: quiz.sets.map((s) => ({ ...s, questions: s.questions.map(balance) })) } : {}),
+});
 const balanceLive = (set: LiveQuizSet): LiveQuizSet => ({ ...set, questions: set.questions.map(balance) });
 
 /** Balances checkpoint and "try it" questions inside a lesson. */

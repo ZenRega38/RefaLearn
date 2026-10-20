@@ -4,11 +4,11 @@ import { createContext, useContext, type ReactNode } from "react";
 import { UI_TEXT, type UiLang, type UiText } from "@/lib/course/ui-text";
 
 type Settings = { lang: UiLang; readAloud: boolean };
-const CourseLang = createContext<Settings>({ lang: "id", readAloud: false });
+const CourseLang = createContext<Settings>({ lang: "en", readAloud: false });
 
 /** Sets the interface language (and young-learner read-aloud) for every course component below it. */
 export function CourseLangProvider({ lang, readAloud = false, children }: { lang: UiLang | null | undefined; readAloud?: boolean; children: ReactNode }) {
-  return <CourseLang.Provider value={{ lang: lang === "en" ? "en" : "id", readAloud }}>{children}</CourseLang.Provider>;
+  return <CourseLang.Provider value={{ lang: lang === "id" ? "id" : "en", readAloud }}>{children}</CourseLang.Provider>;
 }
 
 /** Interface words in the current course's language. */

@@ -19,8 +19,8 @@ import { formatPrice, validBefore } from "@/lib/pricing";
 import { formatTimestamp } from "@/lib/format";
 import { CheckCircle2, Lock, PlayCircle, ClipboardCheck, Trophy, Target, Clock, RefreshCw, ShoppingBag, Radio } from "lucide-react";
 
-type Attempt = { id: string; total_score: number | null; submitted_at: string | null };
-type QuizInfo = { id: string; title: string; questions: number; passPercent: number; unlocked: boolean; passed: boolean; score: number | null; maxScore: number | null };
+type Attempt = { id: string; total_score: number | null; submitted_at: string | null; counted: boolean; auto_submitted: boolean };
+type QuizInfo = { id: string; title: string; questions: number; passPercent: number; minutes: number; attemptsUsed: number; inProgress: boolean; unlocked: boolean; passed: boolean; score: number | null; maxScore: number | null };
 type Outline = {
   slug: string;
   title: string;
@@ -34,6 +34,7 @@ type Outline = {
   slideLinks: boolean;
   isAdmin: boolean;
   quizSecondsPerQuestion: number | null;
+  maxAttempts: number;
   loggedIn: boolean;
   access: boolean;
   store: { slug: string; price: number; before: number | null } | null;
@@ -101,7 +102,11 @@ export default function CourseHomePage() {
   }
 
   const pct = Math.round((outline.progress.completed / Math.max(outline.progress.total, 1)) * 100);
+  const attemptsText = (q: QuizInfo) =>
+    q.inProgress ? ` · ${t.attempts.inProgress}` : q.attemptsUsed > 0 ? ` · ${t.attempts.used(Math.min(q.attemptsUsed, outline.maxAttempts), outline.maxAttempts)}` : "";
   const lastPretest = outline.pretest?.attempts[0];
+  const pretestUsed = (outline.pretest?.attempts ?? []).filter((x) => x.counted).length;
+  const tryoutUsed = (outline.tryout?.attempts ?? []).filter((x) => x.counted).length;
   const bestTryout = (outline.tryout?.attempts ?? []).reduce<number | null>((best, a) => (a.total_score !== null && (best === null || a.total_score > best) ? a.total_score : best), null);
   const nextLesson = outline.levels
     .flatMap((l) => [
@@ -117,7 +122,7 @@ export default function CourseHomePage() {
 
         {/* Header */}
         <div className="text-center space-y-3">
-          {outline.mascot && <Picture name={`${outline.mascot}-wave`} label="Maskot kursus" className="w-24 h-24 mx-auto" />}
+          {outline.mascot && <Picture name={`${outline.mascot}-wave`} label="Course mascot" className="w-24 h-24 mx-auto" />}
           <div className="flex justify-center gap-2">
             <Badge variant="blue">{t.interactiveCourse}</Badge>
             {outline.free && <Badge variant="green">{t.free}</Badge>}
@@ -196,19 +201,22 @@ export default function CourseHomePage() {
               <Target className="w-6 h-6 text-[var(--color-warning-amber)]" />
             </div>
             <div className="font-[var(--font-inter)]">
-              <h2 className="font-bold text-lg text-[var(--color-ink)]">{outline.pretest.title} <Badge variant="green" className="ml-1 align-middle">Gratis</Badge></h2>
+              <h2 className="font-bold text-lg text-[var(--color-ink)]">{outline.pretest.title} <Badge variant="green" className="ml-1 align-middle">{t.free}</Badge></h2>
               <p className="text-sm text-[var(--color-ink-soft)]">{outline.pretest.description}</p>
-              <p className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {outline.pretest.questions} soal · {outline.pretest.minutes} menit</p>
+              <p className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> {t.questions(outline.pretest.questions)} · {t.minutes(outline.pretest.minutes)}
+                {pretestUsed > 0 && ` · ${t.attempts.used(Math.min(pretestUsed, outline.maxAttempts), outline.maxAttempts)}`}
+              </p>
               {lastPretest && (
                 <p className="text-sm mt-2">
-                  Hasil terakhir: <strong className="text-[var(--color-brand-blue)]">{lastPretest.total_score}</strong>{" "}
-                  <Link href={`/learn/${slug}/exam/pretest?attempt=${lastPretest.id}`} className="text-xs text-[var(--color-brand-blue)] underline">lihat pembahasan</Link>
+                  Latest result: <strong className="text-[var(--color-brand-blue)]">{lastPretest.total_score}</strong>{" "}
+                  <Link href={`/learn/${slug}/exam/pretest?attempt=${lastPretest.id}`} className="text-xs text-[var(--color-brand-blue)] underline">see the review</Link>
                 </p>
               )}
             </div>
           </div>
           <Button href={outline.loggedIn ? `/learn/${slug}/exam/pretest` : `/login?next=/learn/${slug}`} variant={lastPretest ? "secondary" : "primary"} className="shrink-0">
-            {lastPretest ? "Ulangi Pretest" : "Mulai Pretest"}
+            {lastPretest ? "Open Pretest" : "Start Pretest"}
           </Button>
         </Card>
         )}
@@ -253,8 +261,9 @@ export default function CourseHomePage() {
                           <div className="flex-1">
                             <p className="font-bold text-[var(--color-ink)]">{p.title}</p>
                             <p className="text-xs text-[var(--color-ink-soft)]">
-                              {t.questions(p.questions)} · {t.pretestRow}
+                              {t.questions(p.questions)} · {t.minutes(p.minutes)} · {t.pretestRow}
                               {p.score !== null && ` · ${t.score(p.score, p.maxScore)}`}
+                              {attemptsText(p)}
                             </p>
                           </div>
                         </div>
@@ -291,8 +300,9 @@ export default function CourseHomePage() {
                         <div className="flex-1">
                           <p className="font-bold text-[var(--color-brand-blue)]">{q.title}</p>
                           <p className="text-xs text-[var(--color-ink-soft)]">
-                            {t.questions(q.questions)}{outline.quizSecondsPerQuestion ? ` · ${t.secondsPerQuestion(outline.quizSecondsPerQuestion)}` : ""} · {outline.openOrder ? t.target(q.passPercent) : t.passToContinue(q.passPercent)}
+                            {t.questions(q.questions)} · {t.minutes(q.minutes)}{q.passPercent > 0 ? ` · ${outline.openOrder ? t.target(q.passPercent) : t.passToContinue(q.passPercent)}` : ""}
                             {q.score !== null && ` · ${t.bestScore(q.score, q.maxScore)}`}
+                            {attemptsText(q)}
                           </p>
                         </div>
                       </div>
@@ -348,14 +358,17 @@ export default function CourseHomePage() {
             <div className="font-[var(--font-inter)]">
               <h2 className="font-bold text-lg text-[var(--color-ink)]">{outline.tryout.title}</h2>
               <p className="text-sm text-[var(--color-ink-soft)]">{outline.tryout.description}</p>
-              <p className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {outline.tryout.questions} soal · {outline.tryout.minutes} menit</p>
-              {bestTryout !== null && <p className="text-sm mt-2">Skor terbaik: <strong className="text-[var(--color-accent-coral)]">{bestTryout}</strong></p>}
+              <p className="text-xs text-[var(--color-ink-soft)] mt-1 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" /> {t.questions(outline.tryout.questions)} · {t.minutes(outline.tryout.minutes)}
+                {tryoutUsed > 0 && ` · ${t.attempts.used(Math.min(tryoutUsed, outline.maxAttempts), outline.maxAttempts)}`}
+              </p>
+              {bestTryout !== null && <p className="text-sm mt-2">Best score: <strong className="text-[var(--color-accent-coral)]">{bestTryout}</strong></p>}
               {outline.tryout.attempts.length > 0 && (
                 <ul className="mt-2 text-xs text-[var(--color-ink-soft)] space-y-0.5">
                   {outline.tryout.attempts.slice(0, 3).map((a) => (
                     <li key={a.id}>
-                      {a.submitted_at && formatTimestamp(a.submitted_at, "dd MMM yyyy")} — {a.total_score}{" "}
-                      <Link href={`/learn/${slug}/exam/tryout?attempt=${a.id}`} className="text-[var(--color-brand-blue)] underline">pembahasan</Link>
+                      {a.submitted_at && formatTimestamp(a.submitted_at, "dd MMM yyyy", "en")} — {a.total_score}{" "}
+                      <Link href={`/learn/${slug}/exam/tryout?attempt=${a.id}`} className="text-[var(--color-brand-blue)] underline">review</Link>
                     </li>
                   ))}
                 </ul>
@@ -363,10 +376,10 @@ export default function CourseHomePage() {
             </div>
           </div>
           {outline.tryout.unlocked ? (
-            <Button href={`/learn/${slug}/exam/tryout`} className="shrink-0">Mulai Tryout</Button>
+            <Button href={`/learn/${slug}/exam/tryout`} className="shrink-0">{outline.tryout.attempts.length ? "Open Tryout" : "Start Tryout"}</Button>
           ) : (
             <span className="flex items-center gap-1.5 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] shrink-0">
-              <Lock className="w-4 h-4" /> Selesaikan semua level dulu
+              <Lock className="w-4 h-4" /> Finish every level first
             </span>
           )}
         </Card>

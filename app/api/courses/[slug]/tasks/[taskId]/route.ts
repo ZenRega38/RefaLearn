@@ -14,16 +14,16 @@ export async function POST(request: NextRequest, { params }: Params) {
   const { slug, taskId } = await params;
   const ctx = await courseContext(slug);
   if (!ctx.ok) return jsonError(ctx.error, ctx.status);
-  if (!ctx.access) return jsonError("Kursus ini belum Anda miliki.", 403);
+  if (!ctx.access) return jsonError("You don't own this course yet.", 403);
 
   const found = findTask(ctx.course, taskId);
-  if (!found || found.task.kind !== "writing") return jsonError("Tugas tidak ditemukan.", 404);
-  if (!ctx.unlocks.unlocked.has(found.lesson.id)) return jsonError("Materi ini belum terbuka.", 403);
+  if (!found || found.task.kind !== "writing") return jsonError("Task not found.", 404);
+  if (!ctx.unlocks.unlocked.has(found.lesson.id)) return jsonError("This lesson isn't open yet.", 403);
 
   const body = await readJson<{ text?: string }>(request);
   const text = (body?.text || "").trim();
-  if (!text) return jsonError("Jawaban masih kosong.");
-  if (text.length > MAX_CHARS) return jsonError("Jawaban terlalu panjang.");
+  if (!text) return jsonError("Your answer is empty.");
+  if (text.length > MAX_CHARS) return jsonError("Your answer is too long.");
 
   const words = text.split(/\s+/).length;
   await logSubmission(ctx.admin, {

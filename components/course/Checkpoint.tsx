@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, XCircle, Trophy, Flag } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, XCircle, Trophy, Flag, Clock, AlarmClockOff, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { Passage, Question, Response } from "@/lib/course/types";
 import { isCorrect } from "@/lib/course/grading";
@@ -10,19 +10,9 @@ import { answerText, isAnswered } from "@/components/course/QuestionInput";
 import { Md } from "@/components/course/Md";
 import { Picture } from "@/components/course/pictures";
 import { useCourseText } from "@/components/course/lang";
+import { checkpointSeconds, clock } from "@/lib/course/attempt-rules";
 
-/**
- * Duolingo-style mini quiz: one question at a time, instant feedback, and
- * every wrong answer comes back at the end until it's answered correctly.
- */
-export function Checkpoint({
-  title,
-  questions,
-  passages = [],
-  onComplete,
-  completing = false,
-  mascot,
-}: {
+type Props = {
   title: string;
   questions: Question[];
   passages?: Passage[];
@@ -31,8 +21,23 @@ export function Checkpoint({
   completing?: boolean;
   /** Picture family (e.g. "owl") that reacts to answers; trophy/icons when absent. */
   mascot?: string;
-}) {
+};
+
+/**
+ * Duolingo-style mini quiz: one question at a time, instant feedback, and
+ * every wrong answer comes back at the end until it's answered correctly.
+ * The whole run is timed; when time runs out it starts over.
+ */
+export function Checkpoint(props: Props) {
+  const [run, setRun] = useState(0);
+  return <CheckpointRun key={run} {...props} onRestart={() => setRun((r) => r + 1)} />;
+}
+
+function CheckpointRun({ title, questions, passages = [], onComplete, completing = false, mascot, onRestart }: Props & { onRestart: () => void }) {
   const t = useCourseText();
+  const limitMs = checkpointSeconds(questions.length) * 1000;
+  const [deadline] = useState(() => Date.now() + limitMs);
+  const [now, setNow] = useState(() => Date.now());
   const [queue, setQueue] = useState<Question[]>(questions);
   const [round, setRound] = useState(0);
   const [response, setResponse] = useState<Response | null>(null);
@@ -44,6 +49,15 @@ export function Checkpoint({
   const current = queue[0];
   const finished = !current;
   const progress = Math.round((cleared.size / questions.length) * 100);
+  const left = deadline - now;
+  const timeUp = !finished && left <= 0;
+
+  // The clock stops once every question is cleared.
+  useEffect(() => {
+    if (finished || timeUp) return;
+    const id = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, [finished, timeUp]);
 
   const check = () => {
     if (!current) return;
@@ -73,9 +87,21 @@ export function Checkpoint({
         <span className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">
           {cleared.size}/{questions.length}
         </span>
+        {!finished && (
+          <span className={`flex items-center gap-1 text-xs font-bold tabular-nums font-[var(--font-inter)] px-2.5 py-1 rounded-full ${left <= 30_000 ? "bg-[var(--color-danger-red)]/15 text-[var(--color-danger-red)]" : "bg-[var(--color-paper-bg-alt)] text-[var(--color-ink-soft)]"} ${left <= 10_000 && !timeUp ? "animate-pulse" : ""}`}>
+            <Clock className="w-3.5 h-3.5" /> {clock(left)}
+          </span>
+        )}
       </div>
 
-      {finished ? (
+      {timeUp ? (
+        <div className="text-center py-8 space-y-4">
+          {mascot ? <Picture name={`${mascot}-think`} className="w-28 h-28 mx-auto" /> : <AlarmClockOff className="w-14 h-14 mx-auto text-[var(--color-accent-coral)]" />}
+          <h4 className="text-2xl font-[var(--font-kalam)] text-[var(--color-accent-coral)]">{t.checkpointRun.timeUp}</h4>
+          <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.checkpointRun.timeUpHint}</p>
+          <Button onClick={onRestart}><RotateCcw className="w-4 h-4" /> {t.checkpointRun.restart}</Button>
+        </div>
+      ) : finished ? (
         <div className="text-center py-8 space-y-4">
           {mascot ? <Picture name={`${mascot}-cheer`} className="w-32 h-32 mx-auto" /> : <Trophy className="w-14 h-14 mx-auto text-[var(--color-accent-yellow)]" />}
           <h4 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">{t.checkpointDone}</h4>

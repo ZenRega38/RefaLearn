@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
@@ -8,11 +8,16 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { LessonBlocks } from "@/components/course/LessonBlocks";
 import { Checkpoint } from "@/components/course/Checkpoint";
+import { ReviewList } from "@/components/course/ReviewList";
+import { Picture } from "@/components/course/pictures";
 import { LiveQuizWidget } from "@/components/live/LiveQuizWidget";
 import { SkillIcon } from "@/components/course/skill";
 import { useCourseText } from "@/components/course/lang";
 import type { Lesson, Response } from "@/lib/course/types";
-import { ArrowLeft, ArrowRight, CheckCircle2, Flag, RefreshCw, Clock } from "lucide-react";
+import { isCorrect } from "@/lib/course/grading";
+import { formatTimestamp } from "@/lib/format";
+import { useFocusMode } from "@/lib/focus-mode";
+import { ArrowLeft, ArrowRight, CheckCircle2, Flag, RefreshCw, Clock, RotateCcw, History, Trophy } from "lucide-react";
 import { announceXp } from "@/lib/gamification";
 
 type LessonPayload = {
@@ -24,6 +29,8 @@ type LessonPayload = {
   done: boolean;
   mascot: string | null;
   hasLive: boolean;
+  /** Earlier checkpoint runs (first try of each question), newest first. */
+  checkpointLog: { id: string; score: number | null; maxScore: number | null; answers: Record<string, Response | null> | null; at: string }[];
 };
 
 export default function LessonPage() {
@@ -34,21 +41,34 @@ export default function LessonPage() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  // A finished checkpoint shows its summary; practising runs it again.
+  const [practice, setPractice] = useState(false);
+
+  const load = useCallback(
+    () =>
+      fetch(`/api/courses/${slug}/lessons/${lessonId}`, { cache: "no-store" })
+        .then(async (res) => {
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error);
+          setData(json);
+          announceXp(json.xp, t.xp.lessonRead);
+        })
+        .catch((err: Error) => setError(err.message)),
+    [slug, lessonId, t.xp.lessonRead]
+  );
 
   useEffect(() => {
-    fetch(`/api/courses/${slug}/lessons/${lessonId}`, { cache: "no-store" })
-      .then(async (res) => {
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error);
-        setData(json);
-        announceXp(json.xp, "Membaca materi");
-      })
-      .catch((err: Error) => setError(err.message));
-  }, [slug, lessonId]);
+    load();
+  }, [load]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [step]);
+  }, [step, practice]);
+
+  const onCheckpoint = !!data && step === data.lesson.sections.length;
+  // Answering the checkpoint (first time, or practising again): focus mode.
+  const running = onCheckpoint && !!data && (!data.done || practice) && data.lesson.checkpoint.length > 0;
+  useFocusMode(running);
 
   if (error) {
     return (
@@ -74,7 +94,7 @@ export default function LessonPage() {
 
   const { lesson } = data;
   const steps = [...lesson.sections.map((s) => s.title), t.checkpoint];
-  const onCheckpoint = step === lesson.sections.length;
+  const nextHref = data.nextIsQuiz ? `/learn/${slug}/quiz/${data.nextId}` : `/learn/${slug}/lesson/${data.nextId}`;
 
   const complete = async ({ responses }: { responses: Record<string, Response | null> }) => {
     setSaving(true);
@@ -86,13 +106,52 @@ export default function LessonPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      announceXp(json.xp, "Materi selesai");
-      router.push(data.nextIsQuiz ? `/learn/${slug}/quiz/${data.nextId}` : `/learn/${slug}/lesson/${data.nextId}`);
+      announceXp(json.xp, t.xp.lessonDone);
+      if (data.done) {
+        // A practice run: back to the summary, with this run in the log.
+        await load();
+        setPractice(false);
+        setSaving(false);
+        return;
+      }
+      router.push(nextHref);
     } catch (err) {
       setSaving(false);
       alert(err instanceof Error ? err.message : t.saveFailed);
     }
   };
+
+  if (running) {
+    return (
+      <PaperBackground className="pb-20 min-h-screen">
+        <div className="container-main max-w-3xl mx-auto space-y-5">
+          <div className="sticky top-0 z-40 -mx-4 px-4 py-3 bg-[var(--color-paper-bg)]/95 backdrop-blur border-b border-[var(--color-line)] flex items-center justify-between gap-3 font-[var(--font-inter)]">
+            <div className="min-w-0">
+              <p className="font-semibold text-[var(--color-ink)] truncate">{lesson.title}</p>
+              <p className="text-xs text-[var(--color-ink-soft)] truncate">{data.level.title}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => (practice ? setPractice(false) : setStep(lesson.sections.length - 1))}
+              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] px-2 py-1.5 rounded-md hover:bg-[var(--color-paper-bg-alt)] shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" /> {practice ? t.checkpointRun.doneTitle : t.previous}
+            </button>
+          </div>
+          <Card variant="sketch" className="p-5 md:p-8">
+            <Checkpoint
+              title={t.checkpointTitle(lesson.title)}
+              questions={lesson.checkpoint}
+              passages={lesson.passages}
+              onComplete={complete}
+              completing={saving}
+              mascot={data.mascot ?? undefined}
+            />
+          </Card>
+        </div>
+      </PaperBackground>
+    );
+  }
 
   return (
     <PaperBackground className="pt-24 pb-20 min-h-screen">
@@ -114,9 +173,9 @@ export default function LessonPage() {
                     <button
                       onClick={() => (i <= step || data.done) && setStep(i)}
                       disabled={i > step && !data.done}
-                      className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md ${i === step ? "bg-[var(--color-brand-blue)] text-white" : i < step ? "text-[var(--color-ink)] hover:bg-[var(--color-paper-bg-alt)]" : "text-[var(--color-ink-soft)] opacity-60"}`}
+                      className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md ${i === step ? "bg-[var(--color-brand-blue)] text-white" : i < step || data.done ? "text-[var(--color-ink)] hover:bg-[var(--color-paper-bg-alt)]" : "text-[var(--color-ink-soft)] opacity-60"}`}
                     >
-                      {i < step ? <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--color-success-green)]" /> : i === steps.length - 1 ? <Flag className="w-4 h-4 shrink-0" /> : <span className="w-4 text-center text-xs">{i + 1}</span>}
+                      {i < step || (data.done && i !== step) ? <CheckCircle2 className={`w-4 h-4 shrink-0 ${i === step ? "text-white" : "text-[var(--color-success-green)]"}`} /> : i === steps.length - 1 ? <Flag className="w-4 h-4 shrink-0" /> : <span className="w-4 text-center text-xs">{i + 1}</span>}
                       <span className="truncate">{title}</span>
                     </button>
                   </li>
@@ -137,15 +196,11 @@ export default function LessonPage() {
             {data.hasLive && <LiveQuizWidget courseSlug={slug} levelId={data.level.id} compact />}
 
             <Card variant="sketch" className="p-5 md:p-8">
-              {onCheckpoint ? (
-                <Checkpoint
-                  title={t.checkpointTitle(lesson.title)}
-                  questions={lesson.checkpoint}
-                  passages={lesson.passages}
-                  onComplete={complete}
-                  completing={saving}
-                  mascot={data.mascot ?? undefined}
-                />
+              {onCheckpoint && data.done ? (
+                <CheckpointSummary data={data} onPractice={() => setPractice(true)} nextHref={nextHref} />
+              ) : onCheckpoint ? (
+                // A lesson without checkpoint questions: just the finish button.
+                <Checkpoint title={t.checkpointTitle(lesson.title)} questions={lesson.checkpoint} onComplete={complete} completing={saving} mascot={data.mascot ?? undefined} />
               ) : (
                 <div className="space-y-6">
                   <h2 className="text-2xl text-[var(--color-brand-blue)]">{lesson.sections[step].title}</h2>
@@ -168,5 +223,57 @@ export default function LessonPage() {
         </div>
       </div>
     </PaperBackground>
+  );
+}
+
+/** A finished checkpoint: the latest run, every run so far, its review, and the way on. */
+function CheckpointSummary({ data, onPractice, nextHref }: { data: LessonPayload; onPractice: () => void; nextHref: string }) {
+  const t = useCourseText();
+  const c = t.checkpointRun;
+  const last = data.checkpointLog[0];
+  const answers = last?.answers ?? {};
+  const review = data.lesson.checkpoint
+    .filter((q) => q.id in answers)
+    .map((q) => ({ id: q.id, correct: isCorrect(q, answers[q.id]), response: answers[q.id] ?? null, question: q }));
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center space-y-3 py-2">
+        {data.mascot ? <Picture name={`${data.mascot}-cheer`} className="w-24 h-24 mx-auto" /> : <Trophy className="w-12 h-12 mx-auto text-[var(--color-accent-yellow)]" />}
+        <h3 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-6 h-6 text-[var(--color-success-green)]" /> {c.doneTitle}
+        </h3>
+        {last?.score != null && last.maxScore != null && (
+          <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">{c.last(last.score, last.maxScore)}</p>
+        )}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {data.lesson.checkpoint.length > 0 && (
+            <Button variant="secondary" onClick={onPractice}><RotateCcw className="w-4 h-4" /> {c.practice}</Button>
+          )}
+          <Button href={nextHref}>{c.continue} <ArrowRight className="w-4 h-4" /></Button>
+        </div>
+      </div>
+
+      {data.checkpointLog.length > 0 && (
+        <div className="space-y-2 font-[var(--font-inter)]">
+          <p className="text-sm font-bold text-[var(--color-ink)] flex items-center gap-1.5"><History className="w-4 h-4 text-[var(--color-brand-blue)]" /> {c.history}</p>
+          <ul className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-white divide-y divide-[var(--color-line)] text-sm">
+            {data.checkpointLog.map((r) => (
+              <li key={r.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="text-[var(--color-ink-soft)]">{formatTimestamp(r.at, "dd MMM yyyy, HH:mm", "en")}</span>
+                {r.score != null && r.maxScore != null && <span className="font-semibold text-[var(--color-brand-blue)] tabular-nums">{r.score}/{r.maxScore}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {review.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-bold text-[var(--color-ink)] font-[var(--font-inter)]">{c.reviewLast}</p>
+          <ReviewList items={review} passages={data.lesson.passages} />
+        </div>
+      )}
+    </div>
   );
 }
