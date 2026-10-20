@@ -74,7 +74,7 @@ export async function levelsOpenFor(admin: SupabaseClient, course: Course, role:
  */
 export async function courseContext(slug: string) {
   const course = getCourse(slug);
-  if (!course) return { ok: false as const, error: "Kursus tidak ditemukan.", status: 404 };
+  if (!course) return { ok: false as const, error: "Course not found.", status: 404 };
 
   const auth = await requireUser();
   if (!auth.ok) return { ok: false as const, error: auth.error, status: auth.status };

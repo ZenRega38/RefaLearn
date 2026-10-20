@@ -23,7 +23,7 @@ function questionsOf(course: Course): Question[] {
       for (const s of lesson.sections) for (const b of s.blocks) if (b.type === "try") out.push(b.question);
       out.push(...lesson.checkpoint);
     }
-    out.push(...level.quiz.questions);
+    for (const set of level.quiz.sets ?? [{ questions: level.quiz.questions }]) out.push(...set.questions);
     if (level.live) out.push(...level.live.questions);
   }
   for (const exam of [course.pretest, course.tryout]) if (exam) for (const s of exam.sections) out.push(...s.questions);
@@ -87,7 +87,8 @@ describe.each(CATALOG.map((c) => [c.slug, c] as const))("all-English course: %s"
     const minLevels = course.slug.startsWith("eac-olympiad-") ? 1 : course.tryout ? 3 : 6;
     expect(course.levels.length).toBeGreaterThanOrEqual(minLevels);
     for (const level of course.levels) {
-      expect(level.pretest?.questions.length ?? 0, level.id).toBeGreaterThanOrEqual(5);
+      // A tryout module (parallel question sets) is all test: no diagnostic first.
+      if (!level.quiz.sets) expect(level.pretest?.questions.length ?? 0, level.id).toBeGreaterThanOrEqual(5);
       expect(level.lessons.length, level.id).toBeGreaterThanOrEqual(3);
       for (const lesson of level.lessons) {
         expect(lesson.sections.length, lesson.id).toBeGreaterThanOrEqual(2);

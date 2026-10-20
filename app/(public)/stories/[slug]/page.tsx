@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { ShareButtons } from "@/components/news/ShareButtons";
 import { Calendar, ArrowLeft } from "lucide-react";
 import { Metadata } from "next";
-import { formatTimestamp, splitCategories } from "@/lib/format";
+import { formatTimestamp, splitCategories, storyDate } from "@/lib/format";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
 import { siteUrl } from "@/lib/site";
 import { FOUNDER, founderLd, ldJson, organizationLd } from "@/lib/seo";
@@ -79,17 +79,18 @@ export default async function NewsDetailPage({ params }: Props) {
     notFound();
   }
 
-  const formattedDate = post.published_at
-    ? formatTimestamp(post.published_at, 'dd MMMM yyyy', 'en')
-    : '';
+  // The header shows the event's date; the publish date sits at the bottom.
+  const formattedDate = storyDate(post, 'dd MMMM yyyy');
+  const publishedOn = post.published_at ? formatTimestamp(post.published_at, 'dd MMMM yyyy', 'en') : '';
 
   // Related posts: those sharing the most categories first, topped up with the latest others.
   const supabase = createPublicClient();
   const { data: candidates } = await supabase
     .from('news_posts')
-    .select('id, title, slug, category, published_at')
+    .select('id, title, slug, category, event_date, published_at')
     .eq('status', 'published')
     .neq('id', post.id)
+    .order('event_date', { ascending: false, nullsFirst: false })
     .order('published_at', { ascending: false })
     .limit(12);
   const postCategories = new Set(splitCategories(post.category).map((c) => c.toLowerCase()));
@@ -141,7 +142,7 @@ export default async function NewsDetailPage({ params }: Props) {
               <CategoryBadges category={post.category} />
               <div className="flex items-center gap-1.5 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                 <Calendar className="w-4 h-4" />
-                {formattedDate}
+                <time dateTime={post.event_date ?? post.published_at ?? undefined}>{formattedDate}</time>
               </div>
             </div>
 
@@ -180,7 +181,13 @@ export default async function NewsDetailPage({ params }: Props) {
             </div>
           )}
 
-          <div className="mt-12 pt-6 border-t border-dashed border-[var(--color-line)]">
+          {publishedOn && (
+            <p className="mt-10 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+              Published on <time dateTime={post.published_at}>{publishedOn}</time>
+            </p>
+          )}
+
+          <div className={`${publishedOn ? 'mt-4' : 'mt-12'} pt-6 border-t border-dashed border-[var(--color-line)]`}>
             <ShareButtons url={url} title={post.title} />
           </div>
 
@@ -195,8 +202,8 @@ export default async function NewsDetailPage({ params }: Props) {
                       <h3 className="font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors leading-snug">
                         {r.title}
                       </h3>
-                      {r.published_at && (
-                        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-2">{formatTimestamp(r.published_at, 'dd MMM yyyy', 'en')}</p>
+                      {storyDate(r) && (
+                        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-2">{storyDate(r)}</p>
                       )}
                     </Card>
                   </Link>

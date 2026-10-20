@@ -148,7 +148,7 @@ function MsInput({ q, value, onChange, disabled, reveal }: { q: { options: strin
   const toggle = (i: number) => onChange(value.includes(i) ? value.filter((x) => x !== i) : [...value, i]);
   return (
     <div className="space-y-2.5">
-      <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Pilih semua yang benar.</p>
+      <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Choose every correct answer.</p>
       {q.options.map((opt, i) => {
         const selected = value.includes(i);
         const correct = reveal === undefined ? null : reveal.includes(i) ? true : selected ? false : null;

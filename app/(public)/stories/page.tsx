@@ -2,7 +2,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { NewsBrowser, type NewsListItem } from "@/components/news/NewsBrowser";
-import { formatTimestamp } from "@/lib/format";
+import { storyDate } from "@/lib/format";
 
 // Server Component
 export const metadata = {
@@ -28,8 +28,9 @@ export default async function NewsIndexPage() {
   // Fetch published news posts
   const { data: posts } = await supabase
     .from('news_posts')
-    .select('id, title, slug, category, published_at, cover_image_url, content')
+    .select('id, title, slug, category, event_date, published_at, cover_image_url, content')
     .eq('status', 'published')
+    .order('event_date', { ascending: false, nullsFirst: false })
     .order('published_at', { ascending: false });
 
   const items: NewsListItem[] = (posts || []).map((post) => ({
@@ -39,7 +40,7 @@ export default async function NewsIndexPage() {
     category: post.category,
     cover_image_url: post.cover_image_url,
     excerpt: excerptOf(post.content),
-    formattedDate: post.published_at ? formatTimestamp(post.published_at, 'dd MMM yyyy', 'en') : '',
+    formattedDate: storyDate(post),
   }));
 
   return (

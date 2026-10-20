@@ -37,15 +37,16 @@ export const COURSES = [
   { slug: "eac-olympiad-2", title: "Modul 2 EA Champion - Olympiad", uiLang: "en" },
   { slug: "eac-olympiad-3", title: "Modul 3 EA Champion - Olympiad", uiLang: "en" },
   { slug: "eac-olympiad-4", title: "Modul 4 EA Champion - Olympiad", uiLang: "en" },
+  { slug: "eac-olympiad-5", title: "Modul 5 EA Champion - Preliminary Tryout", uiLang: "en" },
 ] as const satisfies readonly Entry[];
 
 export type CourseSlug = (typeof COURSES)[number]["slug"];
 
 const find = (slug: string): Entry | undefined => (COURSES as readonly Entry[]).find((c) => c.slug === slug);
 
-/** Interface language of a course's pages: "en" for all-English courses, else Indonesian. */
+/** Interface language of a course's pages: English unless a course opts into Indonesian. */
 export function courseUiLang(slug: string): "id" | "en" {
-  return find(slug)?.uiLang ?? "id";
+  return find(slug)?.uiLang ?? "en";
 }
 
 /** Whether questions get a read-aloud button (young learners). */

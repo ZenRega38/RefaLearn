@@ -217,6 +217,13 @@ export const STORE_COPY: Record<CourseSlug, StoreCopy> = {
       ["Evaluasi hasil Preliminary/mock test & prioritas belajar", "Present perfect & past perfect", "Multi-error analysis lanjutan, idiom & figurative language", "Reading level lanjut & kosakata akademik"]
     ),
   },
+  "eac-olympiad-5": {
+    title: "Modul 5 EA Champion - Preliminary Tryout",
+    description: about(
+      "3 tryout Preliminary Round English Olympiad EA Champion dengan format persis seperti ujian asli.",
+      ["3 paket tryout, masing-masing 40 soal baru (Bagian A, B, C, D) dan 60 menit", "Timer aktif, jawaban tersimpan otomatis, terkumpul otomatis saat waktu habis", "Setiap percobaan memakai paket berbeda; nilai terbaik yang dihitung", "Estimasi skor 100 per bagian, pembahasan lengkap, dan panduan error log"]
+    ),
+  },
 };
 
 export function storeCopy(slug: string): StoreCopy | null {

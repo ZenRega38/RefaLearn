@@ -113,11 +113,11 @@ export function ModuleSlides({ slug, levelId, levelTitle, url, isAdmin, onChange
     <div className="rounded-[var(--radius-card)] border-2 border-[var(--color-line)] bg-white overflow-hidden font-[var(--font-inter)]">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-[var(--color-line)]">
         <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink)]">
-          <Presentation className="w-4 h-4 text-[var(--color-brand-blue)]" /> Slide materi
+          <Presentation className="w-4 h-4 text-[var(--color-brand-blue)]" /> Lesson slides
         </span>
         <div className="flex flex-wrap items-center gap-1">
-          <Button size="sm" variant="ghost" onClick={() => frame.current?.requestFullscreen?.().catch(() => {})} title="Layar penuh">
-            <Maximize2 className="w-4 h-4" /> <span className="hidden sm:inline">Layar penuh</span>
+          <Button size="sm" variant="ghost" onClick={() => frame.current?.requestFullscreen?.().catch(() => {})} title="Full screen">
+            <Maximize2 className="w-4 h-4" /> <span className="hidden sm:inline">Full screen</span>
           </Button>
           <a
             href={embed.openUrl}
@@ -125,7 +125,7 @@ export function ModuleSlides({ slug, levelId, levelTitle, url, isAdmin, onChange
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)] hover:text-[var(--color-ink)] rounded-md"
           >
-            <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">Buka di tab baru</span>
+            <ExternalLink className="w-4 h-4" /> <span className="hidden sm:inline">Open in a new tab</span>
           </a>
           {isAdmin && !editing && (
             <>
@@ -145,7 +145,7 @@ export function ModuleSlides({ slug, levelId, levelTitle, url, isAdmin, onChange
         <iframe
           key={embed.embedUrl}
           src={embed.embedUrl}
-          title={`Slide ${levelTitle}`}
+          title={`Slides: ${levelTitle}`}
           loading="lazy"
           allow="fullscreen"
           allowFullScreen

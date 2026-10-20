@@ -5,17 +5,19 @@ import { SESSION1 } from "./modul1";
 import { SESSION2 } from "./modul2";
 import { SESSION3 } from "./modul3";
 import { SESSION4 } from "./modul4";
+import { SESSION5 } from "./modul5";
 
 // EA Champion English Olympiad 2026 (SMA, jalur umum/individu): four
-// modules, one per tutoring session — each sold as its own store material.
+// modules, one per tutoring session — each sold as its own store material —
+// plus Modul 5, three timed Preliminary Round tryouts.
 // Modul 3 weaves the whole Preliminary block (sessions 3, 3B, 3C, 3D) into
 // one module. Lessons open in any order, so learners can jump back to a
 // topic; quizzes run at the real paper's pace (60 minutes for 40 questions).
 
-const eacModule = (n: number, subtitle: string, level: Level): Course =>
+const eacModule = (n: number, subtitle: string, level: Level, title = `Modul ${n} EA Champion - Olympiad`): Course =>
   assemble({
     slug: `eac-olympiad-${n}`,
-    title: `Modul ${n} EA Champion - Olympiad`,
+    title,
     subtitle,
     labels: { level: "Session", quiz: "Quiz" },
     mascot: "owl",
@@ -46,4 +48,11 @@ export const EAC_OLYMPIAD_4 = eacModule(
   4,
   "Regional Round level: evaluate your results, present perfect and past perfect, advanced multi-error analysis, idioms and figurative language, and academic vocabulary.",
   SESSION4
+);
+
+export const EAC_OLYMPIAD_5 = eacModule(
+  5,
+  "Three full Preliminary Round tryouts with a 60-minute timer: 40 new questions each in the exact competition format, a different paper on every attempt, scored on the 100-point scale with full review.",
+  SESSION5,
+  "Modul 5 EA Champion - Preliminary Tryout"
 );

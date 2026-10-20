@@ -5,9 +5,9 @@ export const SKILL_LABEL: Record<Skill, string> = {
   listening: "Listening",
   structure: "Structure",
   reading: "Reading",
-  vocabulary: "Kosakata",
-  speaking: "Berbicara",
-  writing: "Menulis",
+  vocabulary: "Vocabulary",
+  speaking: "Speaking",
+  writing: "Writing",
 };
 
 export const SKILL_COLOR: Record<Skill, string> = {

@@ -1,5 +1,5 @@
 import "server-only";
-import type { Course, ExamKind, Lesson, Level, LevelQuiz, ProgressItem, TaskBlock } from "@/lib/course/types";
+import type { Course, ExamKind, Lesson, Level, LevelQuiz, ProgressItem, QuizSet, TaskBlock } from "@/lib/course/types";
 import { TOEFL_ITP } from "@/content/toefl-itp";
 import { ENGLISH_SD_3 } from "@/content/english-sd-3";
 import { ENGLISH_DAY } from "@/content/english-day";
@@ -22,10 +22,10 @@ import { ENGLISH_GRAMMAR } from "@/content/grammar";
 import { ENGLISH_CONVERSATION } from "@/content/conversation";
 import { BUSINESS_ENGLISH } from "@/content/business";
 import { TOEIC_LR } from "@/content/toeic";
-import { EAC_OLYMPIAD_1, EAC_OLYMPIAD_2, EAC_OLYMPIAD_3, EAC_OLYMPIAD_4 } from "@/content/eac-olympiad";
+import { EAC_OLYMPIAD_1, EAC_OLYMPIAD_2, EAC_OLYMPIAD_3, EAC_OLYMPIAD_4, EAC_OLYMPIAD_5 } from "@/content/eac-olympiad";
 
 const COURSES: Record<string, Course> = Object.fromEntries(
-  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_SMA_11, ENGLISH_SMA_12, ENGLISH_LANJUT, IELTS_ACADEMIC, TOEFL_IBT, OXFORD_ELLT, TOEIC_LR, ENGLISH_GRAMMAR, ENGLISH_CONVERSATION, BUSINESS_ENGLISH, ENGLISH_DAY, EAC_OLYMPIAD_1, EAC_OLYMPIAD_2, EAC_OLYMPIAD_3, EAC_OLYMPIAD_4].map((c) => [c.slug, c])
+  [TOEFL_ITP, ENGLISH_SD_1, ENGLISH_SD_2, ENGLISH_SD_3, ENGLISH_SD_4, ENGLISH_SD_5, ENGLISH_SD_6, ENGLISH_SMP_7, ENGLISH_SMP_8, ENGLISH_SMP_9, ENGLISH_SMA_10, ENGLISH_SMA_11, ENGLISH_SMA_12, ENGLISH_LANJUT, IELTS_ACADEMIC, TOEFL_IBT, OXFORD_ELLT, TOEIC_LR, ENGLISH_GRAMMAR, ENGLISH_CONVERSATION, BUSINESS_ENGLISH, ENGLISH_DAY, EAC_OLYMPIAD_1, EAC_OLYMPIAD_2, EAC_OLYMPIAD_3, EAC_OLYMPIAD_4, EAC_OLYMPIAD_5].map((c) => [c.slug, c])
 );
 
 export const ALL_COURSES = Object.values(COURSES);
@@ -49,6 +49,18 @@ export function findLevelQuiz(course: Course, quizId: string): { level: Level; q
     if (level.pretest?.id === quizId) return { level, quiz: level.pretest, isPretest: true };
   }
   return null;
+}
+
+/** The question set for attempt n (1-based): parallel tryout versions cycle; other quizzes have one set. */
+export function quizSet(quiz: LevelQuiz, attemptNo: number): QuizSet {
+  const sets = quiz.sets?.length ? quiz.sets : [{ questions: quiz.questions, passages: quiz.passages }];
+  return sets[(Math.max(1, attemptNo) - 1) % sets.length];
+}
+
+/** The set a stored answer sheet belongs to (question ids are unique across sets). */
+export function quizSetFor(quiz: LevelQuiz, answers: Record<string, unknown>): QuizSet {
+  const sets = quiz.sets?.length ? quiz.sets : [{ questions: quiz.questions, passages: quiz.passages }];
+  return sets.find((s) => s.questions.some((q) => q.id in answers)) ?? sets[0];
 }
 
 /** A writing/speaking task by id, with the lesson it sits in. */
