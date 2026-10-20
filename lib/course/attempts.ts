@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { quizSet } from "@/lib/course/content";
 import { courseContext, gradeQuestions, logSubmission } from "@/lib/course/server";
 import { cooldownMinutes, MAX_ATTEMPTS, quizSeconds, type AttemptState, type AttemptSummary, type RestartInfo } from "@/lib/course/attempt-rules";
-import type { Level, LevelQuiz, Response } from "@/lib/course/types";
+import type { Course, Level, LevelQuiz, Response } from "@/lib/course/types";
 import { recordActivity } from "@/lib/gamification-server";
 import { XP } from "@/lib/gamification";
 
@@ -30,9 +30,10 @@ export type QuizAttemptRow = {
   max_score: number | null;
   passed: boolean | null;
   counted: boolean;
+  restarted_at: string | null;
 };
 
-const COLUMNS = "id, attempt_no, started_at, deadline_at, draft, submitted_at, auto_submitted, answers, score, max_score, passed, counted";
+const COLUMNS = "id, attempt_no, started_at, deadline_at, draft, submitted_at, auto_submitted, answers, score, max_score, passed, counted, restarted_at";
 
 export function quizTimeLimit(ctx: CourseCtx, found: FoundQuiz): number {
   return quizSeconds(found.quiz.questions.length, ctx.course.quizSecondsPerQuestion);
@@ -211,35 +212,90 @@ export async function closeExpiredQuizAttempts(ctx: CourseCtx, found: FoundQuiz,
 // ---------------------------------------------------------------------------
 //
 // Out of attempts? No one has to unlock anything: the student starts over
-// by going back to the start of the material. Restarting marks the lessons
-// behind the quiz (its chapter's lessons, each with its checkpoint) as not
-// done; once they are all studied again, a new round of attempts opens.
-// Finished attempts stay in the log, and the best score is kept.
+// by studying the material behind that quiz again. Starting over stamps
+// `restarted_at` on the round's attempts (which stop counting); the lessons
+// of that chapter finished before that moment must be studied again, in
+// order from the first one, before a new round of attempts opens. Nothing
+// else is touched: other chapters stay open, every saved result stays, and
+// the best score is kept.
+
+type RoundRow = { counted: boolean; restarted_at: string | null; started_at: string };
+
+/** When the student started over, if the new round hasn't begun yet; otherwise null. */
+export function pendingRestart(rows: RoundRow[]): string | null {
+  const marker = rows.reduce<string | null>((m, r) => (r.restarted_at && (!m || r.restarted_at > m) ? r.restarted_at : m), null);
+  if (!marker) return null;
+  return rows.some((r) => r.counted && r.started_at > marker) ? null : marker;
+}
+
+/** When each lesson of a course was (last) completed, by lesson id. */
+export async function lessonCompletions(admin: SupabaseClient, studentId: string, slug: string): Promise<Map<string, string>> {
+  const { data } = await admin
+    .from("course_progress")
+    .select("item_id, completed_at")
+    .eq("student_id", studentId)
+    .eq("course_slug", slug)
+    .eq("kind", "lesson")
+    .eq("passed", true);
+  return new Map((data || []).map((r) => [r.item_id as string, r.completed_at as string]));
+}
+
+/** A lesson counts as studied again when it was completed after the restart. */
+const studied = (completions: Map<string, string>, id: string, marker: string | null) => {
+  const at = completions.get(id);
+  return !!at && (!marker || at > marker);
+};
 
 export function restartInfo(
   lessons: { id: string; title: string }[],
-  done: ReadonlySet<string>,
-  rows: { counted: boolean; submittedAt: string | null }[],
+  completions: Map<string, string>,
+  marker: string | null,
   state: AttemptState
 ): RestartInfo {
-  const list = lessons.map((l) => ({ id: l.id, title: l.title, done: done.has(l.id) }));
-  const restarted = rows.some((r) => !r.counted) && !rows.some((r) => r.counted);
+  const list = lessons.map((l) => ({ id: l.id, title: l.title, done: studied(completions, l.id, marker) }));
   return {
     available: !state.unlimited && state.left <= 0 && !state.open,
-    pending: restarted && list.some((l) => !l.done),
+    pending: !!marker && list.some((l) => !l.done),
     lessons: list,
   };
 }
 
-/** Clears the lessons' completion so they must be studied again, from the first one. */
-export async function clearLessons(ctx: CourseCtx, lessonIds: string[]) {
-  if (lessonIds.length === 0) return;
-  const { error } = await ctx.admin
-    .from("course_progress")
-    .delete()
-    .eq("student_id", ctx.user.id)
-    .eq("course_slug", ctx.course.slug)
-    .eq("kind", "lesson")
-    .in("item_id", lessonIds);
-  if (error) throw new Error(error.message);
+/**
+ * Lessons that must be studied again after starting over: the lessons of
+ * each chapter whose pretest/posttest the student restarted (and, for the
+ * course tryout, the chapter that opens it), finished before the restart.
+ */
+export async function lessonsToRestudy(admin: SupabaseClient, studentId: string, course: Course): Promise<Set<string>> {
+  const [{ data: quizRows }, { data: examRows }, completions] = await Promise.all([
+    admin
+      .from("course_quiz_attempts")
+      .select("item_id, counted, restarted_at, started_at")
+      .eq("student_id", studentId)
+      .eq("course_slug", course.slug)
+      .not("restarted_at", "is", null),
+    course.tryout
+      ? admin
+          .from("course_attempts")
+          .select("counted, restarted_at, started_at")
+          .eq("student_id", studentId)
+          .eq("course_slug", course.slug)
+          .eq("kind", "tryout")
+      : Promise.resolve({ data: [] as RoundRow[] }),
+    lessonCompletions(admin, studentId, course.slug),
+  ]);
+  const out = new Set<string>();
+  if (!quizRows?.length && !(examRows as RoundRow[] | null)?.some((r) => r.restarted_at)) return out;
+
+  const tryoutLevel = course.levels.find((l) => l.id === course.tryoutAfterLevel) ?? course.levels.at(-1);
+  for (const level of course.levels) {
+    const quizIds = [level.quiz.id, ...(level.pretest ? [level.pretest.id] : [])];
+    const markers = quizIds.map((id) => pendingRestart(((quizRows || []) as (RoundRow & { item_id: string })[]).filter((r) => r.item_id === id)));
+    if (level === tryoutLevel) markers.push(pendingRestart((examRows || []) as RoundRow[]));
+    const marker = markers.reduce<string | null>((m, x) => (x && (!m || x > m) ? x : m), null);
+    if (!marker) continue;
+    for (const lesson of level.lessons) {
+      if (completions.has(lesson.id) && !studied(completions, lesson.id, marker)) out.add(lesson.id);
+    }
+  }
+  return out;
 }

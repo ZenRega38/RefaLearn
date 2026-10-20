@@ -3,7 +3,7 @@ import { jsonError, readJson } from "@/lib/api-auth";
 import { getExam } from "@/lib/course/content";
 import { toPublicQuestion } from "@/lib/course/grading";
 import { buildExamResult, courseContext, examMinutes } from "@/lib/course/server";
-import { attemptState, clearLessons, restartInfo } from "@/lib/course/attempts";
+import { attemptState, lessonCompletions, pendingRestart, restartInfo } from "@/lib/course/attempts";
 import { cooldownMinutes, SUBMIT_GRACE_MS, type AttemptSummary } from "@/lib/course/attempt-rules";
 import type { Exam, ExamKind, Response } from "@/lib/course/types";
 import { recordActivity } from "@/lib/gamification-server";
@@ -31,9 +31,10 @@ type AttemptRow = {
   total_score: number | null;
   auto_submitted: boolean;
   counted: boolean;
+  restarted_at: string | null;
 };
 
-const COLUMNS = "id, kind, started_at, submitted_at, answers, draft, total_score, auto_submitted, counted";
+const COLUMNS = "id, kind, started_at, submitted_at, answers, draft, total_score, auto_submitted, counted, restarted_at";
 
 /** Section layout for the review screen (ids in order + passages). */
 function layoutOf(exam: Exam) {
@@ -123,7 +124,9 @@ async function current(ctx: Ctx) {
   // Starting over a tryout means studying the last chapter's lessons again.
   // The free course pretest is a diagnostic: three attempts, no restart.
   const lessons = ctx.kind === "tryout" ? restartLessons(ctx) : [];
-  const info = restartInfo(lessons, ctx.unlocks.done, rows.map((r) => ({ counted: r.counted, submittedAt: r.submitted_at })), state);
+  const marker = ctx.kind === "tryout" ? pendingRestart(rows) : null;
+  const completions = marker ? await lessonCompletions(ctx.admin, ctx.user.id, ctx.course.slug) : new Map(lessons.filter((l) => ctx.unlocks.done.has(l.id)).map((l) => [l.id, "done"]));
+  const info = restartInfo(lessons, completions, marker, state);
   const restart = ctx.kind === "tryout" ? info : { ...info, available: false, pending: false };
   return { rows, state, restart };
 }
@@ -182,17 +185,13 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (body?.action === "restart") {
     const { rows, restart } = await current(ctx);
     if (!restart.available) return jsonError("You can start over once all your attempts are used.", 409);
+    // The round stops counting; the last chapter's lessons must be studied again. Nothing else changes.
     const { error } = await ctx.admin
       .from("course_attempts")
-      .update({ counted: false })
+      .update({ counted: false, restarted_at: new Date().toISOString() })
       .in("id", rows.filter((r) => r.counted).map((r) => r.id));
     if (error) return jsonError("Couldn't start over.", 500);
     const lessons = restartLessons(ctx);
-    try {
-      await clearLessons(ctx, lessons.map((l) => l.id));
-    } catch {
-      return jsonError("Couldn't start over.", 500);
-    }
     return NextResponse.json({ ok: true, firstLesson: lessons[0]?.id ?? null });
   }
 
