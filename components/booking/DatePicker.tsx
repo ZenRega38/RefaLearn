@@ -1,7 +1,7 @@
 "use client";
 
 import { DayPicker } from "react-day-picker";
-import { id } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import "react-day-picker/style.css";
 
 interface DatePickerProps {
@@ -79,7 +79,7 @@ export function DatePicker({ selected, onSelect, availableDates, disabledDays }:
         mode="single"
         selected={selected}
         onSelect={onSelect}
-        locale={id}
+        locale={enUS}
         modifiers={modifiers}
         modifiersStyles={modifiersStyles}
         disabled={disabledDays || defaultDisabledDays}

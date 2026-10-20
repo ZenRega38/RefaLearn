@@ -23,11 +23,11 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     if (password.length < 8) {
-      setError("Password minimal 8 karakter.");
+      setError("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirm) {
-      setError("Konfirmasi password tidak sama.");
+      setError("Passwords don't match.");
       return;
     }
 
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-md animate-fade-in-up">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
-              Atur Password Baru
+              Set a New Password
             </h1>
           </div>
 
@@ -64,7 +64,7 @@ export default function ResetPasswordPage() {
                 </div>
               )}
               <Input
-                label="Password Baru"
+                label="New Password"
                 type="password"
                 placeholder="••••••••"
                 icon={<Lock className="w-4 h-4" />}
@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
               />
               <Input
-                label="Konfirmasi Password Baru"
+                label="Confirm New Password"
                 type="password"
                 placeholder="••••••••"
                 icon={<Lock className="w-4 h-4" />}
@@ -82,7 +82,7 @@ export default function ResetPasswordPage() {
                 autoComplete="new-password"
               />
               <Button type="submit" className="w-full text-base" isLoading={submitting}>
-                Simpan Password
+                Save Password
               </Button>
             </form>
           </Card>

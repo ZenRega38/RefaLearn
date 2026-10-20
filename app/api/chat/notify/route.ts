@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         .eq("id", body.messageId)
         .maybeSingle();
 
-    if (!msg || msg.sender_id !== user.id) return jsonError("Pesan tidak ditemukan.", 404);
+    if (!msg || msg.sender_id !== user.id) return jsonError("Message not found.", 404);
 
     const { data: previous } = await admin
         .from("chat_messages")

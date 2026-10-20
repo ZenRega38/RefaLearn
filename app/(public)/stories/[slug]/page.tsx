@@ -80,7 +80,7 @@ export default async function NewsDetailPage({ params }: Props) {
   }
 
   const formattedDate = post.published_at
-    ? formatTimestamp(post.published_at, 'dd MMMM yyyy')
+    ? formatTimestamp(post.published_at, 'dd MMMM yyyy', 'en')
     : '';
 
   // Related posts: those sharing the most categories first, topped up with the latest others.
@@ -133,7 +133,7 @@ export default async function NewsDetailPage({ params }: Props) {
         <div className="container-main max-w-3xl mx-auto">
 
           <Link href="/stories" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)] mb-8">
-            <ArrowLeft className="w-4 h-4" /> Kembali ke Stories
+            <ArrowLeft className="w-4 h-4" /> Back to Stories
           </Link>
 
           <div className="mb-8">
@@ -186,7 +186,7 @@ export default async function NewsDetailPage({ params }: Props) {
 
           {related.length > 0 && (
             <div className="mt-12">
-              <h2 className="text-2xl mb-6">Stories Lainnya</h2>
+              <h2 className="text-2xl mb-6">More Stories</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {related.map((r) => (
                   <Link key={r.id} href={`/stories/${r.slug}`} className="group">
@@ -196,7 +196,7 @@ export default async function NewsDetailPage({ params }: Props) {
                         {r.title}
                       </h3>
                       {r.published_at && (
-                        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-2">{formatTimestamp(r.published_at)}</p>
+                        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-2">{formatTimestamp(r.published_at, 'dd MMM yyyy', 'en')}</p>
                       )}
                     </Card>
                   </Link>

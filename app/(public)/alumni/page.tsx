@@ -6,7 +6,7 @@ import { SketchBox } from "@/components/sketch/SketchBox";
 import { SketchDivider } from "@/components/sketch/SketchDivider";
 
 export const metadata = {
-  title: "Testimoni Alumni",
+  title: "Alumni Testimonials",
   description: "Cerita sukses alumni les privat Bahasa Inggris Refa Learn Tarakan — IELTS, TOEFL, beasiswa, dan sekolah.",
   alternates: { canonical: "/alumni" },
 };
@@ -27,9 +27,9 @@ export default async function AlumniPage() {
     <PaperBackground>
       <section className="pt-32 pb-16 relative">
         <div className="container-main text-center">
-          <h1 className="text-4xl md:text-5xl mb-6">Cerita <SketchBox color="var(--color-accent-coral)">Sukses</SketchBox> Alumni</h1>
+          <h1 className="text-4xl md:text-5xl mb-6">Alumni <SketchBox color="var(--color-accent-coral)">Success</SketchBox> Stories</h1>
           <p className="text-lg text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Bergabunglah dengan siswa lainnya yang telah mencapai target mereka bersama Refa Learn.
+            Join the other students who have reached their goals with Refa Learn.
           </p>
         </div>
       </section>
@@ -38,7 +38,7 @@ export default async function AlumniPage() {
         <div className="container-main">
           {(!alumniList || alumniList.length === 0) ? (
             <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada data alumni yang dipublikasikan.</p>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">No alumni stories have been published yet.</p>
             </div>
           ) : (
             <AlumniGrid alumni={alumniList as AlumniItem[]} />
@@ -51,10 +51,10 @@ export default async function AlumniPage() {
       <section className="section-padding text-center">
         <div className="container-main max-w-3xl mx-auto">
           <h2 className="text-3xl mb-6 font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
-            Siap menjadi cerita sukses berikutnya?
+            Ready to be the next success story?
           </h2>
           <Link href="/schedule" className="btn-primary inline-flex items-center justify-center px-8 py-3 text-lg">
-            Booking Sesi Pertama Anda
+            Book Your First Session
           </Link>
         </div>
       </section>

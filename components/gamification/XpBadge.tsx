@@ -38,7 +38,7 @@ export function XpBadge() {
       .then((j) => {
         if (!alive || !j) return;
         setStats(j.stats);
-        if (j.awarded > 0) push(j.awarded, "Login harian");
+        if (j.awarded > 0) push(j.awarded, "Daily login");
       })
       .catch(() => {});
     return () => {
@@ -62,7 +62,7 @@ export function XpBadge() {
         <Link
           href="/dashboard"
           id="nav-xp-badge"
-          title={`Level ${stats.level.level} ${stats.title} · Streak belajar ${stats.study.current} hari · Streak login ${stats.login.current} hari`}
+          title={`Level ${stats.level.level} ${stats.title} · Study streak ${stats.study.current} ${stats.study.current === 1 ? "day" : "days"} · Login streak ${stats.login.current} ${stats.login.current === 1 ? "day" : "days"}`}
           className="flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white/80 px-3 py-1.5 text-xs font-bold hover:border-[var(--color-accent-coral)] transition-colors"
           style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
         >
@@ -72,7 +72,7 @@ export function XpBadge() {
           </span>
           <span className="flex items-center gap-1 text-[var(--color-brand-blue)]">
             <Zap className="w-4 h-4 fill-[var(--color-accent-yellow)] text-[var(--color-warning-amber)]" />
-            {stats.totalXp.toLocaleString("id-ID")}
+            {stats.totalXp.toLocaleString("en-US")}
             <span className="hidden sm:inline">XP</span>
           </span>
         </Link>

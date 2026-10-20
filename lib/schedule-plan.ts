@@ -30,6 +30,7 @@ export type Pattern = {
 export type Occurrence = { date: string; start_time: string; end_time: string; pattern_key: string };
 
 export const WEEKDAYS_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const WEEKDAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 /** Monday first, the way people read a week. */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -145,8 +146,16 @@ export function planProblems(plan: SchedulePlan, today: string): string[] {
   return problems;
 }
 
-/** Short Indonesian summary, e.g. "Setiap minggu: Senin 16:00, Kamis 19:00 · berlanjut terus". */
-export function planSummary(plan: SchedulePlan): string {
+/** Short summary, e.g. "Setiap minggu: Senin 16:00, Kamis 19:00 · berlanjut terus"
+ * (Indonesian by default; the student dashboard asks for English). */
+export function planSummary(plan: SchedulePlan, lang: "id" | "en" = "id"): string {
+  if (lang === "en") {
+    const until = plan.repeat === "none" ? "" : plan.endDate ? ` · until ${plan.endDate}` : " · ongoing";
+    if (plan.repeat === "none") return `Once, ${plan.startDate} at ${plan.time}`;
+    if (plan.repeat === "monthly") return `Every month on day ${Number(plan.startDate.slice(8, 10))} at ${plan.time}${until}`;
+    const daysEn = WEEK_ORDER.filter((d) => plan.dayTimes[d]).map((d) => `${WEEKDAYS_EN[d]} ${plan.dayTimes[d]}`).join(", ");
+    return `${plan.repeat === "daily" ? "Every day" : "Every week"}: ${daysEn}${until}`;
+  }
   const range = plan.repeat === "none" ? "" : plan.endDate ? ` · sampai ${plan.endDate}` : " · berlanjut terus";
   if (plan.repeat === "none") return `Sekali, ${plan.startDate} pukul ${plan.time}`;
   if (plan.repeat === "monthly") return `Setiap bulan tanggal ${Number(plan.startDate.slice(8, 10))} pukul ${plan.time}${range}`;

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { user, profile } = auth;
 
     const body = await readJson<{ sessionId?: string; date?: string; startTime?: string; reason?: string }>(request);
-    if (!body?.sessionId || !body.date || !body.startTime) return jsonError("Data reschedule tidak lengkap.");
+    if (!body?.sessionId || !body.date || !body.startTime) return jsonError("Incomplete reschedule details.");
 
     const admin = createAdminClient();
     const { data: session } = await admin
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
         .eq("student_id", user.id)
         .maybeSingle();
 
-    if (!session) return jsonError("Sesi tidak ditemukan.", 404);
-    if (!["pending", "accepted"].includes(session.status)) return jsonError("Sesi ini tidak bisa di-reschedule.");
-    if (hasStarted(session)) return jsonError("Sesi yang sudah dimulai atau lewat tidak bisa di-reschedule.");
+    if (!session) return jsonError("Session not found.", 404);
+    if (!["pending", "accepted"].includes(session.status)) return jsonError("This session can't be rescheduled.");
+    if (hasStarted(session)) return jsonError("Sessions that have started or passed can't be rescheduled.");
 
     let slots;
     try {
@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
     }
 
     const slot = findSlot(slots, body.date, body.startTime);
-    if (!slot) return jsonError("Jadwal yang dipilih sudah tidak tersedia.", 409);
+    if (!slot) return jsonError("The time you chose is no longer available.", 409);
     if (slot.date === session.date && slot.start_time === hhmm(session.start_time)) {
-        return jsonError("Jadwal baru sama dengan jadwal semula.");
+        return jsonError("The new time is the same as the current one.");
     }
 
     const reason = (body.reason || "").trim().slice(0, 500) || null;
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     if (error) {
-        if (error.code === "23505") return jsonError("Sesi ini sudah punya permintaan reschedule yang menunggu.", 409);
+        if (error.code === "23505") return jsonError("This session already has a pending reschedule request.", 409);
         return jsonError(errorMessage(error), 500);
     }
 

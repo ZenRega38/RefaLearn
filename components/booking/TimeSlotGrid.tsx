@@ -28,7 +28,7 @@ export function TimeSlotGrid({ slots, selectedSlot, onSelect, isLoading = false 
     return (
       <div className="text-center py-8 bg-[var(--color-paper-bg-alt)] rounded-[var(--radius-card)] border border-dashed border-[var(--color-line)]">
         <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-          Tidak ada jadwal tersedia pada tanggal ini.
+          No time slots available on this date.
         </p>
       </div>
     );

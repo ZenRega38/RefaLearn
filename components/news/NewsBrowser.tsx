@@ -21,10 +21,10 @@ export type NewsListItem = {
 /** Client-side grid/list toggle + category filter over server-fetched posts. */
 export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [category, setCategory] = useState("Semua");
+  const [category, setCategory] = useState("All");
   // A post can carry several comma-separated categories; each one becomes its own filter.
-  const categories = ["Semua", ...Array.from(new Set(posts.flatMap((p) => splitCategories(p.category))))];
-  const visible = category === "Semua" ? posts : posts.filter((p) => splitCategories(p.category).includes(category));
+  const categories = ["All", ...Array.from(new Set(posts.flatMap((p) => splitCategories(p.category))))];
+  const visible = category === "All" ? posts : posts.filter((p) => splitCategories(p.category).includes(category));
 
   return (
     <div className="space-y-8">
@@ -38,7 +38,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
         <div className="flex gap-1 bg-white border border-[var(--color-line)] rounded-full p-1 shrink-0">
           <button
             onClick={() => setView("grid")}
-            aria-label="Tampilan grid"
+            aria-label="Grid view"
             aria-pressed={view === "grid"}
             className={`p-2 rounded-full transition-colors ${view === "grid" ? "bg-[var(--color-brand-blue)] text-white" : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]"}`}
           >
@@ -46,7 +46,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
           </button>
           <button
             onClick={() => setView("list")}
-            aria-label="Tampilan daftar"
+            aria-label="List view"
             aria-pressed={view === "list"}
             className={`p-2 rounded-full transition-colors ${view === "list" ? "bg-[var(--color-brand-blue)] text-white" : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]"}`}
           >
@@ -57,7 +57,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
 
       {visible.length === 0 ? (
         <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Belum ada story di kategori ini.</p>
+          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">No stories in this category yet.</p>
         </div>
       ) : view === "grid" ? (
         // auto-rows-fr: every card is as tall as the tallest one, across rows too.

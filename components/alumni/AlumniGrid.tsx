@@ -18,9 +18,9 @@ export type AlumniItem = {
 
 /** Alumni cards with a category filter (client-side, same data). */
 export function AlumniGrid({ alumni }: { alumni: AlumniItem[] }) {
-  const [category, setCategory] = useState("Semua");
-  const categories = ["Semua", ...Array.from(new Set(alumni.map((a) => a.category).filter((c): c is string => !!c)))];
-  const visible = category === "Semua" ? alumni : alumni.filter((a) => a.category === category);
+  const [category, setCategory] = useState("All");
+  const categories = ["All", ...Array.from(new Set(alumni.map((a) => a.category).filter((c): c is string => !!c)))];
+  const visible = category === "All" ? alumni : alumni.filter((a) => a.category === category);
 
   return (
     <div className="space-y-8">

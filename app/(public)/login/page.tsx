@@ -19,8 +19,8 @@ import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
 import { Mail, Lock } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Format email tidak valid" }),
-  password: z.string().min(6, { message: "Password minimal 6 karakter" }),
+  email: z.string().email({ message: "Invalid email format" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -38,9 +38,9 @@ function LoginForm() {
   const [supabase] = useState(() => createClient());
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "link"
-      ? "Link sudah kedaluwarsa atau tidak valid. Silakan coba lagi."
+      ? "This link has expired or is invalid. Please try again."
       : searchParams.get("error") === "oauth"
-        ? "Masuk dengan Google gagal atau dibatalkan. Silakan coba lagi."
+        ? "Google sign-in failed or was cancelled. Please try again."
         : null
   );
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -57,7 +57,7 @@ function LoginForm() {
     setError(null);
 
     if (!captchaToken) {
-      setError("Mohon selesaikan verifikasi captcha terlebih dahulu.");
+      setError("Please complete the captcha first.");
       return;
     }
 
@@ -93,10 +93,10 @@ function LoginForm() {
       const message = err instanceof Error ? err.message : "";
       setError(
         message === "Invalid login credentials"
-          ? "Email atau password salah."
+          ? "Incorrect email or password."
           : message === "Email not confirmed"
-            ? "Email Anda belum dikonfirmasi. Cek kotak masuk email Anda untuk link konfirmasi."
-            : message || "Gagal masuk. Periksa kembali email dan password Anda."
+            ? "Your email hasn't been confirmed yet. Check your inbox for the confirmation link."
+            : message || "Couldn't log in. Please check your email and password."
       );
     }
   };
@@ -108,10 +108,10 @@ function LoginForm() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
-              Selamat Datang Kembali
+              Welcome Back
             </h1>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Masuk ke akun <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> Anda
+              Log in to your <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> account
             </p>
           </div>
 
@@ -122,14 +122,14 @@ function LoginForm() {
               </div>
             )}
 
-            <GoogleButton label="Masuk dengan Google" next={searchParams.get("next")} />
-            <OrDivider text="atau masuk dengan email" />
+            <GoogleButton label="Log in with Google" next={searchParams.get("next")} />
+            <OrDivider text="or log in with email" />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <Input
                 label="Email"
                 type="email"
-                placeholder="email@contoh.com"
+                placeholder="email@example.com"
                 icon={<Mail className="w-4 h-4" />}
                 {...register("email")}
                 error={errors.email?.message}
@@ -146,7 +146,7 @@ function LoginForm() {
                 />
                 <div className="text-right">
                   <Link href="/forgot-password" className="text-xs font-[var(--font-inter)] text-[var(--color-brand-blue)] hover:underline">
-                    Lupa password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>
@@ -165,15 +165,15 @@ function LoginForm() {
                   isLoading={isSubmitting}
                   disabled={!captchaToken}
                 >
-                  Masuk
+                  Log in
                 </Button>
               </div>
             </form>
 
             <div className="mt-8 pt-6 border-t border-dashed border-[var(--color-line)] text-center text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-              Belum punya akun?{" "}
+              Don&apos;t have an account?{" "}
               <Link href={`/register${searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next')!)}` : ''}`} className="text-[var(--color-brand-blue)] font-bold hover:underline">
-                Daftar sekarang
+                Sign up now
               </Link>
             </div>
           </Card>

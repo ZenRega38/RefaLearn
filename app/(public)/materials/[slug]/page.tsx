@@ -97,7 +97,7 @@ export default function MaterialDetailPage() {
       router.push('/dashboard/materials');
     } catch (err) {
       setBuying(false);
-      alert(`Gagal memproses pesanan: ${err instanceof Error ? err.message : ''}`);
+      alert(`Couldn't process the order: ${err instanceof Error ? err.message : ''}`);
     }
   };
 
@@ -107,7 +107,7 @@ export default function MaterialDetailPage() {
         <div className="container-main max-w-4xl mx-auto flex justify-center py-20">
           <div className="animate-pulse flex flex-col items-center">
             <BookOpen className="w-12 h-12 text-[var(--color-line)] mb-4" />
-            <div className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Memuat detail materi...</div>
+            <div className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Loading course details...</div>
           </div>
         </div>
       </PaperBackground>
@@ -118,9 +118,9 @@ export default function MaterialDetailPage() {
     return (
       <PaperBackground className="pt-24 pb-20 min-h-screen">
         <div className="container-main max-w-4xl mx-auto text-center py-20">
-          <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] mb-4">Materi Tidak Ditemukan</h1>
-          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-8">Materi yang Anda cari mungkin telah dihapus atau link tidak valid.</p>
-          <Button href="/materials">Kembali ke Katalog</Button>
+          <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] mb-4">Course Not Found</h1>
+          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-8">The course you&apos;re looking for may have been removed, or the link is invalid.</p>
+          <Button href="/materials">Back to Catalog</Button>
         </div>
       </PaperBackground>
     );
@@ -136,7 +136,7 @@ export default function MaterialDetailPage() {
 
         <Link href="/materials" className="inline-flex items-center text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] font-[var(--font-inter)] text-sm transition-colors group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Kembali ke Katalog
+          Back to Catalog
         </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -163,7 +163,7 @@ export default function MaterialDetailPage() {
 
             <Card className="bg-white/80 p-6 space-y-6">
               <div>
-                <div className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-1">Harga Materi</div>
+                <div className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-1">Price</div>
                 <PriceTag price={material.price} before={material.compare_at_price} size="lg" stacked />
                 {validBefore(material.price, material.compare_at_price) && <LimitedOffer className="mt-3" />}
               </div>
@@ -174,10 +174,10 @@ export default function MaterialDetailPage() {
                     href={userId ? `/learn/${material.course_slug}` : `/login?next=/learn/${material.course_slug}`}
                     className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
                   >
-                    <GraduationCap className="w-5 h-5 mr-2" /> Mulai Belajar Gratis
+                    <GraduationCap className="w-5 h-5 mr-2" /> Start Learning for Free
                   </Button>
                   <p className="text-xs text-center text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                    {userId ? "Langsung buka kursusnya, tanpa checkout." : "Masuk atau daftar dulu supaya progres belajarmu tersimpan."}
+                    {userId ? "Open the course straight away, no checkout needed." : "Log in or sign up first so your progress is saved."}
                   </p>
                 </div>
               ) : ownership !== "none" ? (
@@ -185,12 +185,12 @@ export default function MaterialDetailPage() {
                   <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold font-[var(--font-inter)] text-sm">
-                      {ownership === "owned" ? "Sudah Dibeli" : "Pesanan Sedang Diproses"}
+                      {ownership === "owned" ? "Already Purchased" : "Order Being Processed"}
                     </p>
                     <p className="text-xs mt-1">
                       {ownership === "owned"
-                        ? "Anda sudah memiliki akses ke materi ini."
-                        : "Selesaikan pembayaran dari dashboard untuk membuka akses."}
+                        ? "You already have access to this course."
+                        : "Complete the payment from your dashboard to unlock it."}
                     </p>
                     <Button
                       href={ownership === "owned" && material.course_slug ? `/learn/${material.course_slug}` : "/dashboard/materials"}
@@ -198,7 +198,7 @@ export default function MaterialDetailPage() {
                       size="sm"
                       className="mt-3 w-full bg-white border-[var(--color-success-green)] text-[var(--color-success-green)] hover:bg-[var(--color-success-green)] hover:text-white"
                     >
-                      {ownership === "owned" && material.course_slug ? "Buka Kursus" : "Buka di Dashboard"}
+                      {ownership === "owned" && material.course_slug ? "Open Course" : "Open in Dashboard"}
                     </Button>
                   </div>
                 </div>
@@ -209,16 +209,16 @@ export default function MaterialDetailPage() {
                     isLoading={buying}
                     className="w-full text-lg py-6 shadow-[var(--shadow-sketch)]"
                   >
-                    <ShoppingBag className="w-5 h-5 mr-2" /> {material.price === 0 ? "Ambil Gratis" : "Beli Sekarang"}
+                    <ShoppingBag className="w-5 h-5 mr-2" /> {material.price === 0 ? "Get It Free" : "Buy Now"}
                   </Button>
                   {material.price > 0 && (
                     inCart ? (
                       <Button href="/materials/checkout" variant="secondary" className="w-full">
-                        <ShoppingCart className="w-4 h-4" /> Lihat Keranjang
+                        <ShoppingCart className="w-4 h-4" /> View Cart
                       </Button>
                     ) : (
                       <Button variant="secondary" className="w-full" onClick={() => addToCart(material.id)}>
-                        <ShoppingCart className="w-4 h-4" /> Tambah ke Keranjang
+                        <ShoppingCart className="w-4 h-4" /> Add to Cart
                       </Button>
                     )
                   )}
@@ -228,12 +228,12 @@ export default function MaterialDetailPage() {
               <ul className="space-y-3 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] pt-4 border-t border-dashed border-[var(--color-line)]">
                 <li className="flex items-start gap-2">
                   <ShieldCheck className="w-4 h-4 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
-                  <span>Akses seumur hidup (Lifetime access)</span>
+                  <span>Lifetime access</span>
                 </li>
                 {material.price > 0 && (
                   <li className="flex items-start gap-2">
                     <ShieldCheck className="w-4 h-4 text-[var(--color-brand-blue)] shrink-0 mt-0.5" />
-                    <span>Pembayaran aman & diverifikasi manual</span>
+                    <span>Secure payment, verified manually</span>
                   </li>
                 )}
               </ul>
@@ -247,9 +247,9 @@ export default function MaterialDetailPage() {
                 {material.title}
               </h1>
               <div className="flex items-center gap-4 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                <span>Diperbarui: {formatTimestamp(material.updated_at || material.created_at, 'dd MMM yyyy')}</span>
+                <span>Updated: {formatTimestamp(material.updated_at || material.created_at, 'dd MMM yyyy', 'en')}</span>
                 <span className="w-1 h-1 rounded-full bg-[var(--color-line)]" />
-                <span>Kategori: {material.category}</span>
+                <span>Category: {material.category}</span>
               </div>
               {material.partner && (
                 <div className="mt-4">
@@ -261,24 +261,24 @@ export default function MaterialDetailPage() {
             {material.course_slug && (
               <Card variant="sketch" className="p-6 bg-[var(--color-brand-blue)]/5 space-y-3">
                 <h2 className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)] flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5" /> Kursus interaktif
+                  <GraduationCap className="w-5 h-5" /> Interactive course
                 </h2>
                 <ul className="text-sm font-[var(--font-inter)] text-[var(--color-ink)] space-y-1.5 list-disc pl-5">
-                  <li>Materi bertahap dengan contoh audio dan latihan langsung</li>
-                  <li>Checkpoint ala Duolingo di setiap materi: isian, susun kata, pasangkan, pilihan ganda</li>
-                  <li>Kuis di setiap level atau modul untuk mengukur kemajuan</li>
-                  {material.course_slug === "toefl-itp" && <li>Tryout full-length dengan waktu, urutan, dan jenis soal seperti tes asli</li>}
-                  {material.course_slug === "english-day" && <li>Live Quiz bareng di kelas, dipandu langsung oleh pengajar</li>}
+                  <li>Step-by-step lessons with audio examples and hands-on practice</li>
+                  <li>Duolingo-style checkpoints in every lesson: fill in the blank, word order, matching, multiple choice</li>
+                  <li>A quiz for every level or module to measure your progress</li>
+                  {material.course_slug === "toefl-itp" && <li>Full-length tryouts with the same timing, order and question types as the real test</li>}
+                  {material.course_slug === "english-day" && <li>Live Quizzes together in class, led by your teacher</li>}
                 </ul>
                 <Button href={`/learn/${material.course_slug}`} variant="secondary" size="sm">
-                  <Target className="w-4 h-4" /> {material.course_slug === "toefl-itp" ? "Lihat silabus & coba pretest gratis" : "Lihat silabus"}
+                  <Target className="w-4 h-4" /> {material.course_slug === "toefl-itp" ? "See the syllabus & try a free pretest" : "See the syllabus"}
                 </Button>
               </Card>
             )}
 
             <Card variant="sketch" className="p-6 md:p-8 bg-white">
               <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-6 border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
-                Deskripsi Materi
+                Course Description
               </h2>
               <div
                 className="prose prose-slate max-w-none font-[var(--font-inter)] prose-p:text-[var(--color-ink-soft)] prose-headings:text-[var(--color-ink)]"

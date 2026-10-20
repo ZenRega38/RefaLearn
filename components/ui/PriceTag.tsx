@@ -39,7 +39,7 @@ export function PriceTag({
 
   const main = (
     <span className={`font-bold font-[var(--font-inter)] ${s.price} ${inverted ? "text-white" : "text-[var(--color-brand-blue)]"}`}>
-      {price === 0 ? "Gratis" : formatPrice(price)}
+      {price === 0 ? "Free" : formatPrice(price)}
     </span>
   );
   if (!before) return <span className={`inline-flex ${className}`}>{main}</span>;

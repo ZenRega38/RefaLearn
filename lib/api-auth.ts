@@ -19,7 +19,7 @@ export async function requireUser(role?: Role) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-        return { ok: false as const, error: "Silakan login terlebih dahulu.", status: 401 };
+        return { ok: false as const, error: "Please log in first.", status: 401 };
     }
 
     const { data: profile } = await supabase
@@ -29,13 +29,13 @@ export async function requireUser(role?: Role) {
         .single();
 
     if (!profile) {
-        return { ok: false as const, error: "Profil tidak ditemukan.", status: 403 };
+        return { ok: false as const, error: "Profile not found.", status: 403 };
     }
 
     if (role && profile.role !== role) {
         return {
             ok: false as const,
-            error: role === "admin" ? "Forbidden — admin only" : "Fitur ini khusus akun siswa.",
+            error: role === "admin" ? "Forbidden — admin only" : "This feature is only for student accounts.",
             status: 403,
         };
     }
@@ -65,7 +65,7 @@ export function clientIp(request: NextRequest): string | null {
     return request.headers.get("x-real-ip");
 }
 
-export function errorMessage(err: unknown, fallback = "Terjadi kesalahan."): string {
+export function errorMessage(err: unknown, fallback = "Something went wrong."): string {
     if (err && typeof err === "object" && "message" in err && typeof err.message === "string") {
         return err.message;
     }

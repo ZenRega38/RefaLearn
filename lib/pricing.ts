@@ -18,6 +18,13 @@ export const DAY_TYPE_LABELS: Record<DayType, string> = {
   sunday: 'Minggu',
 };
 
+/** Same labels for the English student-facing pages. */
+export const DAY_TYPE_LABELS_EN: Record<DayType, string> = {
+  weekday: 'Monday – Friday',
+  saturday: 'Saturday',
+  sunday: 'Sunday',
+};
+
 /**
  * Day type for a session date. Prefer passing the stored yyyy-MM-dd
  * string — it is timezone-free. A Date is read in the viewer's local

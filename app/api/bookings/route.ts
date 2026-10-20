@@ -47,12 +47,12 @@ export async function POST(request: NextRequest) {
 
     const body = await readJson<BookingBody>(request);
     if (!body || !body.date || !DATE_RE.test(body.date) || !body.startTime || !TIME_RE.test(body.startTime)) {
-        return jsonError("Tanggal atau jam tidak valid.");
+        return jsonError("Invalid date or time.");
     }
 
     const count = Number(body.sessionCount ?? 1);
     if (!SESSION_COUNT_OPTIONS.includes(count)) {
-        return jsonError("Jumlah sesi tidak valid.");
+        return jsonError("Invalid number of sessions.");
     }
 
     const admin = createAdminClient();
@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
         .eq("id", user.id)
         .single();
     const studentProfile = completion as ProfileCompletion | null;
-    const missing = missingProfileFields(studentProfile, todayStr());
+    const missing = missingProfileFields(studentProfile, todayStr(), "en");
     if (missing.length > 0) {
         return NextResponse.json(
             {
-                error: `Lengkapi profil terlebih dahulu sebelum booking. Data yang masih kurang: ${missing.join(", ")}.`,
+                error: `Please complete your profile before booking. Still missing: ${missing.join(", ")}.`,
                 code: "PROFILE_INCOMPLETE",
                 missing,
             },
@@ -96,11 +96,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (resolved[0].date > horizon) {
-        return jsonError("Tanggal di luar jangkauan booking.");
+        return jsonError("That date is outside the booking window.");
     }
     if (resolved.some((r) => !r.slot)) {
         return NextResponse.json(
-            { error: "Sebagian tanggal sudah tidak tersedia. Silakan cek ulang.", dates: preview },
+            { error: "Some of the dates are no longer available. Please check again.", dates: preview },
             { status: 409 }
         );
     }
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     // identifiable (UU ITE Pasal 11).
     const contractId = await currentContractId(admin);
     if (!contractId || contractId !== body.contractId) {
-        return jsonError("Versi perjanjian sudah berubah. Silakan muat ulang halaman dan baca perjanjian terbaru.", 409);
+        return jsonError("The agreement has been updated. Please reload the page and read the latest version.", 409);
     }
 
     const profileName = (profile.full_name || "").trim();
@@ -154,10 +154,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
         if (isSlotConflict(error)) {
-            return jsonError("Maaf, jadwal ini baru saja dipesan orang lain. Silakan pilih ulang.", 409);
+            return jsonError("Sorry, someone has just booked this slot. Please choose another one.", 409);
         }
         console.error("[api/bookings] create_booking failed:", error);
-        return jsonError(errorMessage(error, "Gagal melakukan booking."), 500);
+        return jsonError(errorMessage(error, "Booking failed."), 500);
     }
 
     // Notifications are best-effort.
