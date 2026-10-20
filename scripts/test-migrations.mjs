@@ -348,5 +348,12 @@ check(examCols.rows.every((r) => r.counted === false && r.auto_submitted === fal
 const freshExam = (await as("service_role", null, `insert into course_attempts (student_id, course_slug, kind) values ($1,'toefl-itp','pretest') returning counted`, [S1])).rows[0];
 check(freshExam.counted === true, "new exam attempts count toward the limit", JSON.stringify(freshExam));
 
+console.log("\nStory event date:");
+await db.query(`insert into news_posts (title, slug, content, status, published_at, event_date) values ('Tech Fest','tech-fest-test','<p>x</p>','published', now(), '2024-11-23')`);
+const storyRows = await as("anon", null, `select event_date::text as d from news_posts where slug = 'tech-fest-test'`);
+check(storyRows.rows[0]?.d === "2024-11-23", "visitors read a story's event date", JSON.stringify(storyRows.rows));
+const undated = (await db.query(`insert into news_posts (title, slug, content, status) values ('Draft','draft-test','<p>x</p>','draft') returning event_date`)).rows[0];
+check(undated.event_date === null, "the event date is optional (drafts, older stories fall back to the publish date)", JSON.stringify(undated));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

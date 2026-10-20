@@ -10,7 +10,7 @@ import { Calendar, BookOpen, MessageCircle, FileText, CheckCircle2, ArrowRight }
 import { createPublicClient } from "@/lib/supabase/public";
 import { SESSION_PRICES } from "@/lib/pricing";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
-import { formatTimestamp } from "@/lib/format";
+import { storyDate } from "@/lib/format";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
 
 export const revalidate = 300;
@@ -29,6 +29,7 @@ type LatestPost = {
   slug: string;
   category: string | null;
   cover_image_url: string | null;
+  event_date: string | null;
   published_at: string | null;
 };
 
@@ -50,8 +51,9 @@ export default async function Home() {
       .limit(3),
     supabase
       .from("news_posts")
-      .select("id, title, slug, category, cover_image_url, published_at")
+      .select("id, title, slug, category, cover_image_url, event_date, published_at")
       .eq("status", "published")
+      .order("event_date", { ascending: false, nullsFirst: false })
       .order("published_at", { ascending: false })
       .limit(3),
   ]);
@@ -323,8 +325,8 @@ export default async function Home() {
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex items-start justify-between mb-2 gap-2">
                         <CategoryBadges category={post.category} />
-                        {post.published_at && (
-                          <span className="shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{formatTimestamp(post.published_at, "dd MMM yyyy", "en")}</span>
+                        {storyDate(post) && (
+                          <span className="shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{storyDate(post)}</span>
                         )}
                       </div>
                       <h3 className="text-lg font-bold font-[var(--font-inter)] leading-snug group-hover:text-[var(--color-brand-blue)] transition-colors">

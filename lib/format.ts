@@ -17,6 +17,12 @@ export function formatTimestamp(iso: string, pattern = "dd MMM yyyy", lang: Lang
   return format(parseISO(iso), pattern, { locale: localeOf(lang) });
 }
 
+/** The date a story shows: the event it's about, or else the day it was published. */
+export function storyDate(post: { event_date?: string | null; published_at?: string | null }, pattern = "dd MMM yyyy"): string {
+  if (post.event_date) return formatDateStr(post.event_date, pattern, "en");
+  return post.published_at ? formatTimestamp(post.published_at, pattern, "en") : "";
+}
+
 /** "Oktober 2026" — month is 1-12. */
 export function monthLabel(month: number, year: number, lang: Lang = "id"): string {
   return format(new Date(year, month - 1, 1), "MMMM yyyy", { locale: localeOf(lang) });

@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/Badge";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Plus, Edit2, Trash2, ExternalLink, RefreshCw, Star, Video, CheckCircle2, AlertTriangle } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { slugify, splitCategories } from "@/lib/format";
+import { formatDateStr, formatTimestamp, slugify, splitCategories } from "@/lib/format";
+import { todayStr } from "@/lib/time";
 import { isBrokenVideo, youtubeId, youtubeProblem, youtubeThumbnail, type YoutubeCheck } from "@/lib/youtube";
 
 type NewsPost = {
@@ -19,6 +20,7 @@ type NewsPost = {
   slug: string;
   category: string;
   status: 'draft' | 'published';
+  event_date: string | null;
   published_at: string | null;
   youtube_url: string | null;
 };
@@ -79,12 +81,14 @@ export default function AdminNewsPage() {
   // original publish date.
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  // The date readers see (yyyy-mm-dd): when the event happened. Empty = the publish date.
+  const [eventDate, setEventDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   const fetchPosts = useCallback(async () => {
     const { data, error } = await supabase
       .from('news_posts')
-      .select('id, title, slug, category, status, published_at, youtube_url')
+      .select('id, title, slug, category, status, event_date, published_at, youtube_url')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -166,6 +170,7 @@ export default function AdminNewsPage() {
       setStatus(data.status);
       setCurrentSlug(data.slug);
       setPublishedAt(data.published_at);
+      setEventDate(data.event_date || "");
       setIsEditing(true);
     }
   };
@@ -200,6 +205,7 @@ export default function AdminNewsPage() {
     setStatus("draft");
     setCurrentSlug(null);
     setPublishedAt(null);
+    setEventDate("");
     setIsEditing(true);
   };
 
@@ -228,6 +234,8 @@ export default function AdminNewsPage() {
       status,
       // First publish stamps the date; later edits keep it.
       published_at: status === 'published' ? (publishedAt || new Date().toISOString()) : publishedAt,
+      // No event date picked: the story shows the day it was published (WITA).
+      event_date: eventDate || (status === 'published' ? (publishedAt ? todayStr(new Date(publishedAt)) : todayStr()) : null),
     };
 
     let error;
@@ -297,16 +305,38 @@ export default function AdminNewsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ImageUploadField label="Cover Image (Opsional)" value={coverUrl} onChange={setCoverUrl} folder="news" />
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">Status Publikasi</label>
-                <select
-                  className="input-field"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
-                >
-                  <option value="draft">Draft (Sembunyikan)</option>
-                  <option value="published">Publish (Tampilkan)</option>
-                </select>
+              <div className="space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">Status Publikasi</label>
+                  <select
+                    className="input-field"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
+                  >
+                    <option value="draft">Draft (Sembunyikan)</option>
+                    <option value="published">Publish (Tampilkan)</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="event-date" className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">Tanggal Acara</label>
+                  <div className="flex gap-2">
+                    <input
+                      id="event-date"
+                      type="date"
+                      className="input-field flex-1"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                    />
+                    {eventDate && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setEventDate("")}>Kosongkan</Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+                    Tanggal yang tampil di kartu dan di atas story, sesuai berita acaranya. Urutan story juga mengikuti tanggal ini.
+                    {" "}Kosongkan untuk memakai tanggal publish.
+                    {publishedAt && <> Dipublikasikan {formatTimestamp(publishedAt, "dd MMM yyyy")} (tampil di bawah story).</>}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -409,6 +439,9 @@ export default function AdminNewsPage() {
                           {brokenVideos.has(post.id) && <VideoWarningDot />}
                         </div>
                         <div className="text-xs text-[var(--color-ink-soft)] truncate max-w-xs">{post.slug}</div>
+                        {post.event_date && (
+                          <div className="text-xs text-[var(--color-ink-soft)] mt-0.5">Acara: {formatDateStr(post.event_date, "dd MMM yyyy")}</div>
+                        )}
                       </td>
                       <td className="p-4" data-label="Kategori">
                         {splitCategories(post.category).length > 0 ? (
