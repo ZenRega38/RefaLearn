@@ -135,7 +135,17 @@ export type LevelQuiz = {
   passPercent: number;
   questions: Question[];
   passages?: Passage[];
+  /**
+   * Parallel versions in the same format (tryouts): attempt n gets set
+   * n (cycling). `questions` / `passages` above are set 1.
+   */
+  sets?: QuizSet[];
+  /** Scored by part on a 100-point scale, in question order (e.g. EAC: A 20 → 35 points). */
+  parts?: QuizPart[];
 };
+
+export type QuizSet = { questions: Question[]; passages?: Passage[] };
+export type QuizPart = { label: string; count: number; points: number };
 
 export type Level = {
   id: string;

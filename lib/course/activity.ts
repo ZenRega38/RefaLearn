@@ -1,5 +1,5 @@
 import "server-only";
-import { findLesson, findLevelQuiz, findTask, getCourse, getExam } from "@/lib/course/content";
+import { findLesson, findLevelQuiz, findTask, getCourse, getExam, quizSetFor } from "@/lib/course/content";
 import { buildExamResult, gradeQuestions } from "@/lib/course/server";
 import type { ExamKind, Passage, Question, Response, SectionResult } from "@/lib/course/types";
 
@@ -141,9 +141,11 @@ export function submissionDetail(row: SubmissionRow): ActivityDetail {
     questions = found?.lesson.checkpoint ?? [];
     passages = found?.lesson.passages ?? [];
   } else {
+    // Tryouts with parallel versions: grade against the set this sheet answered.
     const found = findLevelQuiz(course, row.item_id);
-    questions = found?.quiz.questions ?? [];
-    passages = found?.quiz.passages ?? [];
+    const set = found ? quizSetFor(found.quiz, row.answers as Record<string, unknown>) : null;
+    questions = set?.questions ?? [];
+    passages = set?.passages ?? [];
   }
   const responses = row.answers as Record<string, Response | null>;
   // Checkpoints log only the questions answered; quizzes log every question.

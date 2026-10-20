@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { computeUnlocks, getCourse } from "@/lib/course/content";
 import { examMinutes, hasCourseAccess, isFreeCourse, loadOpenLevels, loadProgress } from "@/lib/course/server";
 import type { ProgressItem } from "@/lib/course/types";
+import { MAX_ATTEMPTS, quizSeconds } from "@/lib/course/attempt-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const course = getCourse(slug);
-  if (!course) return NextResponse.json({ error: "Kursus tidak ditemukan." }, { status: 404 });
+  if (!course) return NextResponse.json({ error: "Course not found." }, { status: 404 });
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -25,7 +26,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   let loggedIn = false;
   let role = "guest";
   let progress: ProgressItem[] = [];
-  let attempts: { id: string; kind: string; total_score: number | null; submitted_at: string | null; started_at: string }[] = [];
+  let attempts: { id: string; kind: string; total_score: number | null; submitted_at: string | null; started_at: string; counted: boolean; auto_submitted: boolean }[] = [];
+  let quizAttempts: { item_id: string; counted: boolean; submitted_at: string | null }[] = [];
 
   if (user) {
     loggedIn = true;
@@ -35,14 +37,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       hasCourseAccess(admin, user.id, role, slug),
       loadProgress(admin, user.id, slug),
     ]);
-    const { data } = await admin
-      .from("course_attempts")
-      .select("id, kind, total_score, submitted_at, started_at")
-      .eq("student_id", user.id)
-      .eq("course_slug", slug)
-      .not("submitted_at", "is", null)
-      .order("submitted_at", { ascending: false });
+    const [{ data }, { data: quizRows }] = await Promise.all([
+      admin
+        .from("course_attempts")
+        .select("id, kind, total_score, submitted_at, started_at, counted, auto_submitted")
+        .eq("student_id", user.id)
+        .eq("course_slug", slug)
+        .not("submitted_at", "is", null)
+        .order("submitted_at", { ascending: false }),
+      admin.from("course_quiz_attempts").select("item_id, counted, submitted_at").eq("student_id", user.id).eq("course_slug", slug),
+    ]);
     attempts = data || [];
+    quizAttempts = quizRows || [];
   }
 
   const isAdmin = role === "admin";
@@ -85,6 +91,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     title: q.title,
     questions: q.questions.length,
     passPercent: q.passPercent,
+    minutes: Math.round(quizSeconds(q.questions.length, course.quizSecondsPerQuestion) / 60),
+    attemptsUsed: quizAttempts.filter((a) => a.item_id === q.id && a.counted).length,
+    inProgress: quizAttempts.some((a) => a.item_id === q.id && !a.submitted_at),
     unlocked: access && unlocks.unlocked.has(q.id),
     passed: unlocks.done.has(q.id),
     score: byId.get(q.id)?.score ?? null,
@@ -104,6 +113,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     slideLinks: !!course.slideLinks,
     isAdmin,
     quizSecondsPerQuestion: course.quizSecondsPerQuestion ?? null,
+    maxAttempts: MAX_ATTEMPTS,
     loggedIn,
     access,
     store: material ? { slug: material.slug, price: material.price, before: material.compare_at_price } : null,

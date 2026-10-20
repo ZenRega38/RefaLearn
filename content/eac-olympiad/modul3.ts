@@ -1,7 +1,7 @@
 import "server-only";
 import type { Level, Passage } from "@/lib/course/types";
 import { arrange, audio, examples, fill, live, match, pick, pics, say, table, text, tip, tryIt, vocab, warn, writing } from "../kit";
-import { correctOne, findError, respond, SCORE_FORMULA, unscramble } from "./helpers";
+import { correctOne, findError, PRELIM_PARTS, respond, SCORE_FORMULA, unscramble } from "./helpers";
 
 // Modul 3 — the Preliminary block, woven into one module: Part C dialogue
 // patterns, Part D (unscrambling, idiomatic prepositions, multi-error /
@@ -94,6 +94,7 @@ export const SESSION3: Level = {
     id: "eac3-mock1",
     title: "Mock Test #1 — 40 Questions (start here)",
     passPercent: 0,
+    parts: PRELIM_PARTS,
     passages: [MAYA, PLASTIC],
     questions: [
       // Part A — Words & Structure
@@ -907,6 +908,7 @@ export const SESSION3: Level = {
     id: "eac3-mock2",
     title: "Mock Test #2 — 40 Questions",
     passPercent: 80,
+    parts: PRELIM_PARTS,
     passages: [DIMAS, BEES],
     questions: [
       // Part A
