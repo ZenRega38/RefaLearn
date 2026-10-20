@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jsonError, readJson } from "@/lib/api-auth";
 import { findLesson } from "@/lib/course/content";
 import { courseContext, gradeQuestions, logSubmission } from "@/lib/course/server";
+import { lessonsToRestudy } from "@/lib/course/attempts";
 import type { Response } from "@/lib/course/types";
 import { recordActivity } from "@/lib/gamification-server";
 import { XP } from "@/lib/gamification";
@@ -23,6 +24,12 @@ export async function GET(_req: Request, { params }: Params) {
   const found = findLesson(ctx.course, lessonId);
   if (!found) return jsonError("Lesson not found.", 404);
   if (!ctx.unlocks.unlocked.has(lessonId)) return jsonError("Finish the previous lesson first.", 403);
+
+  // After starting over a quiz, its chapter is studied again in order.
+  const restudy = await lessonsToRestudy(ctx.admin, ctx.user.id, ctx.course);
+  if (found.level.lessons.slice(0, found.index).some((l) => restudy.has(l.id))) {
+    return jsonError("Study the earlier lessons of this chapter again first.", 403);
+  }
 
   // Reading a lesson counts as a study day (and pays a little XP the first time).
   const xp = await recordActivity(ctx.admin, ctx.user.id, { study: true, award: { source: "lesson_read", ref: `${slug}:${lessonId}`, xp: XP.lessonRead } });
@@ -47,7 +54,9 @@ export async function GET(_req: Request, { params }: Params) {
     position: { index: found.index, total: lessons.length },
     nextId: found.index + 1 < lessons.length ? lessons[found.index + 1].id : found.level.quiz.id,
     nextIsQuiz: found.index + 1 >= lessons.length,
-    done: ctx.unlocks.done.has(lessonId),
+    // To be studied again after starting over: shown as not done, sections in order.
+    done: ctx.unlocks.done.has(lessonId) && !restudy.has(lessonId),
+    restudy: restudy.has(lessonId),
     mascot: ctx.course.mascot ?? null,
     hasLive: !!found.level.live,
   });
@@ -67,6 +76,10 @@ export async function POST(request: NextRequest, { params }: Params) {
   const found = findLesson(ctx.course, lessonId);
   if (!found) return jsonError("Lesson not found.", 404);
   if (!ctx.unlocks.unlocked.has(lessonId)) return jsonError("This lesson isn't open yet.", 403);
+  const restudy = await lessonsToRestudy(ctx.admin, ctx.user.id, ctx.course);
+  if (found.level.lessons.slice(0, found.index).some((l) => restudy.has(l.id))) {
+    return jsonError("Study the earlier lessons of this chapter again first.", 403);
+  }
 
   const body = await readJson<{ responses?: Record<string, Response | null> }>(request);
   if (body?.responses && found.lesson.checkpoint.length > 0) {

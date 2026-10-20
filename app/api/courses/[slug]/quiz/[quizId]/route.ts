@@ -4,8 +4,9 @@ import { findLevelQuiz, quizSet } from "@/lib/course/content";
 import { toPublicQuestion } from "@/lib/course/grading";
 import { courseContext } from "@/lib/course/server";
 import {
-  clearLessons,
   closeExpiredQuizAttempts,
+  lessonCompletions,
+  pendingRestart,
   finishQuizAttempt,
   loadQuizAttempts,
   quizResult,
@@ -37,13 +38,10 @@ async function load(slug: string, quizId: string): Promise<{ ok: false; error: s
 async function current(ctx: CourseCtx, found: FoundQuiz) {
   const rows = await closeExpiredQuizAttempts(ctx, found, await loadQuizAttempts(ctx.admin, ctx.user.id, ctx.course.slug, found.quiz.id), SUBMIT_GRACE_MS);
   const state = quizState(rows, found, ctx.profile.role === "admin");
-  // Starting over means studying this chapter's lessons again.
-  const restart = restartInfo(
-    found.level.lessons,
-    ctx.unlocks.done,
-    rows.map((r) => ({ counted: r.counted, submittedAt: r.submitted_at })),
-    state
-  );
+  // Starting over means studying this chapter's lessons again (and only those).
+  const marker = pendingRestart(rows);
+  const completions = marker ? await lessonCompletions(ctx.admin, ctx.user.id, ctx.course.slug) : new Map<string, string>();
+  const restart = restartInfo(found.level.lessons, marker ? completions : new Map(found.level.lessons.filter((l) => ctx.unlocks.done.has(l.id)).map((l) => [l.id, "done"])), marker, state);
   return { rows, state, restart };
 }
 
@@ -109,16 +107,12 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (body?.action === "restart") {
     const { rows, restart } = await current(ctx, found);
     if (!restart.available) return jsonError("You can start over once all your attempts are used.", 409);
+    // The round stops counting; its lessons must be studied again. Nothing else changes.
     const { error } = await ctx.admin
       .from("course_quiz_attempts")
-      .update({ counted: false })
+      .update({ counted: false, restarted_at: new Date().toISOString() })
       .in("id", rows.filter((r) => r.counted).map((r) => r.id));
     if (error) return jsonError("Couldn't start over.", 500);
-    try {
-      await clearLessons(ctx, found.level.lessons.map((l) => l.id));
-    } catch {
-      return jsonError("Couldn't start over.", 500);
-    }
     return NextResponse.json({ ok: true, firstLesson: found.level.lessons[0]?.id ?? null });
   }
 

@@ -29,6 +29,8 @@ type LessonPayload = {
   done: boolean;
   mascot: string | null;
   hasLive: boolean;
+  /** Being studied again after starting over a quiz: sections and checkpoint in order. */
+  restudy?: boolean;
   /** Earlier checkpoint runs (first try of each question), newest first. */
   checkpointLog: { id: string; score: number | null; maxScore: number | null; answers: Record<string, Response | null> | null; at: string }[];
 };
@@ -187,6 +189,11 @@ export default function LessonPage() {
           <main className="space-y-6 min-w-0">
             <div>
               <h1 className="text-3xl md:text-4xl mb-1">{lesson.title}</h1>
+              {data.restudy && (
+                <p className="text-sm font-semibold text-[var(--color-accent-coral)] font-[var(--font-inter)] flex items-center gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5" /> {t.attempts.restudyNote}
+                </p>
+              )}
               {(lesson.minutes || data.done) && (
                 <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" /> {lesson.minutes ? `${t.lessonMinutes(lesson.minutes)} ` : ""}{data.done && (lesson.minutes ? t.doneShort : t.doneLong)}

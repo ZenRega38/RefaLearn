@@ -51,7 +51,7 @@ type Outline = {
     live?: { id: string; pin: string; status: string } | null;
     slides: string | null;
     pretest: QuizInfo | null;
-    lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number | null; unlocked: boolean; done: boolean }[];
+    lessons: { id: string; title: string; skill: Skill; summary: string; minutes: number | null; unlocked: boolean; done: boolean; restudy: boolean }[];
     quiz: QuizInfo;
   }[];
   pretest: { title: string; description: string; minutes: number; questions: number; attempts: Attempt[] } | null;
@@ -281,6 +281,7 @@ export default function CourseHomePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink-soft)]">
                           <SkillIcon skill={lesson.skill} className="w-3.5 h-3.5" /> {t.skills[lesson.skill]}{lesson.minutes ? ` · ${t.minutes(lesson.minutes)}` : ""}
+                          {lesson.restudy && <span className="text-[var(--color-accent-coral)]">· {t.attempts.studyAgainBadge}</span>}
                         </div>
                         <p className="font-semibold text-[var(--color-ink)] leading-snug">{lesson.title}</p>
                         <p className="text-xs text-[var(--color-ink-soft)] line-clamp-2 sm:line-clamp-1">{lesson.summary}</p>

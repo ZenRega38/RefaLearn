@@ -355,5 +355,11 @@ check(storyRows.rows[0]?.d === "2024-11-23", "visitors read a story's event date
 const undated = (await db.query(`insert into news_posts (title, slug, content, status) values ('Draft','draft-test','<p>x</p>','draft') returning event_date`)).rows[0];
 check(undated.event_date === null, "the event date is optional (drafts, older stories fall back to the publish date)", JSON.stringify(undated));
 
+console.log("\nStarting over (restarted_at):");
+const restartCols = await db.query(`select table_name from information_schema.columns where column_name = 'restarted_at' and table_name in ('course_quiz_attempts','course_attempts') order by table_name`);
+check(restartCols.rows.map((r) => r.table_name).join(",") === "course_attempts,course_quiz_attempts", "both attempt tables record when a student started over", JSON.stringify(restartCols.rows));
+const selfRestart = await as("authenticated", S1, `update course_quiz_attempts set restarted_at = now() where student_id = $1 returning id`, [S1]);
+check(selfRestart.rows.length === 0, "students cannot stamp a restart themselves", String(selfRestart.rows.length));
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);

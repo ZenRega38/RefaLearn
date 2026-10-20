@@ -5,6 +5,7 @@ import { computeUnlocks, getCourse } from "@/lib/course/content";
 import { examMinutes, hasCourseAccess, isFreeCourse, loadOpenLevels, loadProgress } from "@/lib/course/server";
 import type { ProgressItem } from "@/lib/course/types";
 import { MAX_ATTEMPTS, quizSeconds } from "@/lib/course/attempt-rules";
+import { lessonsToRestudy } from "@/lib/course/attempts";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   let progress: ProgressItem[] = [];
   let attempts: { id: string; kind: string; total_score: number | null; submitted_at: string | null; started_at: string; counted: boolean; auto_submitted: boolean }[] = [];
   let quizAttempts: { item_id: string; counted: boolean; submitted_at: string | null }[] = [];
+  // Lessons to study again after starting over a quiz (that chapter only).
+  let restudy = new Set<string>();
 
   if (user) {
     loggedIn = true;
@@ -49,6 +52,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     ]);
     attempts = data || [];
     quizAttempts = quizRows || [];
+    restudy = await lessonsToRestudy(admin, user.id, course);
   }
 
   const isAdmin = role === "admin";
@@ -132,14 +136,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       // The module's slide deck, for those who may enter the module.
       slides: isAdmin || (access && !unlocks.lockedLevels.has(level.id)) ? slidesByLevel.get(level.id) ?? null : null,
       pretest: level.pretest ? quizInfo(level.pretest) : null,
-      lessons: level.lessons.map((l) => ({
+      lessons: level.lessons.map((l, i) => ({
         id: l.id,
         title: l.title,
         skill: l.skill,
         summary: l.summary,
         minutes: l.minutes ?? null,
-        unlocked: access && unlocks.unlocked.has(l.id),
-        done: unlocks.done.has(l.id),
+        // Studying a chapter again goes in order, from its first lesson.
+        unlocked: access && unlocks.unlocked.has(l.id) && !level.lessons.slice(0, i).some((x) => restudy.has(x.id)),
+        done: unlocks.done.has(l.id) && !restudy.has(l.id),
+        restudy: restudy.has(l.id),
       })),
       quiz: quizInfo(level.quiz),
     })),
