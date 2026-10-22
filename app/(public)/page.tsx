@@ -12,6 +12,8 @@ import { SESSION_PRICES } from "@/lib/pricing";
 import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { storyDate } from "@/lib/format";
 import { CategoryBadges } from "@/components/ui/CategoryBadges";
+import { getLang } from "@/lib/i18n-server";
+import { pickLocalized, translator } from "@/lib/i18n";
 
 export const revalidate = 300;
 
@@ -58,9 +60,11 @@ export default async function Home() {
       .limit(3),
   ]);
 
-  const settings = new Map((settingsData ?? []).map((row) => [row.key, row.value?.text as string | undefined]));
-  const heroTitle = settings.get("hero_title")?.trim();
-  const heroSubtitle = settings.get("hero_subtitle")?.trim();
+  const lang = await getLang();
+  const tr = translator(lang);
+  const settings = new Map((settingsData ?? []).map((row) => [row.key, row.value]));
+  const heroTitle = pickLocalized(settings.get("hero_title"), "text", lang);
+  const heroSubtitle = pickLocalized(settings.get("hero_subtitle"), "text", lang);
   const featuredAlumni = (alumniData ?? []) as FeaturedAlumni[];
   const latestPosts = (postsData ?? []) as LatestPost[];
 
@@ -73,27 +77,31 @@ export default async function Home() {
         <div className="absolute bottom-10 left-[5%] w-72 h-72 bg-[var(--color-accent-coral)] rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float delay-300" />
 
         <div className="container-main relative z-10 text-center max-w-4xl mx-auto">
-          <Badge variant="blue" className="mb-6 animate-fade-in-up">Les Private Bahasa Inggris di Tarakan</Badge>
+          <Badge variant="blue" className="mb-6 animate-fade-in-up">{tr("Les Private Bahasa Inggris di Tarakan", "Private English Lessons in Tarakan")}</Badge>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl mb-6 animate-fade-in-up delay-100">
             {heroTitle ? heroTitle : (
               <>
-                Private English Lessons in Tarakan, <br className="hidden md:block" />
-                <span className="text-[var(--color-accent-coral)]">Affordable & High Quality!</span>
+                {tr("Les Bahasa Inggris Private Tarakan,", "Private English Lessons in Tarakan,")} <br className="hidden md:block" />
+                <span className="text-[var(--color-accent-coral)]">{tr("Murah & Berkualitas!", "Affordable & High Quality!")}</span>
               </>
             )}
           </h1>
 
           <p className="text-lg md:text-xl text-[var(--color-ink-soft)] mb-10 max-w-2xl mx-auto font-[var(--font-inter)] animate-fade-in-up delay-200">
-            {heroSubtitle || "Bridging Borders, Embracing The World! Improve your English with experienced private tutors in Tarakan, online or face to face. We specialise in IELTS, TOEFL and academic English at an affordable price."}
+            {heroSubtitle ||
+              `Bridging Borders, Embracing The World! ${tr(
+                "Tingkatkan kemampuan Bahasa Inggris Anda bersama tutor private berpengalaman di Tarakan, tersedia kelas online maupun tatap muka. Spesialis persiapan IELTS, TOEFL, dan materi akademik dengan harga terjangkau.",
+                "Improve your English with experienced private tutors in Tarakan, online or face to face. We specialise in IELTS, TOEFL and academic English at an affordable price."
+              )}`}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up delay-300">
             <Button href="/schedule" size="lg" className="w-full sm:w-auto text-base">
-              See Schedule & Book
+              {tr("Lihat Jadwal & Booking", "See Schedule & Book")}
             </Button>
             <Button href="/materials" variant="sketch" size="lg" className="w-full sm:w-auto text-base group">
-              Browse Courses <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {tr("Lihat Kursus", "Browse Courses")} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
 
@@ -102,10 +110,13 @@ export default async function Home() {
             <div className="trust-badge flex-col sm:flex-row shadow-[var(--shadow-float)] bg-white/80 backdrop-blur-sm p-4 sm:p-5 border-2 border-[var(--color-line)] rounded-[var(--radius-card)]">
               <span className="text-3xl font-bold font-[var(--font-kalam)] text-[var(--color-brand-blue)] flex items-center gap-3">
                 <CheckCircle2 className="w-8 h-8 text-[var(--color-success-green)]" />
-                <SketchUnderline color="var(--color-accent-coral)" strokeWidth={4}>Pay After Class</SketchUnderline>
+                <SketchUnderline color="var(--color-accent-coral)" strokeWidth={4}>{tr("Bayar Setelah Kelas Selesai", "Pay After Class")}</SketchUnderline>
               </span>
               <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)] font-normal mt-2 sm:mt-0 sm:ml-4 sm:pl-4 sm:border-l-2 sm:border-dashed border-[var(--color-line)] max-w-xs text-left">
-                No down payment. Your invoice arrives at the start of the following month. Learn first, pay later.
+                {tr(
+                  "Tanpa DP. Kelas berjalan, tagihan dikirim awal bulan berikutnya. Belajar dulu, bayar belakangan.",
+                  "No down payment. Your invoice arrives at the start of the following month. Learn first, pay later."
+                )}
               </p>
             </div>
           </div>
@@ -118,16 +129,16 @@ export default async function Home() {
       <section className="section-padding bg-[var(--color-paper-bg-alt)]">
         <div className="container-main">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl mb-4">How It Works</h2>
-            <p className="text-[var(--color-ink-soft)]">A simple, hassle-free process, so you can focus on learning.</p>
+            <h2 className="text-3xl md:text-4xl mb-4">{tr("Cara Kerja Kami", "How It Works")}</h2>
+            <p className="text-[var(--color-ink-soft)]">{tr("Proses simpel tanpa ribet, fokus pada pembelajaran Anda.", "A simple, hassle-free process, so you can focus on learning.")}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { icon: <Calendar className="w-8 h-8" />, title: "1. Choose a Schedule", desc: "Pick the day and time that suit you from the available slots." },
-              { icon: <FileText className="w-8 h-8" />, title: "2. Accept the Agreement", desc: "Read and accept clear, transparent terms and conditions." },
-              { icon: <MessageCircle className="w-8 h-8" />, title: "3. Join Your Class", desc: "Interactive 90-minute private sessions focused on your goals." },
-              { icon: <BookOpen className="w-8 h-8" />, title: "4. Pay at the End", desc: "Invoices are sent on the 1st of every month." }
+              { icon: <Calendar className="w-8 h-8" />, title: tr("1. Pilih Jadwal", "1. Choose a Schedule"), desc: tr("Tentukan hari dan jam yang sesuai dengan ketersediaan.", "Pick the day and time that suit you from the available slots.") },
+              { icon: <FileText className="w-8 h-8" />, title: tr("2. Setujui Kesepakatan", "2. Accept the Agreement"), desc: tr("Baca dan setujui syarat & ketentuan secara transparan.", "Read and accept clear, transparent terms and conditions.") },
+              { icon: <MessageCircle className="w-8 h-8" />, title: tr("3. Ikuti Kelas", "3. Join Your Class"), desc: tr("Sesi privat 90 menit interaktif dan fokus ke target Anda.", "Interactive 90-minute private sessions focused on your goals.") },
+              { icon: <BookOpen className="w-8 h-8" />, title: tr("4. Bayar di Akhir", "4. Pay at the End"), desc: tr("Invoice dikirim tanggal 1 setiap bulannya.", "Invoices are sent on the 1st of every month.") }
             ].map((step, idx) => (
               <div key={idx} className="relative flex flex-col items-center text-center group">
                 <div className="w-20 h-20 rounded-full bg-white border-2 border-dashed border-[var(--color-brand-blue)] flex items-center justify-center text-[var(--color-brand-blue)] mb-6 shadow-[var(--shadow-sketch)] group-hover:bg-[var(--color-brand-blue)] group-hover:text-white transition-colors duration-300">
@@ -151,40 +162,43 @@ export default async function Home() {
         <div className="container-main">
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/2">
-              <Badge variant="amber" className="mb-4">Invest in Learning</Badge>
+              <Badge variant="amber" className="mb-4">{tr("Investasi Belajar", "Invest in Learning")}</Badge>
               <h2 className="text-3xl md:text-4xl mb-6 leading-snug">
-                Transparent Pricing, <br />
+                {tr("Harga Transparan,", "Transparent Pricing,")} <br />
                 <SketchCircleHighlight color="var(--color-accent-yellow)" padding={10}>
-                  Guaranteed Quality.
+                  {tr("Kualitas Terjamin.", "Guaranteed Quality.")}
                 </SketchCircleHighlight>
               </h2>
               <p className="text-[var(--color-ink-soft)] mb-8 font-[var(--font-inter)] text-lg">
-                A flat fee per 90-minute session. No hidden registration fees. You only pay for the sessions you have completed.
+                {tr(
+                  "Biaya flat per sesi (90 menit). Tidak ada biaya pendaftaran terselubung. Anda hanya membayar sesi yang telah diselesaikan.",
+                  "A flat fee per 90-minute session. No hidden registration fees. You only pay for the sessions you have completed."
+                )}
               </p>
 
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start gap-3 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                   <CheckCircle2 className="w-5 h-5 text-[var(--color-success-green)] shrink-0 mt-0.5" />
-                  <span>A full <strong>90 minutes</strong> per session.</span>
+                  <span>{tr("Durasi komprehensif", "A full")} <strong>{tr("90 menit", "90 minutes")}</strong> {tr("per sesi.", "per session.")}</span>
                 </li>
                 <li className="flex items-start gap-3 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                   <CheckCircle2 className="w-5 h-5 text-[var(--color-success-green)] shrink-0 mt-0.5" />
-                  <span>Materials tailored to your individual needs.</span>
+                  <span>{tr("Materi disesuaikan dengan kebutuhan individu.", "Materials tailored to your individual needs.")}</span>
                 </li>
                 <li className="flex items-start gap-3 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
                   <CheckCircle2 className="w-5 h-5 text-[var(--color-success-green)] shrink-0 mt-0.5" />
-                  <span>Consultation and chat with your tutor outside class hours.</span>
+                  <span>{tr("Akses konsultasi & chat tutor di luar jam kelas.", "Consultation and chat with your tutor outside class hours.")}</span>
                 </li>
               </ul>
 
-              <Button href="/schedule">Choose a Schedule Now</Button>
+              <Button href="/schedule">{tr("Pilih Jadwal Sekarang", "Choose a Schedule Now")}</Button>
             </div>
 
             <div className="lg:w-1/2 w-full max-w-lg">
               <Card variant="sketch" className="p-0 overflow-hidden bg-[var(--color-paper-bg)]">
                 <div className="bg-[var(--color-brand-blue)] px-6 py-4 text-center">
-                  <h3 className="text-white font-bold font-[var(--font-inter)] text-2xl mb-1">1-on-1 Private Package</h3>
-                  <p className="text-orange-400 text-base sm:text-lg font-[var(--font-kalam)]">Price per 90-Minute Private Session</p>
+                  <h3 className="text-white font-bold font-[var(--font-inter)] text-2xl mb-1">{tr("Paket Privat 1-on-1", "1-on-1 Private Package")}</h3>
+                  <p className="text-orange-400 text-base sm:text-lg font-[var(--font-kalam)]">{tr("Harga per Sesi Private 90 Menit", "Price per 90-Minute Private Session")}</p>
                   <LimitedOffer inverted className="mt-2" />
                 </div>
                 <div className="p-4 sm:p-6 bg-white overflow-x-auto">
@@ -192,20 +206,20 @@ export default async function Home() {
                     <thead>
                       <tr>
                         <th className="text-left pb-3 border-b-2 border-[var(--color-line)] font-[var(--font-inter)] font-semibold text-[var(--color-ink)]">
-                          Schedule
+                          {tr("Jadwal", "Schedule")}
                         </th>
                         <th className="text-center pb-3 border-b-2 border-[var(--color-line)] font-[var(--font-inter)] font-semibold text-[var(--color-brand-blue)]">
                           Refa Learn
                         </th>
                         <th className="text-center pb-3 border-b-2 border-l border-[var(--color-line)] font-[var(--font-inter)] font-semibold text-[var(--color-ink-soft)]">
-                          Other Private Tutoring
+                          {tr("Bimbel Privat Lain", "Other Private Tutoring")}
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
                         <td className="py-3 border-b border-dashed border-[var(--color-line)] font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
-                          Monday – Friday
+                          {tr("Senin - Jumat", "Monday – Friday")}
                         </td>
                         <td className="py-3 text-center border-b border-dashed border-[var(--color-line)]">
                           <PriceTag price={SESSION_PRICES.weekday} size="md" stacked align="center" />
@@ -216,7 +230,7 @@ export default async function Home() {
                       </tr>
                       <tr>
                         <td className="py-3 border-b border-dashed border-[var(--color-line)] font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
-                          Saturday
+                          {tr("Sabtu", "Saturday")}
                         </td>
                         <td className="py-3 text-center border-b border-dashed border-[var(--color-line)]">
                           <PriceTag price={SESSION_PRICES.saturday} size="md" stacked align="center" />
@@ -224,24 +238,27 @@ export default async function Home() {
                       </tr>
                       <tr>
                         <td className="py-3 font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
-                          Sunday
+                          {tr("Minggu", "Sunday")}
                         </td>
                         <td className="py-3 text-center font-bold text-lg font-[var(--font-inter)] text-[var(--color-brand-blue)]">
                           <PriceTag price={SESSION_PRICES.sunday} size="md" stacked align="center" />
                         </td>
                         <td className="py-3 text-center border-l border-[var(--color-line)] font-bold font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                          ✕ Closed
+                          ✕ {tr("Tutup", "Closed")}
                         </td>
                       </tr>
                     </tbody>
                   </table>
                   <p className="text-[10px] text-[var(--color-ink-soft)] font-[var(--font-inter)] italic mt-3">
-                    *Estimated price per private session at one of the large online tutoring companies, based on its cheapest package (4 private sessions / 3 months = Rp 2.945.000).
+                    *{tr(
+                      "Estimasi harga per sesi les privat di salah satu bimbel online besar, dihitung dari paket termurahnya (4 sesi privat / 3 bulan = Rp 2.945.000).",
+                      "Estimated price per private session at one of the large online tutoring companies, based on its cheapest package (4 private sessions / 3 months = Rp 2.945.000)."
+                    )}
                   </p>
                 </div>
                 <div className="bg-[var(--color-paper-bg-alt)] p-4 text-center border-t border-[var(--color-line)]">
                   <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] italic">
-                    *Invoices are compiled monthly.
+                    *{tr("Invoice akan direkapitulasi secara bulanan.", "Invoices are compiled monthly.")}
                   </p>
                 </div>
               </Card>
@@ -257,8 +274,8 @@ export default async function Home() {
         <section className="section-padding bg-[var(--color-paper-bg)]">
           <div className="container-main">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl mb-4">Alumni Success Stories</h2>
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Join the students who have reached their goals.</p>
+              <h2 className="text-3xl md:text-4xl mb-4">{tr("Cerita Sukses Alumni", "Alumni Success Stories")}</h2>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Bergabunglah dengan mereka yang telah meraih targetnya.", "Join the students who have reached their goals.")}</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -292,7 +309,7 @@ export default async function Home() {
             </div>
             <div className="text-center mt-10">
               <Link href="/alumni" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
-                See all alumni <ArrowRight className="w-4 h-4" />
+                {tr("Lihat semua alumni", "See all alumni")} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
@@ -304,8 +321,8 @@ export default async function Home() {
         <section className="section-padding bg-[var(--color-paper-bg-alt)]">
           <div className="container-main">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl mb-4">Latest Stories</h2>
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Stories, study tips and the latest news from Refa Learn.</p>
+              <h2 className="text-3xl md:text-4xl mb-4">{tr("Stories Terbaru", "Latest Stories")}</h2>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Cerita, tips belajar, dan kabar terbaru dari Refa Learn.", "Stories, study tips and the latest news from Refa Learn.")}</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -325,8 +342,8 @@ export default async function Home() {
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex items-start justify-between mb-2 gap-2">
                         <CategoryBadges category={post.category} />
-                        {storyDate(post) && (
-                          <span className="shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{storyDate(post)}</span>
+                        {storyDate(post, undefined, lang) && (
+                          <span className="shrink-0 ml-auto text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{storyDate(post, undefined, lang)}</span>
                         )}
                       </div>
                       <h3 className="text-lg font-bold font-[var(--font-inter)] leading-snug group-hover:text-[var(--color-brand-blue)] transition-colors">
@@ -339,7 +356,7 @@ export default async function Home() {
             </div>
             <div className="text-center mt-10">
               <Link href="/stories" className="text-[var(--color-brand-blue)] font-bold hover:underline font-[var(--font-inter)] flex items-center justify-center gap-2">
-                See all stories <ArrowRight className="w-4 h-4" />
+                {tr("Lihat semua stories", "See all stories")} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>

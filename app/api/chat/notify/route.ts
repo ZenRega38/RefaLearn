@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError, readJson, requireUser } from "@/lib/api-auth";
+import { requestLang, translator } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminEmails, getUserEmail, sendNewChatMessageEmail } from "@/lib/email";
 
@@ -12,6 +13,7 @@ const QUIET_MINUTES = 30;
  * side, but only when the conversation had been quiet for QUIET_MINUTES.
  */
 export async function POST(request: NextRequest) {
+    const tr = translator(requestLang(request));
     const auth = await requireUser();
     if (!auth.ok) return jsonError(auth.error, auth.status);
     const { user, profile } = auth;
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
         .eq("id", body.messageId)
         .maybeSingle();
 
-    if (!msg || msg.sender_id !== user.id) return jsonError("Message not found.", 404);
+    if (!msg || msg.sender_id !== user.id) return jsonError(tr("Pesan tidak ditemukan.", "Message not found."), 404);
 
     const { data: previous } = await admin
         .from("chat_messages")

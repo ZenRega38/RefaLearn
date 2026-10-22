@@ -14,6 +14,8 @@ type QuoteCardProps = {
     type: "quote";
     quote: string;
     imageUrl: string;
+    /** The image's alt text, in the page's language. */
+    alt: string;
 };
 
 type FeaturedNewsCardProps = PostCardProps | QuoteCardProps;
@@ -35,7 +37,7 @@ export function FeaturedNewsCard(props: FeaturedNewsCardProps) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
                 src={props.imageUrl}
-                alt={props.type === "post" ? props.title : "Motivational quote"}
+                alt={props.type === "post" ? props.title : props.alt}
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />

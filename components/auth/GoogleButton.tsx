@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { safeNextPath } from "@/lib/redirect";
+import { useTr } from "@/components/i18n/LangProvider";
 
 /** Google "G" mark in its official colours. */
 function GoogleMark() {
@@ -21,7 +22,8 @@ function GoogleMark() {
  * a student profile from the same signup trigger as email accounts; the name
  * comes from Google, the phone number can be added later in the profile.
  */
-export function GoogleButton({ label = "Continue with Google", next }: { label?: string; next?: string | null }) {
+export function GoogleButton({ label, next }: { label?: string; next?: string | null }) {
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +44,8 @@ export function GoogleButton({ label = "Continue with Google", next }: { label?:
       setLoading(false);
       setError(
         oauthError.message.toLowerCase().includes("provider is not enabled")
-          ? "Google sign-in isn't enabled yet. Please use your email and password."
-          : "Couldn't connect to Google. Please try again."
+          ? tr("Masuk dengan Google belum diaktifkan. Silakan gunakan email dan password.", "Google sign-in isn't enabled yet. Please use your email and password.")
+          : tr("Gagal terhubung ke Google. Silakan coba lagi.", "Couldn't connect to Google. Please try again.")
       );
     }
   };
@@ -57,7 +59,7 @@ export function GoogleButton({ label = "Continue with Google", next }: { label?:
         className="w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-[var(--radius-sketch)] border-2 border-[var(--color-line)] bg-white font-[var(--font-inter)] font-semibold text-[var(--color-ink)] hover:border-[var(--color-brand-blue)]/60 hover:shadow-[var(--shadow-sketch)] transition-all disabled:opacity-60 disabled:cursor-wait"
       >
         <GoogleMark />
-        {loading ? "Connecting to Google…" : label}
+        {loading ? tr("Menghubungkan ke Google…", "Connecting to Google…") : label ?? tr("Lanjutkan dengan Google", "Continue with Google")}
       </button>
       {error && <p className="text-xs text-center text-[var(--color-danger-red)] font-[var(--font-inter)]">{error}</p>}
     </div>
@@ -65,11 +67,12 @@ export function GoogleButton({ label = "Continue with Google", next }: { label?:
 }
 
 /** "atau" divider between the Google button and the email form. */
-export function OrDivider({ text = "or" }: { text?: string }) {
+export function OrDivider({ text }: { text?: string }) {
+  const tr = useTr();
   return (
     <div className="flex items-center gap-3 my-6 text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
       <span className="flex-1 border-t border-dashed border-[var(--color-line)]" />
-      {text}
+      {text ?? tr("atau", "or")}
       <span className="flex-1 border-t border-dashed border-[var(--color-line)]" />
     </div>
   );

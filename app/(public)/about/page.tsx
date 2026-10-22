@@ -9,46 +9,76 @@ import { CredentialBadge } from "@/components/ui/CredentialBadge";
 import { FeaturedNewsCard } from "@/components/ui/FeaturedNewsCard";
 import { Mail, MessageCircle, GraduationCap, Award, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import { getLang } from "@/lib/i18n-server";
+import { pickLocalized, translator, type Tr } from "@/lib/i18n";
 
-export const metadata = {
-  title: "About Us",
-  description: "Kenali Refa Learn dan tutornya — les privat Bahasa Inggris di Tarakan dengan sistem bayar setelah kelas.",
-  alternates: { canonical: "/about" },
-};
-
-export const revalidate = 60; // Re-fetch settings at most once a minute
+export async function generateMetadata() {
+  const tr = translator(await getLang());
+  return {
+    title: tr("Tentang Kami", "About Us"),
+    description: "Kenali Refa Learn dan tutornya — les privat Bahasa Inggris di Tarakan dengan sistem bayar setelah kelas.",
+    alternates: { canonical: "/about" },
+  };
+}
 
 type Bio = { name: string; title: string; text: string };
 
 // Sensible fallbacks so the page still reads correctly on a fresh database
 // that hasn't been seeded / has settings admin hasn't filled in yet.
-const FALLBACK_ABOUT =
-  "It all started with a passion for connecting Indonesian learners with the world through confident English.";
-const FALLBACK_FOUNDER: Bio = {
-  name: "Rega R. Azizan, S.T.",
-  title: "Founder & Lead Tutor",
-  text: "As an experienced tutor who also teaches at Brain Academy by Ruangguru, and a former Field Education Consultant at English Academy Center by Ruangguru, I kept seeing the same obstacles for learners: too little personalisation, too little trust, and money worries that hold them back. Many courses ask for a big payment up front with no guarantee that the teaching method will suit you. Refa Learn was born with a Pay After Class approach, because we believe trust has to be built from both sides.",
-};
-const FALLBACK_VISION =
-  "To be an adaptive, trusted catalyst for English learning among young Indonesians, preparing them to compete academically on the global stage without limits.";
-const FALLBACK_MISSION = [
-  "Provide private sessions that are 100% personalised to each student's level and goals.",
-  "Build a payment system that is fair, transparent and built on complete trust.",
-  "Offer high-quality, easy-to-access self-study materials (modules and practice questions).",
-];
+const fallbacks = (tr: Tr) => ({
+  about: tr(
+    "Berawal dari passion untuk menjembatani pelajar Indonesia dengan dunia melalui penguasaan Bahasa Inggris yang percaya diri.",
+    "It all started with a passion for connecting Indonesian learners with the world through confident English."
+  ),
+  founder: {
+    name: "Rega R. Azizan, S.T.",
+    title: "Founder & Lead Tutor",
+    text: tr(
+      "Sebagai tutor berpengalaman yang juga aktif mengajar di Brain Academy by Ruangguru, dan pernah menjadi Field Education Consultant di English Academy Center by Ruangguru, saya menyadari satu kendala besar yang sering dihadapi pelajar: kurangnya personalisasi, kepercayaan, hingga kondisi ekonomi yang membatasi. Banyak kursus yang mengharuskan komitmen biaya besar di depan tanpa menjamin kecocokan metode belajar. Refa Learn lahir dengan konsep Bayar Setelah Kelas. Kami percaya bahwa kepercayaan harus dibangun dari dua arah.",
+      "As an experienced tutor who also teaches at Brain Academy by Ruangguru, and a former Field Education Consultant at English Academy Center by Ruangguru, I kept seeing the same obstacles for learners: too little personalisation, too little trust, and money worries that hold them back. Many courses ask for a big payment up front with no guarantee that the teaching method will suit you. Refa Learn was born with a Pay After Class approach, because we believe trust has to be built from both sides."
+    ),
+  } satisfies Bio,
+  vision: tr(
+    "Menjadi katalis pembelajaran Bahasa Inggris yang adaptif dan terpercaya bagi generasi muda Indonesia, mempersiapkan mereka untuk kompetisi akademik global tanpa batas.",
+    "To be an adaptive, trusted catalyst for English learning among young Indonesians, preparing them to compete academically on the global stage without limits."
+  ),
+  mission: tr(
+    [
+      "Menyediakan sesi privat yang 100% dipersonalisasi berdasarkan tingkat kemampuan dan target siswa.",
+      "Membangun sistem pembayaran yang adil, transparan, dan berbasis kepercayaan penuh.",
+      "Menyediakan materi pembelajaran mandiri berkualitas (modul & latihan soal) yang mudah diakses.",
+    ],
+    [
+      "Provide private sessions that are 100% personalised to each student's level and goals.",
+      "Build a payment system that is fair, transparent and built on complete trust.",
+      "Offer high-quality, easy-to-access self-study materials (modules and practice questions).",
+    ]
+  ),
+});
 
 // Original, generic lines — not attributed to anyone — used to fill any
 // "Sorotan" slot the admin hasn't picked a featured article for yet.
-const MOTIVATIONAL_QUOTES = [
-  "A foreign language isn't about talent; it's about practising consistently every day.",
-  "Every mistake you make while speaking is a step towards fluency.",
-  "A high target score starts with one practice session where you're honest with yourself.",
-  "Confidence in English grows from the courage to keep trying.",
-  "Small, consistent progress always beats big, short-lived effort.",
-  "The best language skills come from practice, not from fear of making mistakes.",
-];
+const motivationalQuotes = (tr: Tr) =>
+  tr(
+    [
+      "Bahasa asing bukan soal bakat, tapi soal konsistensi latihan setiap hari.",
+      "Setiap kesalahan saat berbicara adalah langkah menuju kefasihan.",
+      "Target skor tinggi dimulai dari satu sesi latihan yang jujur pada diri sendiri.",
+      "Percaya diri berbahasa Inggris tumbuh dari keberanian untuk terus mencoba.",
+      "Progres kecil yang konsisten selalu mengalahkan usaha besar yang sesaat.",
+      "Kemampuan berbahasa terbaik lahir dari latihan, bukan dari rasa takut salah.",
+    ],
+    [
+      "A foreign language isn't about talent; it's about practising consistently every day.",
+      "Every mistake you make while speaking is a step towards fluency.",
+      "A high target score starts with one practice session where you're honest with yourself.",
+      "Confidence in English grows from the courage to keep trying.",
+      "Small, consistent progress always beats big, short-lived effort.",
+      "The best language skills come from practice, not from fear of making mistakes.",
+    ]
+  );
 
-// Changes once a day (this page revalidates every 60s regardless), so the
+// Changes once a day, so the
 // placeholder art doesn't look identical forever but also doesn't reshuffle
 // on every single request.
 const DAY_SEED = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
@@ -59,6 +89,10 @@ function placeholderImage(slotIndex: number) {
 
 export default async function AboutPage() {
   const supabase = createPublicClient();
+  const lang = await getLang();
+  const tr = translator(lang);
+  const fallback = fallbacks(tr);
+  const MOTIVATIONAL_QUOTES = motivationalQuotes(tr);
   const { data } = await supabase
     .from("site_settings")
     .select("key, value")
@@ -75,22 +109,24 @@ export default async function AboutPage() {
 
   const settingsByKey = new Map((data ?? []).map((row) => [row.key, row.value]));
 
-  const aboutContent = settingsByKey.get("about_content")?.text || FALLBACK_ABOUT;
+  // Texts the admin writes in both languages (see /admin/settings).
+  const text = (key: string, field = "text") => pickLocalized(settingsByKey.get(key), field, lang);
+  const aboutContent = text("about_content") || fallback.about;
   const founder: Bio = {
-    name: settingsByKey.get("founder_bio")?.name || FALLBACK_FOUNDER.name,
-    title: settingsByKey.get("founder_bio")?.title || FALLBACK_FOUNDER.title,
-    text: settingsByKey.get("founder_bio")?.text || FALLBACK_FOUNDER.text,
+    name: text("founder_bio", "name") || fallback.founder.name,
+    title: text("founder_bio", "title") || fallback.founder.title,
+    text: text("founder_bio", "text") || fallback.founder.text,
   };
-  const cofounder: Bio | null = settingsByKey.get("cofounder_bio")?.name
+  const cofounder: Bio | null = text("cofounder_bio", "name")
     ? {
-      name: settingsByKey.get("cofounder_bio").name,
-      title: settingsByKey.get("cofounder_bio").title || "Co-Founder & Tutor",
-      text: settingsByKey.get("cofounder_bio").text || "",
+      name: text("cofounder_bio", "name"),
+      title: text("cofounder_bio", "title") || "Co-Founder & Tutor",
+      text: text("cofounder_bio", "text"),
     }
     : null;
-  const vision = settingsByKey.get("vision")?.text || FALLBACK_VISION;
-  const missionRaw = settingsByKey.get("mission")?.text as string | undefined;
-  const missionBullets = missionRaw ? missionRaw.split("|").filter(Boolean) : FALLBACK_MISSION;
+  const vision = text("vision") || fallback.vision;
+  const missionRaw = text("mission");
+  const missionBullets = missionRaw ? missionRaw.split("|").filter(Boolean) : fallback.mission;
   const contactPhone = toWhatsAppNumber(settingsByKey.get("contact_phone")?.text || DEFAULT_CONTACT.whatsapp);
   const contactEmail = settingsByKey.get("contact_email")?.text || DEFAULT_CONTACT.email;
 
@@ -134,7 +170,9 @@ export default async function AboutPage() {
       {/* Header */}
       <section className="pt-32 pb-16 relative">
         <div className="container-main text-center">
-          <h1 className="text-4xl md:text-5xl mb-6">The <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> Story</h1>
+          <h1 className="text-4xl md:text-5xl mb-6">
+            {tr("Cerita", "The")} <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox>{tr("", " Story")}
+          </h1>
           <p className="text-lg text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
             {aboutContent}
           </p>
@@ -164,7 +202,7 @@ export default async function AboutPage() {
                 </div>
 
                 <div className="absolute -top-0 -left-6 font-[var(--font-caveat)] text-2xl text-[var(--color-accent-coral)] rotate-[-10deg] z-20">
-                  &quot;Hello!&quot;
+                  &quot;{tr("Halo!", "Hello!")}&quot;
                 </div>
 
                 {/* Height is pinned to a % of the PHOTO box (not the frame)
@@ -201,13 +239,13 @@ export default async function AboutPage() {
                   <CredentialBadge
                     label="IELTS 7.0"
                     imageSrc="/certificates/IELTS-rega.webp"
-                    imageAlt="IELTS Academic certificate, Overall Band Score 7.0, CEFR Level C1"
+                    imageAlt={tr("Sertifikat IELTS Academic, Overall Band Score 7.0, CEFR Level C1", "IELTS Academic certificate, Overall Band Score 7.0, CEFR Level C1")}
                     icon={<Award className="w-4 h-4 text-[var(--color-accent-coral)]" />}
                   />
                   <CredentialBadge
                     label="Duolingo English Test 130"
                     imageSrc="/certificates/DET-rega.webp"
-                    imageAlt="Duolingo English Test certificate, score 130, CEFR C1 Advanced"
+                    imageAlt={tr("Sertifikat Duolingo English Test, skor 130, CEFR C1 Advanced", "Duolingo English Test certificate, score 130, CEFR C1 Advanced")}
                     icon={<Award className="w-4 h-4 text-[var(--color-success-green)]" />}
                   />
                   <div className="flex items-center gap-2 text-sm font-[var(--font-inter)] bg-white px-3 py-1.5 rounded-full border border-[var(--color-line)] shadow-sm">
@@ -224,7 +262,7 @@ export default async function AboutPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 mt-6 text-[var(--color-brand-blue)] font-semibold font-[var(--font-inter)] hover:gap-2.5 transition-all group"
                 >
-                  Get to know me
+                  {tr("Kenal lebih jauh", "Get to know me")}
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
               </div>
@@ -237,7 +275,7 @@ export default async function AboutPage() {
               <div className="w-full md:w-1/3">
                 <div className="relative">
                   <div className="aspect-square bg-[var(--color-paper-bg-alt)] border-2 border-[var(--color-line)] rounded-[var(--radius-card)] overflow-hidden flex items-center justify-center">
-                    <span className="text-[var(--color-ink-soft)] font-medium font-[var(--font-inter)]">Co-Founder photo</span>
+                    <span className="text-[var(--color-ink-soft)] font-medium font-[var(--font-inter)]">{tr("Foto Co-Founder", "Co-Founder photo")}</span>
                   </div>
                   <div className="absolute -bottom-4 -left-4 w-full h-full border-2 border-dashed border-[var(--color-accent-yellow)] rounded-[var(--radius-card)] -z-10" />
                 </div>
@@ -262,7 +300,7 @@ export default async function AboutPage() {
       <section className="section-padding pt-0">
         <div className="container-main">
           <h2 className="text-3xl mb-8 text-center">
-            Spotlight on <SketchBox color="var(--color-accent-coral)">Rega</SketchBox>
+            {tr("Sorotan", "Spotlight on")} <SketchBox color="var(--color-accent-coral)">{tr("kak Rega", "Rega")}</SketchBox>
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-3xl mx-auto">
             {featuredPosts.map((post) => (
@@ -276,7 +314,7 @@ export default async function AboutPage() {
               />
             ))}
             {quotePlaceholders.map((p, idx) => (
-              <FeaturedNewsCard key={`ph-${idx}`} type="quote" quote={p.quote} imageUrl={p.imageUrl} />
+              <FeaturedNewsCard key={`ph-${idx}`} type="quote" quote={p.quote} imageUrl={p.imageUrl} alt={tr("Kutipan motivasi", "Motivational quote")} />
             ))}
           </div>
         </div>
@@ -296,7 +334,7 @@ export default async function AboutPage() {
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg width="100" height="100" viewBox="0 0 24 24" fill="var(--color-brand-blue)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" /></svg>
               </div>
-              <h2 className="text-2xl mb-4 text-[var(--color-brand-blue)]">Vision</h2>
+              <h2 className="text-2xl mb-4 text-[var(--color-brand-blue)]">{tr("Visi", "Vision")}</h2>
               <p className="font-[var(--font-inter)] text-[var(--color-ink-soft)] text-lg leading-relaxed">
                 {vision}
               </p>
@@ -306,7 +344,7 @@ export default async function AboutPage() {
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg width="100" height="100" viewBox="0 0 24 24" fill="var(--color-accent-coral)"><path d="M13 14h-2V9h2m0 9h-2v-2h2M1 21h22L12 2 1 21z" /></svg>
               </div>
-              <h2 className="text-2xl mb-4 text-[var(--color-accent-coral)]">Mission</h2>
+              <h2 className="text-2xl mb-4 text-[var(--color-accent-coral)]">{tr("Misi", "Mission")}</h2>
               <ul className="space-y-4 font-[var(--font-inter)] text-[var(--color-ink-soft)] text-base">
                 {missionBullets.map((point, idx) => (
                   <li key={idx} className="flex items-start gap-3">
@@ -325,7 +363,7 @@ export default async function AboutPage() {
         <section className="section-padding">
           <div className="container-main">
             <h2 className="text-3xl mb-8 text-center">
-              Our <SketchBox color="var(--color-accent-yellow)">Partners</SketchBox>
+              {tr("Partner", "Our")} <SketchBox color="var(--color-accent-yellow)">{tr("Kami", "Partners")}</SketchBox>
             </h2>
             <div className="flex flex-wrap justify-center gap-6">
               {partners.map((p) => {
@@ -354,7 +392,7 @@ export default async function AboutPage() {
       {/* Hubungi Kami */}
       <section className="section-padding bg-[var(--color-paper-bg-alt)] border-t border-[var(--color-line)]">
         <div className="container-main max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl mb-8">Have a Question?</h2>
+          <h2 className="text-3xl mb-8">{tr("Punya Pertanyaan?", "Have a Question?")}</h2>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <a href={`https://wa.me/${contactPhone}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 bg-white px-6 py-4 rounded-[var(--radius-card)] border border-[var(--color-line)] hover:border-[var(--color-success-green)] hover:shadow-md transition-all group">

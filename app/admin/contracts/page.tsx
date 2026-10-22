@@ -11,12 +11,14 @@ import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Plus, RefreshCw, ShieldCheck, Eye, Scale } from "lucide-react";
 import { formatDateStr, formatTimestamp } from "@/lib/format";
 import { todayStr } from "@/lib/time";
-import { buildContractTemplate, hasPlaceholders } from "@/lib/contract-template";
+import { buildContractTemplate, buildContractTemplateEn, hasPlaceholders } from "@/lib/contract-template";
 
 type Contract = {
     id: string;
     version: number;
     content: string;
+    /** English translation for visitors who chose English; the Indonesian text prevails. */
+    content_en?: string | null;
     effective_date: string; // date
     created_at: string;
 };
@@ -29,6 +31,7 @@ export default function AdminContractsPage() {
     // "New version" editor state
     const [isEditing, setIsEditing] = useState(false);
     const [content, setContent] = useState("");
+    const [contentEn, setContentEn] = useState("");
     const [effectiveDate, setEffectiveDate] = useState(todayStr());
     // Bumped to remount the editor when its content is replaced from outside
     // (loading the template), since Tiptap only reads `content` on mount.
@@ -37,6 +40,7 @@ export default function AdminContractsPage() {
 
     // Preview state (view any past version's full text)
     const [previewing, setPreviewing] = useState<Contract | null>(null);
+    const [previewLang, setPreviewLang] = useState<"id" | "en">("id");
 
     const fetchContracts = useCallback(async () => {
         const { data, error } = await supabase
@@ -66,14 +70,14 @@ export default function AdminContractsPage() {
             .select("key, value")
             .in("key", ["founder_bio", "contact_address", "contact_email", "contact_phone"]);
         const byKey = new Map((data || []).map((r) => [r.key, r.value]));
-        setContent(
-            buildContractTemplate({
-                ownerName: byKey.get("founder_bio")?.name,
-                address: byKey.get("contact_address")?.text,
-                email: byKey.get("contact_email")?.text,
-                whatsapp: byKey.get("contact_phone")?.text,
-            })
-        );
+        const params = {
+            ownerName: byKey.get("founder_bio")?.name,
+            address: byKey.get("contact_address")?.text,
+            email: byKey.get("contact_email")?.text,
+            whatsapp: byKey.get("contact_phone")?.text,
+        };
+        setContent(buildContractTemplate(params));
+        setContentEn(buildContractTemplateEn(params));
         setEditorKey((k) => k + 1);
     };
 
@@ -88,6 +92,7 @@ export default function AdminContractsPage() {
         // Pre-fill with the currently active contract's text so the admin is
         // editing a copy, not starting from a blank page every time.
         setContent(activeContract?.content ?? "");
+        setContentEn(activeContract?.content_en ?? "");
         setEffectiveDate(todayStr());
         setEditorKey((k) => k + 1);
         setIsEditing(true);
@@ -100,11 +105,16 @@ export default function AdminContractsPage() {
             alert("Isi kontrak tidak boleh kosong.");
             return;
         }
+        // Visitors can switch the site to English: every version needs both texts.
+        if (!contentEn.trim() || contentEn === "<p></p>") {
+            alert("Terjemahan Bahasa Inggris (EN) wajib diisi. Versi Bahasa Indonesia tetap yang berlaku.");
+            return;
+        }
         if (!effectiveDate) {
             alert("Tanggal berlaku wajib diisi.");
             return;
         }
-        if (hasPlaceholders(content)) {
+        if (hasPlaceholders(content) || hasPlaceholders(contentEn)) {
             alert("Masih ada isian [DALAM KURUNG SIKU] yang belum diganti. Lengkapi dulu (atau isi data di Pengaturan lalu muat ulang template).");
             return;
         }
@@ -118,6 +128,7 @@ export default function AdminContractsPage() {
             {
                 version: nextVersion,
                 content,
+                content_en: contentEn,
                 effective_date: effectiveDate,
             },
         ]);
@@ -180,9 +191,19 @@ export default function AdminContractsPage() {
 
                         <div>
                             <label className="block text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)] mb-1.5">
-                                Isi Kontrak
+                                Isi Kontrak — ID · Bahasa Indonesia (yang berlaku & ditandatangani)
                             </label>
                             <RichTextEditor key={editorKey} content={content} onChange={setContent} />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)] mb-1.5">
+                                Terjemahan — EN · English (untuk pengunjung yang memilih EN)
+                            </label>
+                            <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mb-2">
+                                Samakan isinya dengan versi Indonesia. &quot;Muat Template&quot; mengisi keduanya sekaligus.
+                            </p>
+                            <RichTextEditor key={`en-${editorKey}`} content={contentEn} onChange={setContentEn} />
                         </div>
                     </Card>
                 </div>
@@ -198,12 +219,24 @@ export default function AdminContractsPage() {
                         <h1 className="text-2xl font-[var(--font-kalam)] text-[var(--color-brand-blue)]">
                             Kontrak v{previewing.version}
                         </h1>
-                        <Button variant="ghost" onClick={() => setPreviewing(null)}>
-                            Kembali
-                        </Button>
+                        <div className="flex gap-2">
+                            {previewing.content_en && (
+                                <Button variant="secondary" size="sm" onClick={() => setPreviewLang((l) => (l === "id" ? "en" : "id"))}>
+                                    {previewLang === "id" ? "Lihat EN" : "Lihat ID"}
+                                </Button>
+                            )}
+                            <Button variant="ghost" onClick={() => { setPreviewing(null); setPreviewLang("id"); }}>
+                                Kembali
+                            </Button>
+                        </div>
                     </div>
+                    {!previewing.content_en && (
+                        <p className="mb-4 text-sm font-[var(--font-inter)] text-[var(--color-warning-amber)]">
+                            Versi ini belum punya terjemahan EN: pengunjung berbahasa Inggris melihat teks Indonesia.
+                        </p>
+                    )}
                     <Card className="prose-content text-sm">
-                        <div dangerouslySetInnerHTML={{ __html: previewing.content }} />
+                        <div dangerouslySetInnerHTML={{ __html: previewLang === "en" && previewing.content_en ? previewing.content_en : previewing.content }} />
                     </Card>
                 </div>
             </PaperBackground>

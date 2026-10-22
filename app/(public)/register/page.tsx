@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/redirect";
@@ -17,19 +17,22 @@ import { Button } from "@/components/ui/Button";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { Mail, Lock, User, Phone } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
+import { useTr } from "@/components/i18n/LangProvider";
+import type { Tr } from "@/lib/i18n";
 
-const registerSchema = z.object({
-  fullName: z.string().min(2, { message: "Full name is required" }),
-  phone: z.string().min(9, { message: "Invalid phone/WhatsApp number" }),
-  email: z.string().email({ message: "Invalid email format" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
-  confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerSchema = (tr: Tr) =>
+  z.object({
+    fullName: z.string().min(2, { message: tr("Nama lengkap wajib diisi", "Full name is required") }),
+    phone: z.string().min(9, { message: tr("Nomor telepon/WA tidak valid", "Invalid phone/WhatsApp number") }),
+    email: z.string().email({ message: tr("Format email tidak valid", "Invalid email format") }),
+    password: z.string().min(8, { message: tr("Password minimal 8 karakter", "Password must be at least 8 characters") }),
+    confirmPassword: z.string().min(1, { message: tr("Konfirmasi password wajib diisi", "Please confirm your password") }),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: tr("Password dan konfirmasi password tidak sama", "Passwords don't match"),
+    path: ["confirmPassword"],
+  });
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type RegisterFormValues = z.infer<ReturnType<typeof registerSchema>>;
 
 export default function RegisterPage() {
   return (
@@ -41,6 +44,7 @@ export default function RegisterPage() {
 
 function RegisterForm() {
   const searchParams = useSearchParams();
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const [error, setError] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
@@ -51,7 +55,7 @@ function RegisterForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(useMemo(() => registerSchema(tr), [tr])),
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -59,7 +63,7 @@ function RegisterForm() {
 
     try {
       if (!captchaToken) {
-        throw new Error("Please complete the captcha first.");
+        throw new Error(tr("Mohon selesaikan verifikasi captcha terlebih dahulu.", "Please complete the captcha first."));
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -94,8 +98,8 @@ function RegisterForm() {
       const message = err instanceof Error ? err.message : "";
       setError(
         message === "User already registered"
-          ? "This email is already registered. Please log in or use Forgot Password."
-          : message || "Sign-up failed. Please try again."
+          ? tr("Email ini sudah terdaftar. Silakan masuk atau gunakan Lupa Password.", "This email is already registered. Please log in or use Forgot Password.")
+          : message || tr("Gagal mendaftar. Silakan coba lagi.", "Sign-up failed. Please try again.")
       );
     }
   };
@@ -107,10 +111,10 @@ function RegisterForm() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
-              Start Your Journey
+              {tr("Mulai Perjalananmu", "Start Your Journey")}
             </h1>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Create your <SketchBox color="var(--color-accent-yellow)">Refa Learn</SketchBox> account
+              {tr("Buat akun", "Create your")} <SketchBox color="var(--color-accent-yellow)">Refa Learn</SketchBox> {tr("sekarang", "account")}
             </p>
           </div>
 
@@ -118,13 +122,16 @@ function RegisterForm() {
             {pendingEmail ? (
               <div className="text-center space-y-4 font-[var(--font-inter)]">
                 <Mail className="w-12 h-12 mx-auto text-[var(--color-brand-blue)]" />
-                <h2 className="text-xl font-bold text-[var(--color-ink)]">Check Your Email</h2>
+                <h2 className="text-xl font-bold text-[var(--color-ink)]">{tr("Cek Email Anda", "Check Your Email")}</h2>
                 <p className="text-sm text-[var(--color-ink-soft)]">
-                  We&apos;ve sent a confirmation link to <strong>{pendingEmail}</strong>. Click it to activate your account
-                  and you&apos;ll be logged in automatically.
+                  {tr("Kami mengirim link konfirmasi ke", "We've sent a confirmation link to")} <strong>{pendingEmail}</strong>.{" "}
+                  {tr(
+                    "Klik link tersebut untuk mengaktifkan akun, lalu Anda akan otomatis masuk.",
+                    "Click it to activate your account and you'll be logged in automatically."
+                  )}
                 </p>
                 <Link href="/login" className="text-sm text-[var(--color-brand-blue)] font-bold hover:underline">
-                  Back to log in
+                  {tr("Kembali ke halaman masuk", "Back to log in")}
                 </Link>
               </div>
             ) : (
@@ -135,19 +142,24 @@ function RegisterForm() {
               </div>
             )}
 
-            <GoogleButton label="Sign up with Google" next={searchParams.get("next")} />
+            <GoogleButton label={tr("Daftar dengan Google", "Sign up with Google")} next={searchParams.get("next")} />
             <p className="mt-2 text-[11px] text-center text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              By signing up, you agree to the <Link href="/privacy" className="underline">Privacy Policy</Link>.
+              {tr("Dengan mendaftar, Anda menyetujui", "By signing up, you agree to the")}{" "}
+              <Link href="/privacy" className="underline">{tr("Kebijakan Privasi", "Privacy Policy")}</Link>.
             </p>
-            <OrDivider text="or sign up with email" />
+            <OrDivider text={tr("atau daftar dengan email", "or sign up with email")} />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                For students under 18, the account should be created by or together with a parent/guardian.
-                Your data is processed according to the <Link href="/privacy" className="underline">Privacy Policy</Link>.
+                {tr(
+                  "Untuk siswa di bawah umur, sebaiknya akun dibuat oleh atau bersama orang tua/wali.",
+                  "For students under 18, the account should be created by or together with a parent/guardian."
+                )}{" "}
+                {tr("Data Anda diproses sesuai", "Your data is processed according to the")}{" "}
+                <Link href="/privacy" className="underline">{tr("Kebijakan Privasi", "Privacy Policy")}</Link>.
               </p>
               <Input
-                label="Full Name"
+                label={tr("Nama Lengkap", "Full Name")}
                 type="text"
                 placeholder="Budi Santoso"
                 icon={<User className="w-4 h-4" />}
@@ -156,7 +168,7 @@ function RegisterForm() {
               />
 
               <Input
-                label="WhatsApp Number"
+                label={tr("Nomor WhatsApp", "WhatsApp Number")}
                 type="tel"
                 placeholder="0812xxxxxx"
                 icon={<Phone className="w-4 h-4" />}
@@ -167,7 +179,7 @@ function RegisterForm() {
               <Input
                 label="Email"
                 type="email"
-                placeholder="email@example.com"
+                placeholder={tr("email@contoh.com", "email@example.com")}
                 icon={<Mail className="w-4 h-4" />}
                 {...register("email")}
                 error={errors.email?.message}
@@ -183,7 +195,7 @@ function RegisterForm() {
               />
 
               <Input
-                label="Confirm Password"
+                label={tr("Konfirmasi Password", "Confirm Password")}
                 type="password"
                 placeholder="••••••••"
                 icon={<Lock className="w-4 h-4" />}
@@ -205,15 +217,15 @@ function RegisterForm() {
                   isLoading={isSubmitting}
                   disabled={!captchaToken}
                 >
-                  Sign up
+                  {tr("Daftar", "Sign up")}
                 </Button>
               </div>
             </form>
 
             <div className="mt-8 pt-6 border-t border-dashed border-[var(--color-line)] text-center text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-              Already have an account?{" "}
+              {tr("Sudah punya akun?", "Already have an account?")}{" "}
               <Link href={`/login${searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next')!)}` : ''}`} className="text-[var(--color-brand-blue)] font-bold hover:underline">
-                Log in here
+                {tr("Masuk di sini", "Log in here")}
               </Link>
             </div>
             </>

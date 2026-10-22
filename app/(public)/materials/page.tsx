@@ -13,6 +13,7 @@ import { PartnerBadge, type Partner } from "@/components/ui/PartnerBadge";
 import { BookOpen, Search, ShoppingBag, ShoppingCart } from "lucide-react";
 import { validBefore } from "@/lib/pricing";
 import Link from "next/link";
+import { useTr } from "@/components/i18n/LangProvider";
 
 type Material = {
   id: string;
@@ -34,6 +35,7 @@ const FREE = "__free";
 type Filter = { key: string; label: string };
 
 export default function MaterialsCatalogPage() {
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const cart = useCart();
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -92,9 +94,9 @@ export default function MaterialsCatalogPage() {
   });
 
   const filters: Filter[] = [
-    { key: ALL, label: "All" },
-    ...(isLoggedIn ? [{ key: MINE, label: "My Courses" }] : []),
-    ...(materials.some((m) => m.price === 0) ? [{ key: FREE, label: "Free" }] : []),
+    { key: ALL, label: tr("Semua", "All") },
+    ...(isLoggedIn ? [{ key: MINE, label: tr("Kursus Saya", "My Courses") }] : []),
+    ...(materials.some((m) => m.price === 0) ? [{ key: FREE, label: tr("Gratis", "Free") }] : []),
     ...categories.map((c) => ({ key: c, label: c })),
   ];
 
@@ -105,18 +107,21 @@ export default function MaterialsCatalogPage() {
         {/* Header */}
         <div className="text-center space-y-4 mb-12">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <Badge variant="blue">Learning Materials</Badge>
+            <Badge variant="blue">{tr("Materi Belajar", "Learning Materials")}</Badge>
             <LimitedOffer />
           </div>
           <h1 className="text-4xl md:text-5xl font-[var(--font-kalam)] text-[var(--color-ink)]">
-            Level Up Your English
+            {tr("Tingkatkan Skill Bahasa Inggrismu", "Level Up Your English")}
           </h1>
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Exclusive e-books, modules, worksheets and video lessons designed to speed up your learning.
+            {tr(
+              "Kumpulan e-book, modul, worksheet, dan video pembelajaran eksklusif yang dirancang khusus untuk mempercepat proses belajarmu.",
+              "Exclusive e-books, modules, worksheets and video lessons designed to speed up your learning."
+            )}
           </p>
           {cart.length > 0 && (
             <Button href="/materials/checkout" variant="secondary" size="sm">
-              <ShoppingCart className="w-4 h-4" /> Cart ({cart.length})
+              <ShoppingCart className="w-4 h-4" /> {tr("Keranjang", "Cart")} ({cart.length})
             </Button>
           )}
         </div>
@@ -134,7 +139,7 @@ export default function MaterialsCatalogPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-soft)]" />
             <input
               type="text"
-              placeholder="Search courses..."
+              placeholder={tr("Cari materi...", "Search courses...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-full border border-[var(--color-line)] bg-white text-sm focus:outline-none focus:border-[var(--color-brand-blue)] font-[var(--font-inter)]"
@@ -153,15 +158,20 @@ export default function MaterialsCatalogPage() {
           <Card className="text-center py-16 bg-white/50 border-dashed">
             <BookOpen className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
             <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">
-              {selectedCategory === MINE && !searchQuery ? "Nothing in My Courses yet" : "No courses found"}
+              {selectedCategory === MINE && !searchQuery
+                ? tr("Belum ada materi di Kursus Saya", "Nothing in My Courses yet")
+                : tr("Materi tidak ditemukan", "No courses found")}
             </h3>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
               {selectedCategory === MINE && !searchQuery
-                ? "Courses you've bought, been given access to by the admin, or claimed for free will appear here."
-                : "Try a different search term or change the category filter."}
+                ? tr(
+                    "Materi yang kamu beli, yang diberi akses oleh admin, dan materi gratis yang sudah kamu ambil akan muncul di sini.",
+                    "Courses you've bought, been given access to by the admin, or claimed for free will appear here."
+                  )
+                : tr("Coba gunakan kata kunci pencarian yang lain atau ubah filter kategori.", "Try a different search term or change the category filter.")}
             </p>
             <Button variant="secondary" className="mt-6" onClick={() => { setSearchQuery(""); setSelectedCategory(ALL); }}>
-              Reset Filter
+              {tr("Reset Filter", "Reset Filter")}
             </Button>
           </Card>
         ) : (
@@ -185,7 +195,7 @@ export default function MaterialsCatalogPage() {
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                       <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
                       {validBefore(material.price, material.compare_at_price) && <Badge variant="coral" className="shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent">Promo</Badge>}
-                      {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">Dimiliki</Badge>}
+                      {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">{tr("Dimiliki", "Owned")}</Badge>}
                     </div>
                     {material.partner && (
                       <div className="absolute bottom-3 left-3 right-3 flex">

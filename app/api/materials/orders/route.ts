@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorMessage, jsonError, readJson, requireUser } from "@/lib/api-auth";
+import { requestLang, translator } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -10,14 +11,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * are skipped.
  */
 export async function POST(request: NextRequest) {
+    const tr = translator(requestLang(request));
     const auth = await requireUser("student");
     if (!auth.ok) return jsonError(auth.error, auth.status);
     const { user } = auth;
 
     const body = await readJson<{ materialIds?: string[] }>(request);
     const requested = Array.from(new Set(body?.materialIds || [])).filter((x) => typeof x === "string");
-    if (requested.length === 0) return jsonError("Keranjang kosong.");
-    if (requested.length > 50) return jsonError("Too many items in one order.");
+    if (requested.length === 0) return jsonError(tr("Keranjang kosong.", "Your cart is empty."));
+    if (requested.length > 50) return jsonError(tr("Terlalu banyak item dalam satu pesanan.", "Too many items in one order."));
 
     const admin = createAdminClient();
     const [{ data: materials, error }, { data: existing }] = await Promise.all([
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     const items = (materials || []).filter((m) => !owned.has(m.id));
 
     if (items.length === 0) {
-        return jsonError("You already own all of these courses, or their payment is in progress.", 409);
+        return jsonError(tr("Semua materi ini sudah Anda miliki atau sedang dalam proses pembayaran.", "You already own all of these courses, or their payment is in progress."), 409);
     }
 
     const total = items.reduce((sum, m) => sum + m.price, 0);

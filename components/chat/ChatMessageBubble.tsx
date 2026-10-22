@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Paperclip } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { getSignedChatAttachmentUrl } from "@/lib/storage";
+import { useTr } from "@/components/i18n/LangProvider";
 
 export type ChatMessage = {
   id: string;
@@ -17,6 +18,7 @@ export type ChatMessage = {
 
 /** Shared bubble for the student widget and the admin inbox. */
 export function ChatMessageBubble({ msg, isMe, maxWidth = "max-w-[80%]" }: { msg: ChatMessage; isMe: boolean; maxWidth?: string }) {
+  const tr = useTr();
   const [opening, setOpening] = useState(false);
 
   const openAttachment = async () => {
@@ -26,7 +28,7 @@ export function ChatMessageBubble({ msg, isMe, maxWidth = "max-w-[80%]" }: { msg
       const url = await getSignedChatAttachmentUrl(msg.attachment_url);
       window.open(url, "_blank", "noopener");
     } catch {
-      alert("Couldn't open the attachment.");
+      alert(tr("Gagal membuka lampiran.", "Couldn't open the attachment."));
     } finally {
       setOpening(false);
     }
@@ -50,7 +52,7 @@ export function ChatMessageBubble({ msg, isMe, maxWidth = "max-w-[80%]" }: { msg
             className={`flex items-center gap-1.5 underline text-left ${msg.content ? "mb-1" : ""}`}
           >
             <Paperclip className="w-3.5 h-3.5 shrink-0" />
-            {opening ? "Membuka..." : fileName || "Lampiran"}
+            {opening ? tr("Membuka...", "Opening...") : fileName || tr("Lampiran", "Attachment")}
           </button>
         )}
         {msg.content}

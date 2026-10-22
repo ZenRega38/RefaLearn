@@ -7,14 +7,16 @@ import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 import { XpBadge } from "@/components/gamification/XpBadge";
+import { LangToggle, useTr } from "@/components/i18n/LangProvider";
+import type { Tr } from "@/lib/i18n";
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/stories", label: "Stories" },
-  { href: "/alumni", label: "Alumni" },
-  { href: "/schedule", label: "Schedule" },
-  { href: "/materials", label: "Courses" },
-  { href: "/about", label: "About" },
+const navLinks = (tr: Tr) => [
+  { href: "/", id: "home", label: tr("Beranda", "Home") },
+  { href: "/stories", id: "stories", label: "Stories" },
+  { href: "/alumni", id: "alumni", label: "Alumni" },
+  { href: "/schedule", id: "schedule", label: tr("Jadwal", "Schedule") },
+  { href: "/materials", id: "courses", label: tr("Kursus", "Courses") },
+  { href: "/about", id: "about", label: tr("Tentang", "About") },
 ];
 
 export function Navbar() {
@@ -27,6 +29,8 @@ export function Navbar() {
   const setMobileOpen = (open: boolean) => setOpenOnPath(open ? pathname : null);
   const [scrolled, setScrolled] = useState(false);
   const { profile, loading: authLoading, signOut } = useAuthProfile();
+  const tr = useTr();
+  const links = navLinks(tr);
 
   const handleLogout = async () => {
     await signOut();
@@ -87,7 +91,7 @@ export function Navbar() {
               account links no longer fit beside the six links, so smaller
               screens use the drawer. */}
           <ul className="hidden xl:flex items-center gap-1">
-            {navLinks.map((link) => {
+            {links.map((link) => {
               const isActive =
                 link.href === "/"
                   ? pathname === "/"
@@ -96,7 +100,7 @@ export function Navbar() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    id={`nav-${link.label.toLowerCase()}`}
+                    id={`nav-${link.id}`}
                     className={`relative px-3 py-2 text-sm font-medium whitespace-nowrap rounded-md transition-all duration-200 ${isActive
                       ? "text-[var(--color-brand-blue)]"
                       : "text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]"
@@ -114,6 +118,8 @@ export function Navbar() {
           </ul>
 
           <div className="flex items-center gap-2 md:gap-3">
+          <LangToggle />
+
           {/* XP & streak (signed in) — one instance for desktop and mobile */}
           {profile && <XpBadge key={profile.id} />}
 
@@ -127,11 +133,11 @@ export function Navbar() {
                   className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
                   style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                 >
-                  {profile.role === "admin" ? "Admin Panel" : "My Dashboard"}
+                  {profile.role === "admin" ? "Admin Panel" : tr("Dashboard Saya", "My Dashboard")}
                 </Link>
                 {profile.role === "student" && (
                   <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
-                    Book Session
+                    {tr("Booking Kelas", "Book Session")}
                   </Link>
                 )}
                 <button
@@ -140,7 +146,7 @@ export function Navbar() {
                   className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-danger-red)] transition-colors"
                   style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                 >
-                  <LogOut className="w-4 h-4" /> Log out
+                  <LogOut className="w-4 h-4" /> {tr("Keluar", "Log out")}
                 </button>
               </>
             ) : (
@@ -151,10 +157,10 @@ export function Navbar() {
                   className="text-sm font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors"
                   style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                 >
-                  Log in
+                  {tr("Masuk", "Log in")}
                 </Link>
                 <Link href="/schedule" id="nav-cta-book" className="btn-primary text-sm !py-2 !px-4">
-                  Book Session
+                  {tr("Booking Kelas", "Book Session")}
                 </Link>
               </>
             )}
@@ -164,7 +170,7 @@ export function Navbar() {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="xl:hidden flex flex-col items-center justify-center w-10 h-10 gap-[5px] rounded-md hover:bg-[var(--color-paper-bg-alt)] transition-colors"
-            aria-label="Toggle menu"
+            aria-label={tr("Buka/tutup menu", "Toggle menu")}
             id="nav-hamburger"
           >
             <span
@@ -197,7 +203,7 @@ export function Navbar() {
       >
         <div className="flex flex-col h-full pt-20 px-6 pb-8">
           <ul className="flex flex-col gap-1 flex-1">
-            {navLinks.map((link, idx) => {
+            {links.map((link, idx) => {
               const isActive =
                 link.href === "/"
                   ? pathname === "/"
@@ -230,27 +236,27 @@ export function Navbar() {
                   href={profile.role === "admin" ? "/admin" : "/dashboard"}
                   className="btn-secondary text-center text-sm"
                 >
-                  {profile.role === "admin" ? "Admin Panel" : "My Dashboard"}
+                  {profile.role === "admin" ? "Admin Panel" : tr("Dashboard Saya", "My Dashboard")}
                 </Link>
                 {profile.role === "student" && (
                   <Link href="/schedule" className="btn-primary text-center text-sm">
-                    Book Session
+                    {tr("Booking Kelas", "Book Session")}
                   </Link>
                 )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center justify-center gap-2 text-sm font-medium text-[var(--color-danger-red)] py-2"
                 >
-                  <LogOut className="w-4 h-4" /> Log out
+                  <LogOut className="w-4 h-4" /> {tr("Keluar", "Log out")}
                 </button>
               </>
             ) : (
               <>
                 <Link href="/login" className="btn-secondary text-center text-sm">
-                  Log in
+                  {tr("Masuk", "Log in")}
                 </Link>
                 <Link href="/schedule" className="btn-primary text-center text-sm">
-                  Book Session
+                  {tr("Booking Kelas", "Book Session")}
                 </Link>
               </>
             )}

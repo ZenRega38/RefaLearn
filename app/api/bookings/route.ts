@@ -8,6 +8,7 @@ import { INVOICE_DUE_DAYS, SESSION_COUNT_OPTIONS } from "@/lib/policy";
 import { todayStr } from "@/lib/time";
 import { formatDateStr, hhmm } from "@/lib/format";
 import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, type ProfileCompletion } from "@/lib/profile";
+import { requestLang, translator } from "@/lib/i18n";
 import { checkSignature, currentContractId } from "@/lib/contract-signing";
 import {
     getAdminEmails,
@@ -41,18 +42,20 @@ const TIME_RE = /^\d{2}:\d{2}(:\d{2})?$/;
  * prepayment) in one transaction via create_booking().
  */
 export async function POST(request: NextRequest) {
+    const lang = requestLang(request);
+    const tr = translator(lang);
     const auth = await requireUser("student");
     if (!auth.ok) return jsonError(auth.error, auth.status);
     const { user, profile } = auth;
 
     const body = await readJson<BookingBody>(request);
     if (!body || !body.date || !DATE_RE.test(body.date) || !body.startTime || !TIME_RE.test(body.startTime)) {
-        return jsonError("Invalid date or time.");
+        return jsonError(tr("Tanggal atau jam tidak valid.", "Invalid date or time."));
     }
 
     const count = Number(body.sessionCount ?? 1);
     if (!SESSION_COUNT_OPTIONS.includes(count)) {
-        return jsonError("Invalid number of sessions.");
+        return jsonError(tr("Jumlah sesi tidak valid.", "Invalid number of sessions."));
     }
 
     const admin = createAdminClient();
@@ -83,11 +86,14 @@ export async function POST(request: NextRequest) {
         .eq("id", user.id)
         .single();
     const studentProfile = completion as ProfileCompletion | null;
-    const missing = missingProfileFields(studentProfile, todayStr(), "en");
+    const missing = missingProfileFields(studentProfile, todayStr(), lang);
     if (missing.length > 0) {
         return NextResponse.json(
             {
-                error: `Please complete your profile before booking. Still missing: ${missing.join(", ")}.`,
+                error: tr(
+                    `Lengkapi profil terlebih dahulu sebelum booking. Data yang masih kurang: ${missing.join(", ")}.`,
+                    `Please complete your profile before booking. Still missing: ${missing.join(", ")}.`
+                ),
                 code: "PROFILE_INCOMPLETE",
                 missing,
             },
@@ -96,11 +102,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (resolved[0].date > horizon) {
-        return jsonError("That date is outside the booking window.");
+        return jsonError(tr("Tanggal di luar jangkauan booking.", "That date is outside the booking window."));
     }
     if (resolved.some((r) => !r.slot)) {
         return NextResponse.json(
-            { error: "Some of the dates are no longer available. Please check again.", dates: preview },
+            { error: tr("Sebagian tanggal sudah tidak tersedia. Silakan cek ulang.", "Some of the dates are no longer available. Please check again."), dates: preview },
             { status: 409 }
         );
     }
@@ -116,7 +122,10 @@ export async function POST(request: NextRequest) {
         .limit(1);
     if (pastDue && pastDue.length > 0) {
         return jsonError(
-            "Booking baru dijeda karena ada tagihan yang melewati jatuh tempo. Silakan selesaikan pembayaran di menu Tagihan Saya.",
+            tr(
+                "Booking baru dijeda karena ada tagihan yang melewati jatuh tempo. Silakan selesaikan pembayaran di menu Tagihan Saya.",
+                "New bookings are paused because an invoice is past its due date. Please complete the payment in My Invoices."
+            ),
             403
         );
     }
@@ -125,11 +134,11 @@ export async function POST(request: NextRequest) {
     // identifiable (UU ITE Pasal 11).
     const contractId = await currentContractId(admin);
     if (!contractId || contractId !== body.contractId) {
-        return jsonError("The agreement has been updated. Please reload the page and read the latest version.", 409);
+        return jsonError(tr("Versi perjanjian sudah berubah. Silakan muat ulang halaman dan baca perjanjian terbaru.", "The agreement has been updated. Please reload the page and read the latest version."), 409);
     }
 
     const profileName = (profile.full_name || "").trim();
-    const signature = checkSignature(body, profileName, studentProfile);
+    const signature = checkSignature(body, profileName, studentProfile, tr);
     if (!signature.ok) return jsonError(signature.error);
 
     const sessions = resolved.map(({ date, slot }) => ({
@@ -154,10 +163,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
         if (isSlotConflict(error)) {
-            return jsonError("Sorry, someone has just booked this slot. Please choose another one.", 409);
+            return jsonError(tr("Maaf, jadwal ini baru saja dipesan orang lain. Silakan pilih ulang.", "Sorry, someone has just booked this slot. Please choose another one."), 409);
         }
         console.error("[api/bookings] create_booking failed:", error);
-        return jsonError(errorMessage(error, "Booking failed."), 500);
+        return jsonError(errorMessage(error, tr("Gagal melakukan booking.", "Booking failed.")), 500);
     }
 
     // Notifications are best-effort.

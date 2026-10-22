@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
 
 export type PillOption = { key: string; label: string };
 
@@ -13,7 +14,7 @@ export function PillDropdown({
   options,
   value,
   onChange,
-  label = "Category",
+  label,
   className = "",
 }: {
   options: PillOption[];
@@ -22,6 +23,8 @@ export function PillDropdown({
   label?: string;
   className?: string;
 }) {
+  const tr = useTr();
+  label ??= tr("Kategori", "Category");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.key === value) ?? options[0];

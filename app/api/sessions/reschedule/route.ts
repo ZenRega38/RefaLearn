@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { errorMessage, jsonError, readJson, requireUser } from "@/lib/api-auth";
+import { requestLang, translator } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bookingHorizon, findSlot, getOpenSlots } from "@/lib/availability";
 import { hasStarted } from "@/lib/cancellation";
@@ -13,12 +14,13 @@ import { getAdminEmails, sendAdminRescheduleRequestEmail } from "@/lib/email";
  * really open. Rescheduling never incurs a fee.
  */
 export async function POST(request: NextRequest) {
+    const tr = translator(requestLang(request));
     const auth = await requireUser("student");
     if (!auth.ok) return jsonError(auth.error, auth.status);
     const { user, profile } = auth;
 
     const body = await readJson<{ sessionId?: string; date?: string; startTime?: string; reason?: string }>(request);
-    if (!body?.sessionId || !body.date || !body.startTime) return jsonError("Incomplete reschedule details.");
+    if (!body?.sessionId || !body.date || !body.startTime) return jsonError(tr("Data reschedule tidak lengkap.", "Incomplete reschedule details."));
 
     const admin = createAdminClient();
     const { data: session } = await admin
@@ -28,9 +30,9 @@ export async function POST(request: NextRequest) {
         .eq("student_id", user.id)
         .maybeSingle();
 
-    if (!session) return jsonError("Session not found.", 404);
-    if (!["pending", "accepted"].includes(session.status)) return jsonError("This session can't be rescheduled.");
-    if (hasStarted(session)) return jsonError("Sessions that have started or passed can't be rescheduled.");
+    if (!session) return jsonError(tr("Sesi tidak ditemukan.", "Session not found."), 404);
+    if (!["pending", "accepted"].includes(session.status)) return jsonError(tr("Sesi ini tidak bisa di-reschedule.", "This session can't be rescheduled."));
+    if (hasStarted(session)) return jsonError(tr("Sesi yang sudah dimulai atau lewat tidak bisa di-reschedule.", "Sessions that have started or passed can't be rescheduled."));
 
     let slots;
     try {
@@ -42,9 +44,9 @@ export async function POST(request: NextRequest) {
     }
 
     const slot = findSlot(slots, body.date, body.startTime);
-    if (!slot) return jsonError("The time you chose is no longer available.", 409);
+    if (!slot) return jsonError(tr("Jadwal yang dipilih sudah tidak tersedia.", "The time you chose is no longer available."), 409);
     if (slot.date === session.date && slot.start_time === hhmm(session.start_time)) {
-        return jsonError("The new time is the same as the current one.");
+        return jsonError(tr("Jadwal baru sama dengan jadwal semula.", "The new time is the same as the current one."));
     }
 
     const reason = (body.reason || "").trim().slice(0, 500) || null;
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     if (error) {
-        if (error.code === "23505") return jsonError("This session already has a pending reschedule request.", 409);
+        if (error.code === "23505") return jsonError(tr("Sesi ini sudah punya permintaan reschedule yang menunggu.", "This session already has a pending reschedule request."), 409);
         return jsonError(errorMessage(error), 500);
     }
 

@@ -1,5 +1,8 @@
+"use client";
+
 import { Timer } from "lucide-react";
 import { compareAtPrice, discountPercent, formatPrice, validBefore } from "@/lib/pricing";
+import { useTr } from "@/components/i18n/LangProvider";
 
 const SIZES = {
   sm: { price: "text-sm", before: "text-[0.7rem]", badge: "text-[0.6rem] px-1.5 py-px" },
@@ -32,6 +35,7 @@ export function PriceTag({
   inverted?: boolean;
   className?: string;
 }) {
+  const tr = useTr();
   const s = SIZES[size];
   const before = beforeProp === undefined ? compareAtPrice(price) : validBefore(price, beforeProp);
   const justify = align === "center" ? "justify-center" : align === "end" ? "justify-end" : "justify-start";
@@ -39,7 +43,7 @@ export function PriceTag({
 
   const main = (
     <span className={`font-bold font-[var(--font-inter)] ${s.price} ${inverted ? "text-white" : "text-[var(--color-brand-blue)]"}`}>
-      {price === 0 ? "Free" : formatPrice(price)}
+      {price === 0 ? tr("Gratis", "Free") : formatPrice(price)}
     </span>
   );
   if (!before) return <span className={`inline-flex ${className}`}>{main}</span>;
@@ -66,6 +70,7 @@ export function PriceTag({
 
 /** "Limited Time Offer" pill with a soft pulse. */
 export function LimitedOffer({ className = "", inverted = false }: { className?: string; inverted?: boolean }) {
+  const tr = useTr();
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-wider font-[var(--font-inter)] ${
@@ -77,7 +82,7 @@ export function LimitedOffer({ className = "", inverted = false }: { className?:
         <span className="relative inline-flex w-2 h-2 rounded-full bg-[var(--color-accent-coral)]" />
       </span>
       <Timer className="w-3.5 h-3.5" />
-      Limited Time Offer
+      {tr("Penawaran Terbatas", "Limited Time Offer")}
     </span>
   );
 }

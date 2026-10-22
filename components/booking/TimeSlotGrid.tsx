@@ -5,6 +5,7 @@ import { Slot } from "@/lib/rrule-helpers";
 import { Clock } from "lucide-react";
 import { getSessionPrice } from "@/lib/pricing";
 import { APP_TIMEZONE_LABEL } from "@/lib/time";
+import { useTr } from "@/components/i18n/LangProvider";
 
 interface TimeSlotGridProps {
   slots: Slot[];
@@ -14,6 +15,7 @@ interface TimeSlotGridProps {
 }
 
 export function TimeSlotGrid({ slots, selectedSlot, onSelect, isLoading = false }: TimeSlotGridProps) {
+  const tr = useTr();
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -28,7 +30,7 @@ export function TimeSlotGrid({ slots, selectedSlot, onSelect, isLoading = false 
     return (
       <div className="text-center py-8 bg-[var(--color-paper-bg-alt)] rounded-[var(--radius-card)] border border-dashed border-[var(--color-line)]">
         <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-          No time slots available on this date.
+          {tr("Tidak ada jadwal tersedia pada tanggal ini.", "No time slots available on this date.")}
         </p>
       </div>
     );
