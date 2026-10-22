@@ -389,7 +389,18 @@ function ExamRunner() {
     );
   }
 
-  if (!exam || !section || !attempt) return null;
+  if (!exam || !section || !attempt) {
+    if (phase === "running" || phase === "section-intro" || phase === "submitting") {
+      return (
+        <FocusShell>
+          <div className="text-center py-20 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--color-brand-blue)]" />
+          </div>
+        </FocusShell>
+      );
+    }
+    return null;
+  }
 
   const bar = (
     <FocusBar
@@ -456,9 +467,10 @@ function ExamRunner() {
   }
 
   // ---------------------------------------------------------------- running
-  const q = section.questions[state.index];
+  const currentIndex = Math.max(0, Math.min(state.index, section.questions.length - 1));
+  const q = section.questions[currentIndex];
   const remaining = section.minutes * 60_000 - (now - (state.sectionStartedAt ?? now));
-  const part = section.parts.find((p) => p.questionIds.includes(q.id));
+  const part = q ? section.parts.find((p) => p.questionIds.includes(q.id)) : undefined;
   const answeredCount = section.questions.filter((x) => isAnswered(x, state.responses[x.id])).length;
   const listening = section.skill === "listening";
 

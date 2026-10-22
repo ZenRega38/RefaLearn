@@ -284,15 +284,26 @@ export default function LevelQuizPage() {
   const { quiz } = overview;
   const Icon = overview.isPretest ? Target : ClipboardCheck;
 
-  if ((phase === "running" || phase === "submitting") && run) {
-    const q = run.questions[index];
+  if (phase === "running" || phase === "submitting") {
+    if (!run || !run.questions || run.questions.length === 0) {
+      return (
+        <PaperBackground className="pb-20 min-h-screen">
+          <div className="container-main max-w-4xl mx-auto py-20 text-center font-[var(--font-inter)]">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
+          </div>
+        </PaperBackground>
+      );
+    }
+
+    const currentIndex = Math.max(0, Math.min(index, run.questions.length - 1));
+    const q = run.questions[currentIndex];
     const answered = run.questions.filter((x) => isAnswered(x, responses[x.id])).length;
     return (
       <PaperBackground className="pb-20 min-h-screen">
         <div className="container-main max-w-4xl mx-auto space-y-5">
           <FocusBar
             title={quiz.title}
-            detail={`${a.attempt(run.no)} · ${t.questionOf(index + 1, run.questions.length)} · ${answered}/${run.questions.length}`}
+            detail={`${a.attempt(run.no)} · ${t.questionOf(currentIndex + 1, run.questions.length)} · ${answered}/${run.questions.length}`}
             deadline={run.deadline}
             offset={offset}
             totalMs={run.deadline - run.startedAt}
@@ -314,29 +325,31 @@ export default function LevelQuizPage() {
                     key={x.id}
                     onClick={() => setIndex(i)}
                     aria-label={t.questionOf(i + 1, run.questions.length)}
-                    className={`w-9 h-9 rounded-md text-sm font-semibold font-[var(--font-inter)] border-2 ${i === index ? "border-[var(--color-brand-blue)] bg-[var(--color-brand-blue)] text-white" : isAnswered(x, responses[x.id]) ? "border-[var(--color-brand-blue)]/40 bg-[var(--color-brand-blue)]/10 text-[var(--color-brand-blue)]" : "border-[var(--color-line)] bg-white text-[var(--color-ink-soft)]"}`}
+                    className={`w-9 h-9 rounded-md text-sm font-semibold font-[var(--font-inter)] border-2 ${i === currentIndex ? "border-[var(--color-brand-blue)] bg-[var(--color-brand-blue)] text-white" : isAnswered(x, responses[x.id]) ? "border-[var(--color-brand-blue)]/40 bg-[var(--color-brand-blue)]/10 text-[var(--color-brand-blue)]" : "border-[var(--color-line)] bg-white text-[var(--color-ink-soft)]"}`}
                   >
                     {i + 1}
                   </button>
                 ))}
               </div>
 
-              <Card variant="sketch" className="p-5 md:p-8 space-y-4">
-                <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.questionOf(index + 1, run.questions.length)}</p>
-                <QuestionBlock
-                  key={`${run.attemptId}-${q.id}`}
-                  question={q}
-                  passages={run.passages}
-                  value={responses[q.id] ?? null}
-                  onChange={(r) => answer(q.id, r)}
-                />
-              </Card>
+              {q ? (
+                <Card variant="sketch" className="p-5 md:p-8 space-y-4">
+                  <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.questionOf(currentIndex + 1, run.questions.length)}</p>
+                  <QuestionBlock
+                    key={`${run.attemptId}-${q.id}`}
+                    question={q}
+                    passages={run.passages}
+                    value={responses[q.id] ?? null}
+                    onChange={(r) => answer(q.id, r)}
+                  />
+                </Card>
+              ) : null}
 
               <div className="flex justify-between gap-3">
-                <Button variant="ghost" onClick={() => setIndex((i) => Math.max(0, i - 1))} disabled={index === 0}>
+                <Button variant="ghost" onClick={() => setIndex((i) => Math.max(0, i - 1))} disabled={currentIndex === 0}>
                   <ArrowLeft className="w-4 h-4" /> {t.previous}
                 </Button>
-                {index < run.questions.length - 1 ? (
+                {currentIndex < run.questions.length - 1 ? (
                   <Button onClick={() => setIndex((i) => i + 1)}>{t.next} <ArrowRight className="w-4 h-4" /></Button>
                 ) : (
                   <Button onClick={() => submit(false)}>{t.submit(answered, run.questions.length)}</Button>

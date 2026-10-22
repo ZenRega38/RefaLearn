@@ -83,7 +83,7 @@ export function AttemptOverview(p: OverviewProps) {
   } else if (state.open && openLeft > 0) {
     action = (
       <Button size="lg" onClick={p.onStart} isLoading={p.starting}>
-        <PlayCircle className="w-5 h-5" /> {t.resume} · <span className="tabular-nums">{t.timeLeft(clock(openLeft))}</span>
+        <PlayCircle className="w-5 h-5" /> {t.resume}
       </Button>
     );
   } else if (state.left <= 0) {
