@@ -34,6 +34,9 @@ const MINE = "__mine";
 const FREE = "__free";
 type Filter = { key: string; label: string };
 
+// Card badges are a size smaller on phones, where two cards share a row.
+const SMALL_BADGE = "!text-[0.6rem] !px-1.5 !py-0.5 !tracking-wide sm:!text-xs sm:!px-2.5 sm:!py-1 sm:!tracking-wider";
+
 export default function MaterialsCatalogPage() {
   const tr = useTr();
   const [supabase] = useState(() => createClient());
@@ -149,9 +152,9 @@ export default function MaterialsCatalogPage() {
 
         {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <Card key={i} className="animate-pulse h-80 bg-white/40" />
+              <Card key={i} className="animate-pulse h-56 sm:h-80 bg-white/40" />
             ))}
           </div>
         ) : filteredMaterials.length === 0 ? (
@@ -175,7 +178,8 @@ export default function MaterialsCatalogPage() {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          // Two per row on phones too, like a marketplace: smaller type and badges there.
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {filteredMaterials.map(material => (
               <Link href={`/materials/${material.slug}`} key={material.id} className="group flex flex-col h-full">
                 <Card variant="sketch" className="p-0 h-full flex flex-col hover:-translate-y-1 transition-transform duration-300">
@@ -192,28 +196,31 @@ export default function MaterialsCatalogPage() {
                         <BookOpen className="w-20 h-20" />
                       </div>
                     )}
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      <Badge variant="amber" className="shadow-sm">{material.category}</Badge>
-                      {validBefore(material.price, material.compare_at_price) && <Badge variant="coral" className="shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent">Promo</Badge>}
-                      {ownedIds.has(material.id) && <Badge variant="green" className="shadow-sm">{tr("Dimiliki", "Owned")}</Badge>}
+                    <div className="absolute top-2 left-2 right-2 sm:top-3 sm:left-3 sm:right-3 flex flex-wrap gap-1 sm:gap-1.5">
+                      <Badge variant="amber" className={`shadow-sm !bg-white/95 ${SMALL_BADGE}`}>{material.category}</Badge>
+                      {validBefore(material.price, material.compare_at_price) && <Badge variant="coral" className={`shadow-sm !bg-[var(--color-accent-coral)] !text-white !border-transparent ${SMALL_BADGE}`}>Promo</Badge>}
+                      {ownedIds.has(material.id) && <Badge variant="green" className={`shadow-sm !bg-white/95 ${SMALL_BADGE}`}>{tr("Dimiliki", "Owned")}</Badge>}
                     </div>
                     {material.partner && (
-                      <div className="absolute bottom-3 left-3 right-3 flex">
+                      <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 flex">
                         <PartnerBadge partner={material.partner} variant="chip" />
                       </div>
                     )}
                   </div>
 
-                  <div className="p-5 flex-1 flex flex-col">
-                    <h3 className="text-lg font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors mb-2 line-clamp-2">
+                  <div className="p-3 sm:p-5 flex-1 flex flex-col">
+                    <h3 className="text-sm sm:text-lg leading-snug font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors mb-1 sm:mb-2 line-clamp-2">
                       {material.title}
                     </h3>
 
-                    <div className="mt-auto pt-4 flex items-end justify-between gap-3">
+                    <div className="mt-auto pt-2 sm:pt-4 flex items-end justify-between gap-3">
                       <PriceTag price={material.price} before={material.compare_at_price} size="md" stacked />
-                      <Button variant="ghost" size="sm" className="bg-[var(--color-accent-coral)]/10 text-[var(--color-accent-coral)] hover:bg-[var(--color-accent-coral)] hover:text-white px-3 transition-colors">
-                        <ShoppingBag className="w-4 h-4 mr-2" /> Detail
-                      </Button>
+                      {/* The whole card opens the course; phones skip the button to save room. */}
+                      <span className="hidden sm:block">
+                        <Button variant="ghost" size="sm" className="bg-[var(--color-accent-coral)]/10 text-[var(--color-accent-coral)] hover:bg-[var(--color-accent-coral)] hover:text-white px-3 transition-colors">
+                          <ShoppingBag className="w-4 h-4 mr-2" /> Detail
+                        </Button>
+                      </span>
                     </div>
                   </div>
                 </Card>
