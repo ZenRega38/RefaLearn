@@ -84,8 +84,15 @@ function ExamRunner() {
   const [save, setSave] = useState<SaveState>("idle");
   const [timeUp, setTimeUp] = useState(false);
   const [tts] = useState(() => speechSupported());
+  const [questionRendered, setQuestionRendered] = useState(false);
 
   useFocusMode(phase === "section-intro" || phase === "running" || phase === "submitting");
+
+  useEffect(() => {
+    if (phase !== "running") {
+      setQuestionRendered(false);
+    }
+  }, [phase]);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -400,6 +407,7 @@ function ExamRunner() {
       totalMs={attempt.deadline - attempt.startedAt}
       save={save}
       onExit={exit}
+      showTimer={questionRendered}
     />
   );
 
@@ -501,7 +509,15 @@ function ExamRunner() {
           </div>
         )}
 
-        <Card variant="sketch" className="p-5 md:p-8 space-y-4">
+        <Card
+          variant="sketch"
+          className="p-5 md:p-8 space-y-4"
+          ref={(node: HTMLDivElement | null) => {
+            if (node && !questionRendered) {
+              setQuestionRendered(true);
+            }
+          }}
+        >
           <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             {part?.title} · Question {state.index + 1}
           </p>
