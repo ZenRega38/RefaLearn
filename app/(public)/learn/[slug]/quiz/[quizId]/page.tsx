@@ -176,16 +176,11 @@ export default function LevelQuizPage() {
   }, [api, a.startFailed, loadOverview]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
     loadOverview().then((o) => {
       if (!o) return;
-      if (o.state.open) {
-        start();
-      } else {
-        setPhase("overview");
-      }
+      setPhase("overview");
     });
-  }, [loadOverview, start]);
+  }, [loadOverview]);
 
   const submit = useCallback(
     async (auto: boolean) => {

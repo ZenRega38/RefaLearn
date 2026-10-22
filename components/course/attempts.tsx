@@ -255,6 +255,7 @@ export function FocusBar({
   totalMs,
   save,
   onExit,
+  showTimer = true,
 }: {
   title: string;
   detail?: ReactNode;
@@ -263,9 +264,20 @@ export function FocusBar({
   totalMs: number;
   save?: SaveState;
   onExit: () => void;
+  showTimer?: boolean;
 }) {
   const t = useCourseText().attempts;
-  const now = useServerNow(offset, 250);
+  const [questionsMounted, setQuestionsMounted] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      setQuestionsMounted(true);
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const timerActive = showTimer && questionsMounted;
+  const now = useServerNow(offset, timerActive ? 250 : 100000);
   const left = deadline - now;
   const pct = Math.max(0, Math.min(100, (left / totalMs) * 100));
   const tone = left <= 60_000 ? "text-[var(--color-danger-red)]" : left <= 5 * 60_000 ? "text-[var(--color-accent-coral)]" : "text-[var(--color-ink)]";
@@ -284,9 +296,11 @@ export function FocusBar({
               {save === "saving" ? t.saving : save === "saved" ? t.saved : t.notSaved}
             </span>
           )}
-          <span className={`flex items-center gap-1 font-bold tabular-nums text-lg ${tone} ${left <= 10_000 ? "animate-pulse" : ""}`} aria-live="off">
-            <Clock className="w-4 h-4" /> {clock(left)}
-          </span>
+          {timerActive && (
+            <span className={`flex items-center gap-1 font-bold tabular-nums text-lg ${tone} ${left <= 10_000 ? "animate-pulse" : ""}`} aria-live="off">
+              <Clock className="w-4 h-4" /> {clock(left)}
+            </span>
+          )}
           <button
             type="button"
             onClick={onExit}
@@ -297,7 +311,9 @@ export function FocusBar({
         </div>
       </div>
       <div className="h-1 -mx-4 bg-[var(--color-paper-bg-alt)]">
-        <div className={`h-full transition-[width] duration-300 ease-linear ${left <= 60_000 ? "bg-[var(--color-danger-red)]" : "bg-[var(--color-accent-coral)]"}`} style={{ width: `${pct}%` }} />
+        {timerActive && (
+          <div className={`h-full transition-[width] duration-300 ease-linear ${left <= 60_000 ? "bg-[var(--color-danger-red)]" : "bg-[var(--color-accent-coral)]"}`} style={{ width: `${pct}%` }} />
+        )}
       </div>
     </div>
   );
