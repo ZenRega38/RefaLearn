@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ADULT_AGE, needsGuardian, sameName, type ProfileCompletion } from "@/lib/profile";
 import { todayStr } from "@/lib/time";
+import { translator, type Tr } from "@/lib/i18n";
 
 /** The contract version in force today (highest version already effective). */
 export async function currentContractId(admin: SupabaseClient): Promise<string | null> {
@@ -26,19 +27,20 @@ export type SignatureInput = { typedName?: string; signerRole?: string; guardian
 export function checkSignature(
   input: SignatureInput,
   profileName: string,
-  profile: Pick<ProfileCompletion, "birth_date" | "guardian_name"> | null
+  profile: Pick<ProfileCompletion, "birth_date" | "guardian_name"> | null,
+  tr: Tr = translator("id")
 ): { ok: true; typedName: string; signerRole: "student" | "guardian"; guardianName: string | null } | { ok: false; error: string } {
   const typedName = (input.typedName || "").trim();
   const signerRole = input.signerRole === "guardian" ? "guardian" : "student";
   const guardianInput = (input.guardianName || "").trim();
   const name = profileName.trim();
 
-  if (!typedName) return { ok: false, error: "Nama penanda tangan wajib diisi." };
+  if (!typedName) return { ok: false, error: tr("Nama penanda tangan wajib diisi.", "The signer's name is required.") };
   if (signerRole === "student" && typedName.toLowerCase() !== name.toLowerCase()) {
-    return { ok: false, error: "Nama yang diketik harus sama dengan nama di profil Anda." };
+    return { ok: false, error: tr("Nama yang diketik harus sama dengan nama di profil Anda.", "The name you type must match the name on your profile.") };
   }
   if (signerRole === "guardian" && typedName.toLowerCase() === name.toLowerCase()) {
-    return { ok: false, error: "Untuk persetujuan orang tua/wali, ketik nama orang tua/wali — bukan nama siswa." };
+    return { ok: false, error: tr("Untuk persetujuan orang tua/wali, ketik nama orang tua/wali — bukan nama siswa.", "For a parent/guardian's agreement, type the parent/guardian's name, not the student's.") };
   }
 
   // Under 21 the contract must be signed by the guardian named on the profile,
@@ -47,10 +49,10 @@ export function checkSignature(
   const profileGuardian = (profile?.guardian_name || "").trim();
   if (minor) {
     if (signerRole !== "guardian") {
-      return { ok: false, error: `Siswa berusia di bawah ${ADULT_AGE} tahun. Perjanjian wajib disetujui oleh orang tua/wali.` };
+      return { ok: false, error: tr(`Siswa berusia di bawah ${ADULT_AGE} tahun. Perjanjian wajib disetujui oleh orang tua/wali.`, `The student is under ${ADULT_AGE}. The agreement must be accepted by a parent/guardian.`) };
     }
     if (!sameName(typedName, profileGuardian)) {
-      return { ok: false, error: `Nama penanda tangan harus sama dengan nama orang tua/wali di profil: ${profileGuardian}.` };
+      return { ok: false, error: tr(`Nama penanda tangan harus sama dengan nama orang tua/wali di profil: ${profileGuardian}.`, `The signer's name must match the parent/guardian on the profile: ${profileGuardian}.`) };
     }
   }
 

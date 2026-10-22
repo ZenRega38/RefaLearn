@@ -9,11 +9,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Receipt, Upload, RefreshCw, AlertCircle, ExternalLink, ChevronDown } from "lucide-react";
 import { PaymentInstructions, type BankDetails, type EwalletDetails } from "@/components/ui/PaymentInstructions";
-import { DAY_TYPE_LABELS_EN, formatPrice, type DayType } from "@/lib/pricing";
+import { DAY_TYPE_LABELS, DAY_TYPE_LABELS_EN, formatPrice, type DayType } from "@/lib/pricing";
 import { uploadPaymentProof, getSignedProofUrl } from "@/lib/storage";
 import { INVOICE_DUE_DAYS } from "@/lib/policy";
 import { formatDateStr, formatTimestamp, hhmm, monthLabel } from "@/lib/format";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/components/i18n/LangProvider";
+import { translator, type Lang } from "@/lib/i18n";
 
 type Invoice = {
   id: string;
@@ -30,13 +32,15 @@ type Invoice = {
 type LineItem = { id: string; date: string; start_time: string; day_type: DayType; price: number };
 
 
-const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
 
-const dueDate = (generatedAt: string) =>
-  formatTimestamp(new Date(Date.parse(generatedAt) + INVOICE_DUE_DAYS * 86_400_000).toISOString(), 'dd MMMM yyyy', 'en');
+const dueDate = (generatedAt: string, lang: Lang) =>
+  formatTimestamp(new Date(Date.parse(generatedAt) + INVOICE_DUE_DAYS * 86_400_000).toISOString(), 'dd MMMM yyyy', lang);
 
 export default function StudentInvoicesPage() {
   const router = useRouter();
+  const { lang } = useLang();
+  const tr = translator(lang);
+  const errorText = (err: unknown) => (err instanceof Error ? err.message : tr("Terjadi kesalahan.", "Something went wrong."));
   const [supabase] = useState(() => createClient());
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [lineItems, setLineItems] = useState<Record<string, LineItem>>({});
@@ -112,7 +116,7 @@ export default function StudentInvoicesPage() {
 
   const handleSubmitProof = async () => {
     if (!proofFile || !uploadingId || !studentId) {
-      alert("Please choose your payment proof file first!");
+      alert(tr("Silakan pilih file bukti transfer terlebih dahulu!", "Please choose your payment proof file first!"));
       return;
     }
 
@@ -135,7 +139,7 @@ export default function StudentInvoicesPage() {
       setProofFile(null);
       fetchInvoices();
     } catch (err) {
-      alert(`Couldn't send the proof: ${errorText(err)}`);
+      alert(`${tr("Gagal mengirim bukti", "Couldn't send the proof")}: ${errorText(err)}`);
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +152,7 @@ export default function StudentInvoicesPage() {
       const url = await getSignedProofUrl(invoice.proof_url);
       window.open(url, '_blank', 'noopener');
     } catch (err) {
-      alert(`Couldn't open the proof: ${errorText(err)}`);
+      alert(`${tr("Gagal membuka bukti", "Couldn't open the proof")}: ${errorText(err)}`);
     } finally {
       setViewingId(null);
     }
@@ -156,11 +160,11 @@ export default function StudentInvoicesPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'sent': return <Badge variant="amber">Awaiting Payment</Badge>;
-      case 'proof_uploaded': return <Badge variant="blue">Under Review</Badge>;
-      case 'confirmed': return <Badge variant="green">Paid</Badge>;
-      case 'overdue': return <Badge variant="red">Overdue</Badge>;
-      case 'rejected': return <Badge variant="red">Proof Rejected</Badge>;
+      case 'sent': return <Badge variant="amber">{tr("Menunggu Pembayaran", "Awaiting Payment")}</Badge>;
+      case 'proof_uploaded': return <Badge variant="blue">{tr("Sedang Direview", "Under Review")}</Badge>;
+      case 'confirmed': return <Badge variant="green">{tr("Lunas", "Paid")}</Badge>;
+      case 'overdue': return <Badge variant="red">{tr("Terlambat", "Overdue")}</Badge>;
+      case 'rejected': return <Badge variant="red">{tr("Bukti Ditolak", "Proof Rejected")}</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -172,11 +176,11 @@ export default function StudentInvoicesPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
-              <Receipt className="w-8 h-8 text-[var(--color-brand-blue)]" /> My Invoices
+              <Receipt className="w-8 h-8 text-[var(--color-brand-blue)]" /> {tr("Tagihan Saya", "My Invoices")}
             </h1>
           </div>
           <Button variant="ghost" onClick={fetchInvoices} size="sm" className="px-3">
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> {tr("Muat Ulang", "Refresh")}
           </Button>
         </div>
 
@@ -184,23 +188,26 @@ export default function StudentInvoicesPage() {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
             <Card className="w-full max-w-md space-y-6 my-8">
               <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)] border-b-2 border-dashed border-[var(--color-line)] pb-2 inline-block">
-                Upload Payment Proof
+                {tr("Upload Bukti Pembayaran", "Upload Payment Proof")}
               </h3>
 
               <PaymentInstructions bank={bankDetails} ewallet={ewalletDetails} />
 
               <p className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-                Transfer the exact invoice amount, then upload a photo or screenshot of your transfer (JPG, PNG or PDF, max. 5 MB).
+                {tr(
+                  "Silakan transfer sesuai nominal tagihan, lalu unggah foto/screenshot bukti transfer Anda (JPG, PNG, atau PDF, maks. 5 MB).",
+                  "Transfer the exact invoice amount, then upload a photo or screenshot of your transfer (JPG, PNG or PDF, max. 5 MB)."
+                )}
               </p>
               <Input
                 type="file"
-                label="Payment Proof File"
+                label={tr("File Bukti Transfer", "Payment Proof File")}
                 accept="image/*,application/pdf"
                 onChange={(e) => setProofFile(e.target.files?.[0] || null)}
               />
               <div className="flex justify-end gap-3 pt-4 border-t border-[var(--color-line)]">
-                <Button variant="ghost" onClick={() => { setUploadingId(null); setProofFile(null); }}>Cancel</Button>
-                <Button onClick={handleSubmitProof} isLoading={submitting} disabled={!proofFile}>Send Proof</Button>
+                <Button variant="ghost" onClick={() => { setUploadingId(null); setProofFile(null); }}>{tr("Batal", "Cancel")}</Button>
+                <Button onClick={handleSubmitProof} isLoading={submitting} disabled={!proofFile}>{tr("Kirim Bukti", "Send Proof")}</Button>
               </div>
             </Card>
           </div>
@@ -209,14 +216,14 @@ export default function StudentInvoicesPage() {
         {loading ? (
           <div className="text-center py-12 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
             <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-            Loading invoices...
+            {tr("Memuat tagihan...", "Loading invoices...")}
           </div>
         ) : invoices.length === 0 ? (
           <Card className="text-center py-16 bg-white/50">
             <Receipt className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
-            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">No invoices yet</h3>
+            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">{tr("Belum ada tagihan", "No invoices yet")}</h3>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Your invoices will appear here at the start of each following month.
+              {tr("Tagihan Anda akan muncul di sini setiap awal bulan berikutnya.", "Your invoices will appear here at the start of each following month.")}
             </p>
           </Card>
         ) : (
@@ -230,29 +237,29 @@ export default function StudentInvoicesPage() {
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)]">
-                          Invoice for {monthLabel(invoice.period_month, invoice.period_year, 'en')}
+                          {tr("Tagihan Bulan", "Invoice for")} {monthLabel(invoice.period_month, invoice.period_year, lang)}
                         </h3>
                         {getStatusBadge(invoice.status)}
                       </div>
                       <p className="text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                        Issued {formatTimestamp(invoice.generated_at, 'dd MMMM yyyy', 'en')} · Due {dueDate(invoice.generated_at)}
+                        {tr("Diterbitkan", "Issued")} {formatTimestamp(invoice.generated_at, 'dd MMMM yyyy', lang)} · {tr("Jatuh tempo", "Due")} {dueDate(invoice.generated_at, lang)}
                       </p>
 
                       {invoice.status === 'rejected' && (
                         <div className="flex items-start gap-2 mt-2 text-sm text-[var(--color-danger-red)] bg-[var(--color-danger-red)]/10 p-2 rounded">
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                          <p>The admin rejected your payment proof. Please upload a valid proof again.</p>
+                          <p>{tr("Bukti pembayaran Anda ditolak oleh admin. Silakan upload ulang bukti yang valid.", "The admin rejected your payment proof. Please upload a valid proof again.")}</p>
                         </div>
                       )}
                       {invoice.status === 'overdue' && (
                         <div className="flex items-start gap-2 mt-2 text-sm text-[var(--color-danger-red)] bg-[var(--color-danger-red)]/10 p-2 rounded">
                           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                          <p>This invoice is past its due date. New bookings are paused until it&apos;s confirmed as paid.</p>
+                          <p>{tr("Tagihan ini sudah lewat jatuh tempo. Booking sesi baru dijeda sampai tagihan dikonfirmasi lunas.", "This invoice is past its due date. New bookings are paused until it's confirmed as paid.")}</p>
                         </div>
                       )}
                       {invoice.status === 'proof_uploaded' && (
                         <p className="text-sm text-[var(--color-ink-soft)] italic mt-2">
-                          The admin is reviewing your payment. Please allow up to 24 hours.
+                          {tr("Admin sedang mereview pembayaran Anda. Mohon tunggu maksimal 1x24 jam.", "The admin is reviewing your payment. Please allow up to 24 hours.")}
                         </p>
                       )}
                     </div>
@@ -263,8 +270,8 @@ export default function StudentInvoicesPage() {
                       </div>
                       {invoice.fee_amount > 0 && (
                         <p className="text-xs text-amber-700 font-[var(--font-inter)] md:text-right">
-                          Includes a cancellation fee of {formatPrice(invoice.fee_amount)}
-                          {" "}(classes: {formatPrice(invoice.total_amount - invoice.fee_amount)})
+                          {tr("Termasuk biaya pembatalan", "Includes a cancellation fee of")} {formatPrice(invoice.fee_amount)}
+                          {" "}({tr("kelas", "classes")}: {formatPrice(invoice.total_amount - invoice.fee_amount)})
                         </p>
                       )}
 
@@ -276,7 +283,7 @@ export default function StudentInvoicesPage() {
                             setProofFile(null);
                           }}
                         >
-                          <Upload className="w-4 h-4" /> Upload Proof
+                          <Upload className="w-4 h-4" /> {tr("Upload Bukti", "Upload Proof")}
                         </Button>
                       )}
 
@@ -288,7 +295,7 @@ export default function StudentInvoicesPage() {
                           isLoading={viewingId === invoice.id}
                           className="w-full md:w-auto text-xs"
                         >
-                          <ExternalLink className="w-3 h-3 mr-2" /> View Submitted Proof
+                          <ExternalLink className="w-3 h-3 mr-2" /> {tr("Lihat Bukti Terkirim", "View Submitted Proof")}
                         </Button>
                       )}
                     </div>
@@ -300,22 +307,23 @@ export default function StudentInvoicesPage() {
                       className="text-sm font-semibold font-[var(--font-inter)] text-[var(--color-brand-blue)] flex items-center gap-1"
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-                      Details ({items.length} {items.length === 1 ? "session" : "sessions"}{invoice.fee_amount > 0 ? " + cancellation fee" : ""})
+                      {tr("Rincian", "Details")} ({items.length} {tr("sesi", items.length === 1 ? "session" : "sessions")}
+                      {invoice.fee_amount > 0 ? tr(" + biaya pembatalan", " + cancellation fee") : ""})
                     </button>
                     {expanded && (
                       <ul className="mt-3 divide-y divide-[var(--color-line)] text-sm font-[var(--font-inter)]">
                         {items.map((item) => (
                           <li key={item.id} className="py-2 flex justify-between gap-4">
                             <span className="text-[var(--color-ink)]">
-                              {formatDateStr(item.date, 'EEE, dd MMM yyyy', 'en')} · {hhmm(item.start_time)}
-                              <span className="text-[var(--color-ink-soft)]"> · {DAY_TYPE_LABELS_EN[item.day_type] ?? item.day_type}</span>
+                              {formatDateStr(item.date, 'EEE, dd MMM yyyy', lang)} · {hhmm(item.start_time)}
+                              <span className="text-[var(--color-ink-soft)]"> · {(lang === "en" ? DAY_TYPE_LABELS_EN : DAY_TYPE_LABELS)[item.day_type] ?? item.day_type}</span>
                             </span>
                             <span className="font-semibold">{formatPrice(item.price)}</span>
                           </li>
                         ))}
                         {invoice.fee_amount > 0 && (
                           <li className="py-2 flex justify-between gap-4 text-amber-700">
-                            <span>Cancellation fee</span>
+                            <span>{tr("Biaya pembatalan", "Cancellation fee")}</span>
                             <span className="font-semibold">{formatPrice(invoice.fee_amount)}</span>
                           </li>
                         )}

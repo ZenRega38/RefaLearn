@@ -3,6 +3,8 @@ import { PaperBackground } from "@/components/sketch/PaperBackground";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { NewsBrowser, type NewsListItem } from "@/components/news/NewsBrowser";
 import { storyDate } from "@/lib/format";
+import { getLang } from "@/lib/i18n-server";
+import { translator } from "@/lib/i18n";
 
 // Server Component
 export const metadata = {
@@ -10,8 +12,6 @@ export const metadata = {
   description: "Cerita, pengalaman, tips belajar Bahasa Inggris, dan kabar terbaru dari Refa Learn Tarakan.",
   alternates: { canonical: "/stories" },
 };
-
-export const revalidate = 60; // Revalidate every minute
 
 // Long enough to fill a card under even a one-line title; the card itself
 // clamps it to the space that is left (see FillText in NewsBrowser).
@@ -24,6 +24,8 @@ const excerptOf = (html: string, length = 600) => {
 
 export default async function NewsIndexPage() {
   const supabase = createPublicClient();
+  const lang = await getLang();
+  const tr = translator(lang);
 
   // Fetch published news posts
   const { data: posts } = await supabase
@@ -40,7 +42,7 @@ export default async function NewsIndexPage() {
     category: post.category,
     cover_image_url: post.cover_image_url,
     excerpt: excerptOf(post.content),
-    formattedDate: storyDate(post),
+    formattedDate: storyDate(post, undefined, lang),
   }));
 
   return (
@@ -49,7 +51,7 @@ export default async function NewsIndexPage() {
         <div className="container-main text-center">
           <h1 className="text-4xl md:text-5xl mb-6"><SketchBox color="var(--color-accent-yellow)">Stories</SketchBox></h1>
           <p className="text-lg text-[var(--color-ink-soft)] font-[var(--font-inter)] max-w-2xl mx-auto">
-            Stories, experiences, study tips and the latest news from Refa Learn.
+            {tr("Cerita, pengalaman, tips belajar, dan kabar terbaru dari Refa Learn.", "Stories, experiences, study tips and the latest news from Refa Learn.")}
           </p>
         </div>
       </section>
@@ -58,7 +60,7 @@ export default async function NewsIndexPage() {
         <div className="container-main">
           {items.length === 0 ? (
             <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">No stories have been published yet.</p>
+              <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Belum ada story yang diterbitkan.", "No stories have been published yet.")}</p>
             </div>
           ) : (
             <NewsBrowser posts={items} />

@@ -14,12 +14,14 @@ import { formatPrice } from "@/lib/pricing";
 import { uploadPaymentProof } from "@/lib/storage";
 import { orderCode, QRIS } from "@/lib/payments";
 import { ArrowLeft, BookOpen, CheckCircle2, Download, GraduationCap, ImageUp, QrCode, RefreshCw, Smartphone, XCircle } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
+import type { Tr } from "@/lib/i18n";
 
 type Status = "pending" | "proof_uploaded" | "confirmed" | "rejected";
 type Order = { id: string; student_id: string; material_ids: string[]; total_amount: number; status: Status; created_at: string };
 type Material = { id: string; title: string; course_slug: string | null };
 
-const STEPS = ["Pay", "Upload proof", "Verification", "Done"];
+const steps = (tr: Tr) => [tr("Bayar", "Pay"), tr("Upload bukti", "Upload proof"), tr("Verifikasi", "Verification"), tr("Selesai", "Done")];
 const stepOf = (s: Status) => (s === "confirmed" ? 3 : s === "proof_uploaded" ? 2 : 0);
 
 /**
@@ -31,6 +33,7 @@ const stepOf = (s: Status) => (s === "confirmed" ? 3 : s === "proof_uploaded" ? 
 export default function PayOrderPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = use(params);
   const router = useRouter();
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const [order, setOrder] = useState<Order | null>(null);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -119,7 +122,7 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
       pickFile(null);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't send the proof.");
+      setError(err instanceof Error ? err.message : tr("Gagal mengirim bukti.", "Couldn't send the proof."));
     } finally {
       setSending(false);
     }
@@ -131,8 +134,8 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
         <div className="container-main max-w-xl mx-auto">
           <Card className="text-center space-y-4 py-12">
             <XCircle className="w-12 h-12 mx-auto text-[var(--color-danger-red)]" />
-            <p className="font-[var(--font-inter)] text-[var(--color-ink)]">Order not found.</p>
-            <Button href="/dashboard/materials">Go to My Courses</Button>
+            <p className="font-[var(--font-inter)] text-[var(--color-ink)]">{tr("Pesanan tidak ditemukan.", "Order not found.")}</p>
+            <Button href="/dashboard/materials">{tr("Ke Materi Saya", "Go to My Courses")}</Button>
           </Card>
         </div>
       </PaperBackground>
@@ -144,7 +147,7 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
       <PaperBackground className="pt-8 md:pt-12 pb-20 min-h-screen">
         <div className="text-center py-20 text-[var(--color-ink-soft)] font-[var(--font-inter)]">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-brand-blue)]" />
-          Loading order...
+          {tr("Memuat pesanan...", "Loading order...")}
         </div>
       </PaperBackground>
     );
@@ -157,13 +160,13 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
     <PaperBackground className="pt-8 md:pt-12 pb-20 min-h-screen">
       <div className="container-main max-w-2xl mx-auto space-y-6">
         <Link href="/dashboard/materials" className="inline-flex items-center gap-2 text-sm text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] font-[var(--font-inter)]">
-          <ArrowLeft className="w-4 h-4" /> My Courses
+          <ArrowLeft className="w-4 h-4" /> {tr("Materi Saya", "My Courses")}
         </Link>
 
         {/* Order summary */}
         <Card variant="sketch" className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h1 className="text-2xl md:text-3xl font-[var(--font-kalam)] text-[var(--color-ink)]">Course Payment</h1>
+            <h1 className="text-2xl md:text-3xl font-[var(--font-kalam)] text-[var(--color-ink)]">{tr("Pembayaran Materi", "Course Payment")}</h1>
             <span className="text-xs font-bold tracking-wider text-[var(--color-ink-soft)] font-[var(--font-inter)]">{orderCode(order.id)}</span>
           </div>
           <ul className="space-y-1 font-[var(--font-inter)] text-sm text-[var(--color-ink)]">
@@ -179,7 +182,7 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
 
           {/* Stepper */}
           <ol className="grid grid-cols-4 gap-1 pt-2">
-            {STEPS.map((label, i) => {
+            {steps(tr).map((label, i) => {
               const done = i < step || order.status === "confirmed";
               const current = i === step && order.status !== "confirmed";
               return (
@@ -205,53 +208,65 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
         {order.status === "confirmed" ? (
           <Card variant="sketch" className="text-center space-y-4 py-8 animate-scale-in">
             <Picture name="owl-cheer" className="w-28 h-28 mx-auto" />
-            <h2 className="text-2xl font-bold font-[var(--font-inter)] text-[var(--color-success-green)]">Payment Verified!</h2>
-            <p className="font-[var(--font-inter)] text-[var(--color-ink)]">Thank you! Your course is active and ready to open.</p>
+            <h2 className="text-2xl font-bold font-[var(--font-inter)] text-[var(--color-success-green)]">{tr("Pembayaran Terverifikasi!", "Payment Verified!")}</h2>
+            <p className="font-[var(--font-inter)] text-[var(--color-ink)]">{tr("Terima kasih! Materimu sudah aktif dan bisa dibuka sekarang.", "Thank you! Your course is active and ready to open.")}</p>
             <div className="space-y-2 max-w-sm mx-auto">
               {materials.map((m) =>
                 m.course_slug ? (
                   <Button key={m.id} href={`/learn/${m.course_slug}`} className="w-full">
-                    <GraduationCap className="w-4 h-4" /> Open {m.title}
+                    <GraduationCap className="w-4 h-4" /> {tr("Buka", "Open")} {m.title}
                   </Button>
                 ) : null
               )}
               <Button href="/dashboard/materials" variant="secondary" className="w-full">
-                <BookOpen className="w-4 h-4" /> Go to My Courses
+                <BookOpen className="w-4 h-4" /> {tr("Ke Materi Saya", "Go to My Courses")}
               </Button>
             </div>
           </Card>
         ) : order.status === "proof_uploaded" ? (
           <Card variant="sketch" className="text-center space-y-4 py-8">
             <Picture name="owl-think" className="w-28 h-28 mx-auto" />
-            <h2 className="text-2xl font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">Awaiting Verification</h2>
+            <h2 className="text-2xl font-bold font-[var(--font-inter)] text-[var(--color-brand-blue)]">{tr("Menunggu Verifikasi", "Awaiting Verification")}</h2>
             <p className="font-[var(--font-inter)] text-[var(--color-ink)] max-w-md mx-auto">
-              We&apos;ve received your payment proof. The admin will check and verify it as soon as possible.
+              {tr(
+                "Bukti pembayaranmu sudah kami terima. Admin akan mengecek dan memverifikasinya secepatnya.",
+                "We've received your payment proof. The admin will check and verify it as soon as possible."
+              )}
             </p>
             <p className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-blue)]/10 px-4 py-2 text-sm font-semibold font-[var(--font-inter)] text-[var(--color-brand-blue)]">
               <span className="relative flex w-2.5 h-2.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--color-brand-blue)] opacity-60 animate-ping" />
                 <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-[var(--color-brand-blue)]" />
               </span>
-              This page updates automatically once it&apos;s verified
+              {tr("Halaman ini akan berubah otomatis begitu terverifikasi", "This page updates automatically once it's verified")}
             </p>
             <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              You can close this page. The status also shows in My Courses, and you&apos;ll get an email once it&apos;s verified.
+              {tr(
+                "Boleh ditutup — statusnya juga terlihat di Materi Saya, dan kamu akan dapat email setelah diverifikasi.",
+                "You can close this page. The status also shows in My Courses, and you'll get an email once it's verified."
+              )}
             </p>
-            <Button href="/dashboard/materials" variant="secondary">Go to My Courses</Button>
+            <Button href="/dashboard/materials" variant="secondary">{tr("Ke Materi Saya", "Go to My Courses")}</Button>
           </Card>
         ) : (
           <>
             {order.status === "rejected" && (
               <div className="flex items-start gap-2 rounded-[var(--radius-card)] border-2 border-[var(--color-danger-red)]/40 bg-[var(--color-danger-red)]/10 p-4 text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
                 <XCircle className="w-5 h-5 shrink-0 text-[var(--color-danger-red)]" />
-                <span>Your previous payment proof was <strong>rejected</strong>. Make sure the amount and recipient are correct, then upload a clear proof again. Questions? Message the admin in the chat.</span>
+                <span>
+                  {tr("Bukti pembayaran sebelumnya", "Your previous payment proof was")} <strong>{tr("ditolak", "rejected")}</strong>.{" "}
+                  {tr(
+                    "Pastikan nominal dan tujuan pembayaran sudah benar, lalu upload ulang bukti yang jelas. Ada pertanyaan? Hubungi admin lewat chat.",
+                    "Make sure the amount and recipient are correct, then upload a clear proof again. Questions? Message the admin in the chat."
+                  )}
+                </span>
               </div>
             )}
 
             {/* Step 1: pay */}
             <Card variant="sketch" className="space-y-5">
               <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] flex items-center gap-2">
-                <QrCode className="w-5 h-5 text-[var(--color-brand-blue)]" /> 1. Pay with QRIS
+                <QrCode className="w-5 h-5 text-[var(--color-brand-blue)]" /> {tr("1. Bayar dengan QRIS", "1. Pay with QRIS")}
               </h2>
               <div className="grid sm:grid-cols-[minmax(0,15rem)_1fr] gap-5 items-start">
                 <div className="space-y-2">
@@ -262,25 +277,34 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
                     download="QRIS-Refa-Learn.jpg"
                     className="flex items-center justify-center gap-2 text-sm font-semibold font-[var(--font-inter)] text-[var(--color-brand-blue)] hover:underline"
                   >
-                    <Download className="w-4 h-4" /> Save QRIS image
+                    <Download className="w-4 h-4" /> {tr("Simpan gambar QRIS", "Save QRIS image")}
                   </a>
                 </div>
                 <div className="space-y-3 font-[var(--font-inter)] text-sm text-[var(--color-ink)]">
                   <div className="rounded-[var(--radius-card)] bg-[var(--color-accent-yellow)]/15 border border-[var(--color-accent-yellow)]/50 px-3 divide-y divide-[var(--color-accent-yellow)]/30">
-                    <CopyableRow label="Amount to pay (exact)" value={amount} />
-                    <CopyableRow label="Order code (add it to the payment note, if possible)" value={orderCode(order.id)} />
+                    <CopyableRow label={tr("Nominal yang harus dibayar (persis)", "Amount to pay (exact)")} value={amount} />
+                    <CopyableRow label={tr("Kode pesanan (tulis di catatan, jika ada)", "Order code (add it to the payment note, if possible)")} value={orderCode(order.id)} />
                   </div>
                   <ol className="list-decimal pl-5 space-y-1.5">
-                    <li>Open GoPay, OVO, DANA, ShopeePay or any mobile banking app.</li>
-                    <li>Choose <strong>Scan / Pay QRIS</strong>, then scan this code.</li>
+                    <li>{tr("Buka GoPay, OVO, DANA, ShopeePay, atau m-banking apa pun.", "Open GoPay, OVO, DANA, ShopeePay or any mobile banking app.")}</li>
                     <li>
-                      Enter <strong>exactly {amount}</strong> and check that the recipient is <strong>{QRIS.merchant}</strong>.
+                      {tr("Pilih", "Choose")} <strong>{tr("Scan / Bayar QRIS", "Scan / Pay QRIS")}</strong>, {tr("lalu scan kode ini.", "then scan this code.")}
                     </li>
-                    <li>Complete the payment, then take a <strong>screenshot</strong> of the receipt.</li>
+                    <li>
+                      {tr("Masukkan nominal", "Enter")} <strong>{tr(`persis ${amount}`, `exactly ${amount}`)}</strong>
+                      {tr(", pastikan penerimanya", " and check that the recipient is")} <strong>{QRIS.merchant}</strong>.
+                    </li>
+                    <li>
+                      {tr("Selesaikan pembayaran, lalu", "Complete the payment, then take a")} <strong>screenshot</strong>{" "}
+                      {tr("bukti/struknya.", "of the receipt.")}
+                    </li>
                   </ol>
                   <p className="flex items-start gap-2 text-xs text-[var(--color-ink-soft)]">
                     <Smartphone className="w-4 h-4 shrink-0" />
-                    Paying from the same phone? Tap &quot;Save QRIS image&quot;, then in your payment app choose Scan → the gallery icon, and pick that image.
+                    {tr(
+                      "Bayar dari HP yang sama? Ketuk \"Simpan gambar QRIS\", lalu di aplikasi pembayaran pilih Scan → ikon galeri, dan pilih gambar tadi.",
+                      "Paying from the same phone? Tap \"Save QRIS image\", then in your payment app choose Scan → the gallery icon, and pick that image."
+                    )}
                   </p>
                 </div>
               </div>
@@ -288,7 +312,7 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
               {(bank?.account_number || ewallet?.number) && (
                 <div className="border-t border-dashed border-[var(--color-line)] pt-4 space-y-3">
                   <button type="button" onClick={() => setShowTransfer((v) => !v)} className="text-sm font-semibold font-[var(--font-inter)] text-[var(--color-brand-blue)] hover:underline">
-                    {showTransfer ? "Hide" : "Or pay by bank transfer / e-wallet"}
+                    {showTransfer ? tr("Sembunyikan", "Hide") : tr("Atau bayar lewat transfer bank / e-wallet", "Or pay by bank transfer / e-wallet")}
                   </button>
                   {showTransfer && <PaymentInstructions bank={bank} ewallet={ewallet} />}
                 </div>
@@ -298,22 +322,22 @@ export default function PayOrderPage({ params }: { params: Promise<{ orderId: st
             {/* Step 2: upload proof */}
             <Card variant="sketch" className="space-y-4">
               <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] flex items-center gap-2">
-                <ImageUp className="w-5 h-5 text-[var(--color-brand-blue)]" /> 2. Upload Payment Proof
+                <ImageUp className="w-5 h-5 text-[var(--color-brand-blue)]" /> {tr("2. Upload Bukti Pembayaran", "2. Upload Payment Proof")}
               </h2>
               <label className="flex flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)] bg-[var(--color-paper-bg-alt)]/60 p-6 text-center cursor-pointer hover:border-[var(--color-brand-blue)] transition-colors">
                 {preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview} alt="Payment proof preview" className="max-h-64 rounded-md border border-[var(--color-line)]" />
+                  <img src={preview} alt={tr("Pratinjau bukti pembayaran", "Payment proof preview")} className="max-h-64 rounded-md border border-[var(--color-line)]" />
                 ) : (
                   <ImageUp className="w-10 h-10 text-[var(--color-ink-soft)]" />
                 )}
-                <span className="text-sm font-semibold font-[var(--font-inter)] text-[var(--color-ink)]">{file ? file.name : "Tap to choose a screenshot or photo of your proof"}</span>
-                <span className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">JPG, PNG or PDF, max. 5 MB</span>
+                <span className="text-sm font-semibold font-[var(--font-inter)] text-[var(--color-ink)]">{file ? file.name : tr("Ketuk untuk memilih screenshot / foto bukti", "Tap to choose a screenshot or photo of your proof")}</span>
+                <span className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("JPG, PNG, atau PDF, maks. 5 MB", "JPG, PNG or PDF, max. 5 MB")}</span>
                 <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => pickFile(e.target.files?.[0] || null)} />
               </label>
               {error && <p className="text-sm text-[var(--color-danger-red)] font-[var(--font-inter)]">{error}</p>}
               <Button onClick={sendProof} isLoading={sending} disabled={!file} className="w-full">
-                Send Payment Proof
+                {tr("Kirim Bukti Pembayaran", "Send Payment Proof")}
               </Button>
             </Card>
           </>

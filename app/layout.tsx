@@ -4,6 +4,8 @@ import "./globals.css";
 import { SiteChrome } from "@/components/ui/SiteChrome";
 import { siteUrl } from "@/lib/site";
 import { ldJson, siteGraphLd } from "@/lib/seo";
+import { getLang } from "@/lib/i18n-server";
+import { LangProvider } from "@/components/i18n/LangProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -62,19 +64,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const lang = await getLang();
   return (
     <html
-      lang="en"
+      lang={lang}
       className={`${inter.variable} ${kalam.variable} ${caveat.variable}`}
     >
       <body className="min-h-screen flex flex-col">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(siteGraphLd()) }} />
-        <SiteChrome>{children}</SiteChrome>
+        <LangProvider initial={lang}>
+          <SiteChrome>{children}</SiteChrome>
+        </LangProvider>
       </body>
     </html>
   );

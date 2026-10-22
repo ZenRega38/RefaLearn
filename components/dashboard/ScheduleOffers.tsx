@@ -12,10 +12,12 @@ import { APP_TIMEZONE_LABEL, todayStr } from "@/lib/time";
 import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, needsGuardian, type ProfileCompletion } from "@/lib/profile";
 import { planSummary, type SchedulePlan } from "@/lib/schedule-plan";
 import { CalendarPlus, Repeat, AlertCircle } from "lucide-react";
+import { useLang } from "@/components/i18n/LangProvider";
+import { translator } from "@/lib/i18n";
 
 type OfferSession = { date: string; start_time: string; end_time: string; price: number };
 type Offer = { id: string; plan: SchedulePlan; sessions: OfferSession[]; note: string | null; created_at: string };
-type Contract = { id: string; content: string };
+type Contract = { id: string; content: string; content_en?: string | null };
 
 /**
  * Schedules the admin assigned to this student, waiting for an answer.
@@ -23,6 +25,8 @@ type Contract = { id: string; content: string };
  * sessions appear as accepted. `onChanged` refreshes the session list.
  */
 export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
+  const { lang } = useLang();
+  const tr = translator(lang);
   const [supabase] = useState(() => createClient());
   const [offers, setOffers] = useState<Offer[]>([]);
   const [contract, setContract] = useState<Contract | null>(null);
@@ -36,7 +40,7 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
     if (!user) return;
     const [{ data: list }, { data: c }, { data: p }] = await Promise.all([
       supabase.from("schedule_offers").select("id, plan, sessions, note, created_at").eq("status", "pending").order("created_at", { ascending: false }),
-      supabase.from("contracts").select("id, content").lte("effective_date", todayStr()).order("version", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("contracts").select("*").lte("effective_date", todayStr()).order("version", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("profiles").select(PROFILE_COMPLETION_COLUMNS).eq("id", user.id).single(),
     ]);
     setOffers((list || []) as Offer[]);
@@ -51,7 +55,7 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
 
   if (offers.length === 0 && !message) return null;
 
-  const missing = missingProfileFields(profile, todayStr(), "en");
+  const missing = missingProfileFields(profile, todayStr(), lang);
 
   const answer = async (offer: Offer, payload: Record<string, unknown>) => {
     setBusy(offer.id);
@@ -66,13 +70,13 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
       if (!res.ok) throw new Error(json.error);
       setMessage(
         payload.action === "accept"
-          ? { ok: true, text: "Schedule accepted! The sessions are now in My Sessions." }
-          : { ok: true, text: "Schedule declined. The admin has been notified." }
+          ? { ok: true, text: tr("Jadwal disetujui! Sesi-sesinya sudah masuk ke daftar Sesi Saya.", "Schedule accepted! The sessions are now in My Sessions.") }
+          : { ok: true, text: tr("Jadwal ditolak. Admin sudah diberi tahu.", "Schedule declined. The admin has been notified.") }
       );
       await load();
       onChanged();
     } catch (err) {
-      setMessage({ ok: false, text: err instanceof Error ? err.message : "Something went wrong." });
+      setMessage({ ok: false, text: err instanceof Error ? err.message : tr("Terjadi kesalahan.", "Something went wrong.") });
     } finally {
       setBusy(null);
     }
@@ -85,7 +89,7 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
   };
 
   const decline = (offer: Offer) => {
-    const reason = window.prompt("Why doesn't this schedule work for you? (optional, sent to the admin)");
+    const reason = window.prompt(tr("Kenapa jadwal ini tidak cocok? (opsional, akan dikirim ke admin)", "Why doesn't this schedule work for you? (optional, sent to the admin)"));
     if (reason === null) return;
     answer(offer, { action: "decline", reason });
   };
@@ -109,15 +113,15 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
                 <CalendarPlus className="w-5 h-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand-blue)] font-[var(--font-inter)]">New schedule from the admin</p>
-                <p className="font-bold text-[var(--color-ink)] font-[var(--font-inter)]">{planSummary(offer.plan, "en")}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand-blue)] font-[var(--font-inter)]">{tr("Jadwal baru dari admin", "New schedule from the admin")}</p>
+                <p className="font-bold text-[var(--color-ink)] font-[var(--font-inter)]">{planSummary(offer.plan, lang)}</p>
               </div>
             </div>
 
             <ul className="space-y-1 text-sm font-[var(--font-inter)] text-[var(--color-ink)]">
               {shown.map((s) => (
                 <li key={`${s.date}-${s.start_time}`} className="flex flex-wrap justify-between gap-x-3">
-                  <span>{formatDateStr(s.date, "EEEE, dd MMM yyyy", "en")}</span>
+                  <span>{formatDateStr(s.date, "EEEE, dd MMM yyyy", lang)}</span>
                   <span className="text-[var(--color-ink-soft)]">
                     {hhmm(s.start_time)}–{hhmm(s.end_time)} {APP_TIMEZONE_LABEL} · {formatPrice(s.price)}
                   </span>
@@ -125,34 +129,39 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
               ))}
             </ul>
             <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] flex flex-wrap items-center gap-2">
-              {offer.sessions.length > shown.length && <span>…and {offer.sessions.length - shown.length} more {offer.sessions.length - shown.length === 1 ? "session" : "sessions"}.</span>}
+              {offer.sessions.length > shown.length && <span>
+                  {tr(
+                    `…dan ${offer.sessions.length - shown.length} sesi lainnya.`,
+                    `…and ${offer.sessions.length - shown.length} more ${offer.sessions.length - shown.length === 1 ? "session" : "sessions"}.`
+                  )}
+                </span>}
               <span>
-                first {offer.sessions.length} {offer.sessions.length === 1 ? "session" : "sessions"} · {formatPrice(total)}
+                {tr(`${offer.sessions.length} sesi pertama`, `first ${offer.sessions.length} ${offer.sessions.length === 1 ? "session" : "sessions"}`)} · {formatPrice(total)}
               </span>
               {ongoing && (
                 <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-brand-blue)]">
-                  <Repeat className="w-3.5 h-3.5" /> ongoing, later sessions are added automatically
+                  <Repeat className="w-3.5 h-3.5" /> {tr("berlanjut terus, sesi berikutnya ditambahkan otomatis", "ongoing, later sessions are added automatically")}
                 </span>
               )}
             </p>
-            {offer.note && <p className="text-sm italic text-[var(--color-ink-soft)] font-[var(--font-inter)]">Note from the admin: {offer.note}</p>}
+            {offer.note && <p className="text-sm italic text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Catatan admin", "Note from the admin")}: {offer.note}</p>}
 
             {missing.length > 0 ? (
               <p className="flex items-start gap-2 rounded-[var(--radius-card)] border border-[var(--color-warning-amber)]/50 bg-[var(--color-warning-amber)]/10 p-3 text-sm text-[var(--color-ink)] font-[var(--font-inter)]">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[var(--color-warning-amber)]" />
                 <span>
-                  Complete your profile before accepting: {missing.join(", ")}.{" "}
-                  <Link href="/dashboard/profile?next=/dashboard" className="font-semibold text-[var(--color-brand-blue)] hover:underline">Complete profile</Link>
+                  {tr("Lengkapi profil dulu sebelum menyetujui:", "Complete your profile before accepting:")} {missing.join(", ")}.{" "}
+                  <Link href="/dashboard/profile?next=/dashboard" className="font-semibold text-[var(--color-brand-blue)] hover:underline">{tr("Lengkapi profil", "Complete profile")}</Link>
                 </span>
               </p>
             ) : null}
 
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               <Button variant="ghost" onClick={() => decline(offer)} disabled={busy === offer.id}>
-                Decline
+                {tr("Tolak", "Decline")}
               </Button>
               <Button onClick={() => setSigning(offer)} isLoading={busy === offer.id} disabled={missing.length > 0 || !contract}>
-                Read Agreement & Accept
+                {tr("Baca Perjanjian & Setujui", "Read Agreement & Accept")}
               </Button>
             </div>
           </Card>
@@ -164,6 +173,7 @@ export function ScheduleOffers({ onChanged }: { onChanged: () => void }) {
         onClose={() => setSigning(null)}
         onAccept={accept}
         contractHtml={contract?.content || ""}
+        contractHtmlEn={contract?.content_en}
         expectedName={profile?.full_name || ""}
         requireGuardian={needsGuardian(profile?.birth_date, todayStr())}
         guardianName={profile?.guardian_name || ""}

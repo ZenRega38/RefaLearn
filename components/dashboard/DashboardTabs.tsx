@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarCheck, Receipt, BookOpen, UserCircle } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
+import type { Tr } from "@/lib/i18n";
 
-const tabs = [
-    { href: "/dashboard", label: "My Sessions", short: "Sessions", icon: CalendarCheck, exact: true },
-    { href: "/dashboard/invoices", label: "My Invoices", short: "Invoices", icon: Receipt },
-    { href: "/dashboard/materials", label: "My Courses", short: "Courses", icon: BookOpen },
-    { href: "/dashboard/profile", label: "Profile", short: "Profile", icon: UserCircle },
+const tabsFor = (tr: Tr) => [
+    { href: "/dashboard", label: tr("Sesi Saya", "My Sessions"), short: tr("Sesi", "Sessions"), icon: CalendarCheck, exact: true },
+    { href: "/dashboard/invoices", label: tr("Tagihan Saya", "My Invoices"), short: tr("Tagihan", "Invoices"), icon: Receipt },
+    { href: "/dashboard/materials", label: tr("Materi Saya", "My Courses"), short: tr("Materi", "Courses"), icon: BookOpen },
+    { href: "/dashboard/profile", label: tr("Profil", "Profile"), short: tr("Profil", "Profile"), icon: UserCircle },
 ];
 
 export function DashboardTabs() {
     const pathname = usePathname();
+    const tabs = tabsFor(useTr());
 
     return (
         <div className="border-b border-[var(--color-line)] bg-[var(--color-paper-bg)] sticky top-16 md:top-20 z-30">

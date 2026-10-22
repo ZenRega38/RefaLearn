@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PillDropdown } from "@/components/ui/PillDropdown";
 import { Quote } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
 
 export type AlumniItem = {
   id: string;
@@ -18,15 +19,17 @@ export type AlumniItem = {
 
 /** Alumni cards with a category filter (client-side, same data). */
 export function AlumniGrid({ alumni }: { alumni: AlumniItem[] }) {
-  const [category, setCategory] = useState("All");
-  const categories = ["All", ...Array.from(new Set(alumni.map((a) => a.category).filter((c): c is string => !!c)))];
-  const visible = category === "All" ? alumni : alumni.filter((a) => a.category === category);
+  const tr = useTr();
+  // "" is "all categories".
+  const [category, setCategory] = useState("");
+  const categories = Array.from(new Set(alumni.map((a) => a.category).filter((c): c is string => !!c)));
+  const visible = category === "" ? alumni : alumni.filter((a) => a.category === category);
 
   return (
     <div className="space-y-8">
-      {categories.length > 2 && (
+      {categories.length > 1 && (
         <div className="flex justify-start md:justify-center">
-          <PillDropdown options={categories.map((c) => ({ key: c, label: c }))} value={category} onChange={setCategory} />
+          <PillDropdown options={[{ key: "", label: tr("Semua", "All") }, ...categories.map((c) => ({ key: c, label: c }))]} value={category} onChange={setCategory} />
         </div>
       )}
 

@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { Mail } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
 
 export default function ForgotPasswordPage() {
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const [email, setEmail] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -23,11 +25,11 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError(null);
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Invalid email format");
+      setError(tr("Format email tidak valid", "Invalid email format"));
       return;
     }
     if (!captchaToken) {
-      setError("Please complete the captcha first.");
+      setError(tr("Mohon selesaikan verifikasi captcha terlebih dahulu.", "Please complete the captcha first."));
       return;
     }
 
@@ -53,10 +55,10 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-md animate-fade-in-up">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
-              Forgot Password
+              {tr("Lupa Password", "Forgot Password")}
             </h1>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Reset the password for your <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> account
+              {tr("Atur ulang password akun", "Reset the password for your")} <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> {tr("Anda", "account")}
             </p>
           </div>
 
@@ -65,11 +67,14 @@ export default function ForgotPasswordPage() {
               <div className="text-center space-y-4 font-[var(--font-inter)]">
                 <Mail className="w-12 h-12 mx-auto text-[var(--color-brand-blue)]" />
                 <p className="text-sm text-[var(--color-ink)]">
-                  If <strong>{email}</strong> is registered, we&apos;ve sent a link to reset your password.
-                  Check your inbox (and your spam folder).
+                  {tr("Jika email", "If")} <strong>{email}</strong>{" "}
+                  {tr(
+                    "terdaftar, kami telah mengirim link untuk mengatur ulang password. Cek kotak masuk (dan folder spam) Anda.",
+                    "is registered, we've sent a link to reset your password. Check your inbox (and your spam folder)."
+                  )}
                 </p>
                 <Link href="/login" className="text-sm text-[var(--color-brand-blue)] font-bold hover:underline">
-                  Back to log in
+                  {tr("Kembali ke halaman masuk", "Back to log in")}
                 </Link>
               </div>
             ) : (
@@ -82,7 +87,7 @@ export default function ForgotPasswordPage() {
                 <Input
                   label="Email"
                   type="email"
-                  placeholder="email@example.com"
+                  placeholder={tr("email@contoh.com", "email@example.com")}
                   icon={<Mail className="w-4 h-4" />}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -94,11 +99,11 @@ export default function ForgotPasswordPage() {
                   className="flex justify-center"
                 />
                 <Button type="submit" className="w-full text-base" isLoading={submitting} disabled={!captchaToken}>
-                  Send Reset Link
+                  {tr("Kirim Link Reset", "Send Reset Link")}
                 </Button>
                 <div className="text-center text-sm font-[var(--font-inter)]">
                   <Link href="/login" className="text-[var(--color-brand-blue)] font-bold hover:underline">
-                    Back to log in
+                    {tr("Kembali ke halaman masuk", "Back to log in")}
                   </Link>
                 </div>
               </form>

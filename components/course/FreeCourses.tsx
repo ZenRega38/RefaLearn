@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, GraduationCap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useTr } from "@/components/i18n/LangProvider";
 
 type FreeCourse = { id: string; title: string; course_slug: string; cover_image_url: string | null; category: string | null };
 
@@ -12,7 +13,8 @@ type FreeCourse = { id: string; title: string; course_slug: string; cover_image_
  * material that links to a course and costs 0. The admin manages them on
  * the materials page like any other product.
  */
-export function FreeCourses({ title = "Free Courses" }: { title?: string }) {
+export function FreeCourses({ title }: { title?: string }) {
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const [courses, setCourses] = useState<FreeCourse[]>([]);
 
@@ -36,7 +38,7 @@ export function FreeCourses({ title = "Free Courses" }: { title?: string }) {
   if (courses.length === 0) return null;
   return (
     <section className="space-y-3 font-[var(--font-inter)]">
-      <h2 className="text-2xl font-[var(--font-kalam)] text-[var(--color-ink)]">{title}</h2>
+      <h2 className="text-2xl font-[var(--font-kalam)] text-[var(--color-ink)]">{title ?? tr("Kursus Gratis", "Free Courses")}</h2>
       <div className="grid sm:grid-cols-2 gap-4">
         {courses.map((c) => (
           <Link
@@ -53,7 +55,7 @@ export function FreeCourses({ title = "Free Courses" }: { title?: string }) {
               </span>
             )}
             <div className="flex-1 min-w-0">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-success-green)]">Free · Interactive</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-success-green)]">{tr("Gratis · Interaktif", "Free · Interactive")}</span>
               <p className="font-bold text-[var(--color-ink)] leading-snug">{c.title}</p>
               {c.category && <p className="text-xs text-[var(--color-ink-soft)]">{c.category}</p>}
             </div>

@@ -19,10 +19,14 @@ import { dateStrToLocalDate, localDateToDateStr, todayStr, APP_TIMEZONE_LABEL } 
 import { formatDateStr } from "@/lib/format";
 import { PROFILE_COMPLETION_COLUMNS, missingProfileFields, needsGuardian, type ProfileCompletion } from "@/lib/profile";
 import { AlertCircle, Repeat, Wallet, Landmark } from "lucide-react";
+import { useLang } from "@/components/i18n/LangProvider";
+import { translator } from "@/lib/i18n";
 
 type ActiveContract = {
   id: string;
   content: string;
+  /** English translation (lib/contract-template); the Indonesian text is what is signed. */
+  content_en?: string | null;
   version: number;
 };
 
@@ -32,10 +36,11 @@ const PROFILE_URL = "/dashboard/profile?next=/schedule";
 type BankDetails = { bank_name?: string; account_number?: string; account_name?: string };
 type EwalletDetails = { provider?: string; number?: string; account_name?: string };
 
-const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
-
 export default function SchedulePage() {
   const router = useRouter();
+  const { lang } = useLang();
+  const tr = translator(lang);
+  const errorText = (err: unknown) => (err instanceof Error ? err.message : tr("Terjadi kesalahan.", "Something went wrong."));
   const [supabase] = useState(() => createClient());
 
   const [loading, setLoading] = useState(true);
@@ -74,11 +79,11 @@ export default function SchedulePage() {
     try {
       const res = await fetch('/api/availability', { cache: 'no-store' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Couldn't load the schedule");
+      if (!res.ok) throw new Error(data.error || "");
       setAllSlots(data.slots as Slot[]);
       setSlotsError(null);
     } catch (err) {
-      setSlotsError(errorText(err));
+      setSlotsError(err instanceof Error ? err.message : "");
     }
   }, []);
 
@@ -104,7 +109,7 @@ export default function SchedulePage() {
 
       const { data: contractData } = await supabase
         .from('contracts')
-        .select('id, content, version')
+        .select('*')
         .lte('effective_date', todayStr())
         .order('version', { ascending: false })
         .limit(1)
@@ -125,7 +130,7 @@ export default function SchedulePage() {
   const slotsForSelectedDate = allSlots.filter(s => s.date === selectedDate);
 
   // Booking needs a complete profile; free materials only need a login.
-  const missingProfile = userProfile?.role === 'student' ? missingProfileFields(userProfile, todayStr(), "en") : [];
+  const missingProfile = userProfile?.role === 'student' ? missingProfileFields(userProfile, todayStr(), lang) : [];
 
   const availableDates = useMemo(
     () => Array.from(new Set(allSlots.map(s => s.date))).map(dateStrToLocalDate),
@@ -162,7 +167,7 @@ export default function SchedulePage() {
       if (!res.ok) throw new Error(data.error);
       setRecurringPreview(data.dates);
     } catch (err) {
-      alert(`Couldn't check availability: ${errorText(err)}`);
+      alert(`${tr("Gagal mengecek ketersediaan", "Couldn't check availability")}: ${errorText(err)}`);
     } finally {
       setCheckingRecurring(false);
     }
@@ -177,18 +182,23 @@ export default function SchedulePage() {
     }
 
     if (userProfile.role !== 'student') {
-      alert("Bookings can only be made with a student account.");
+      alert(tr("Booking hanya bisa dilakukan dengan akun siswa.", "Bookings can only be made with a student account."));
       return;
     }
 
     if (missingProfile.length > 0) {
-      alert(`Please complete your profile before booking.\n\nStill missing:\n- ${missingProfile.join('\n- ')}`);
+      alert(
+        tr(
+          `Lengkapi profil terlebih dahulu sebelum booking.\n\nData yang masih kurang:\n- ${missingProfile.join('\n- ')}`,
+          `Please complete your profile before booking.\n\nStill missing:\n- ${missingProfile.join('\n- ')}`
+        )
+      );
       router.push(PROFILE_URL);
       return;
     }
 
     if (!activeContract) {
-      alert("The class agreement isn't available yet. Please contact the admin before booking.");
+      alert(tr("Kontrak/perjanjian kelas belum tersedia. Silakan hubungi admin sebelum melakukan booking.", "The class agreement isn't available yet. Please contact the admin before booking."));
       return;
     }
 
@@ -223,7 +233,7 @@ export default function SchedulePage() {
       });
 
       if (res.status === 409) {
-        alert(data.error || "Sorry, someone has just booked this slot. Please choose another one.");
+        alert(data.error || tr("Maaf, jadwal ini baru saja dipesan orang lain. Silakan pilih ulang.", "Sorry, someone has just booked this slot. Please choose another one."));
         resetSelection();
         await loadSlots();
         return;
@@ -242,13 +252,19 @@ export default function SchedulePage() {
 
       alert(
         sessionCount > 1
-          ? `Booking received! Your ${sessionCount} weekly sessions are waiting for the admin to confirm them.`
-          : "Booking received! Your session request is waiting for the admin to confirm it."
+          ? tr(
+              `Booking berhasil! ${sessionCount} sesi mingguan Anda sedang menunggu konfirmasi admin.`,
+              `Booking received! Your ${sessionCount} weekly sessions are waiting for the admin to confirm them.`
+            )
+          : tr(
+              "Booking berhasil! Permintaan jadwal Anda sedang menunggu konfirmasi admin.",
+              "Booking received! Your session request is waiting for the admin to confirm it."
+            )
       );
       router.push('/dashboard');
 
     } catch (err) {
-      alert(`Booking failed: ${errorText(err)}`);
+      alert(`${tr("Gagal melakukan booking", "Booking failed")}: ${errorText(err)}`);
     } finally {
       setBookingLoading(false);
     }
@@ -265,10 +281,10 @@ export default function SchedulePage() {
         .eq('id', prepaymentToPay.id);
       if (error) throw error;
 
-      alert("Payment proof sent. Once the admin confirms it, your old fees are cleared automatically.");
+      alert(tr("Bukti transfer terkirim. Setelah admin konfirmasi, denda lama Anda otomatis terhapus.", "Payment proof sent. Once the admin confirms it, your old fees are cleared automatically."));
       router.push('/dashboard');
     } catch (err) {
-      alert(`Couldn't send the proof: ${errorText(err)}`);
+      alert(`${tr("Gagal mengirim bukti", "Couldn't send the proof")}: ${errorText(err)}`);
     } finally {
       setSubmittingProof(false);
     }
@@ -282,10 +298,14 @@ export default function SchedulePage() {
 
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl mb-4 font-[var(--font-kalam)]">
-            Book a <SketchBox color="var(--color-brand-blue)">Class</SketchBox>
+            {tr("Booking", "Book a")} <SketchBox color="var(--color-brand-blue)">{tr("Jadwal Kelas", "Class")}</SketchBox>
           </h1>
           <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-            Choose a date and time for your 1-on-1 session. All times are in {APP_TIMEZONE_LABEL} (Tarakan).
+            {tr(
+              "Pilih tanggal dan waktu yang sesuai untuk sesi 1-on-1 Anda. Semua jam dalam",
+              "Choose a date and time for your 1-on-1 session. All times are in"
+            )}{" "}
+            {APP_TIMEZONE_LABEL} (Tarakan).
           </p>
         </div>
 
@@ -293,8 +313,10 @@ export default function SchedulePage() {
           <div className="max-w-5xl mx-auto mb-8 flex items-start gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-danger-red)]/10 border border-[var(--color-danger-red)]/30 text-[var(--color-danger-red)] font-[var(--font-inter)] text-sm">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p>
-              Booking is temporarily closed while the class agreement is being prepared.
-              Please contact us on WhatsApp for schedule information.
+              {tr(
+                "Booking untuk sementara belum dibuka karena perjanjian kelas sedang disiapkan. Silakan hubungi kami melalui WhatsApp untuk informasi jadwal.",
+                "Booking is temporarily closed while the class agreement is being prepared. Please contact us on WhatsApp for schedule information."
+              )}
             </p>
           </div>
         )}
@@ -304,12 +326,12 @@ export default function SchedulePage() {
             <div className="flex items-start gap-3 flex-1">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-[var(--color-warning-amber)]" />
               <p>
-                Before booking, please complete your profile: {missingProfile.join(', ')}.
-                The admin uses these details to verify your booking.
+                {tr("Sebelum booking, lengkapi profil Anda dulu:", "Before booking, please complete your profile:")} {missingProfile.join(', ')}.{" "}
+                {tr("Data ini dipakai admin untuk memverifikasi pesanan Anda.", "The admin uses these details to verify your booking.")}
               </p>
             </div>
             <a href={PROFILE_URL} className="shrink-0 font-semibold text-[var(--color-brand-blue)] hover:underline">
-              Complete Profile
+              {tr("Lengkapi Profil", "Complete Profile")}
             </a>
           </div>
         )}
@@ -318,8 +340,11 @@ export default function SchedulePage() {
           <div className="max-w-5xl mx-auto mb-8 flex items-start gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-danger-red)]/10 border border-[var(--color-danger-red)]/30 text-[var(--color-danger-red)] font-[var(--font-inter)] text-sm">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p>
-              One of your invoices is past its due date, so new bookings are paused for now.
-              Please complete the payment in <a href="/dashboard/invoices" className="underline font-semibold">My Invoices</a>.
+              {tr(
+                "Ada tagihan Anda yang melewati jatuh tempo, sehingga booking baru dijeda sementara. Silakan selesaikan pembayaran di",
+                "One of your invoices is past its due date, so new bookings are paused for now. Please complete the payment in"
+              )}{" "}
+              <a href="/dashboard/invoices" className="underline font-semibold">{tr("Tagihan Saya", "My Invoices")}</a>.
             </p>
           </div>
         )}
@@ -327,7 +352,7 @@ export default function SchedulePage() {
         {slotsError && (
           <div className="max-w-5xl mx-auto mb-8 flex items-start gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-danger-red)]/10 border border-[var(--color-danger-red)]/30 text-[var(--color-danger-red)] font-[var(--font-inter)] text-sm">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <p>Couldn&apos;t load the schedule: {slotsError}</p>
+            <p>{tr("Gagal memuat jadwal", "Couldn't load the schedule")}{slotsError ? `: ${slotsError}` : "."}</p>
           </div>
         )}
 
@@ -335,7 +360,7 @@ export default function SchedulePage() {
 
           <div className="lg:w-1/3 flex flex-col items-center lg:items-start">
             <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-4">
-              1. Choose a Date
+              {tr("1. Pilih Tanggal", "1. Choose a Date")}
             </h2>
             <DatePicker
               selected={selectedDate ? dateStrToLocalDate(selectedDate) : undefined}
@@ -349,20 +374,20 @@ export default function SchedulePage() {
 
           <div className="lg:w-2/3">
             <h2 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-4">
-              2. Choose a Time
+              {tr("2. Pilih Waktu", "2. Choose a Time")}
             </h2>
 
             <Card variant="sketch" className="p-6 h-full flex flex-col">
               {selectedDate ? (
                 <div className="mb-6 pb-4 border-b border-dashed border-[var(--color-line)]">
                   <h3 className="font-semibold text-[var(--color-brand-blue)] font-[var(--font-inter)]">
-                    Available times on {formatDateStr(selectedDate, 'EEEE, dd MMMM yyyy', 'en')}
+                    {tr("Jadwal Tersedia untuk", "Available times on")} {formatDateStr(selectedDate, 'EEEE, dd MMMM yyyy', lang)}
                   </h3>
                 </div>
               ) : (
                 <div className="mb-6 pb-4 border-b border-dashed border-[var(--color-line)]">
                   <h3 className="font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                    Please choose a date first
+                    {tr("Silakan pilih tanggal terlebih dahulu", "Please choose a date first")}
                   </h3>
                 </div>
               )}
@@ -381,7 +406,7 @@ export default function SchedulePage() {
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-[var(--color-ink-soft)] font-[var(--font-inter)] italic">
-                    Waiting for a date...
+                    {tr("Menunggu pilihan tanggal...", "Waiting for a date...")}
                   </div>
                 )}
               </div>
@@ -391,7 +416,7 @@ export default function SchedulePage() {
                 <div className="mt-6 pt-6 border-t border-dashed border-[var(--color-line)]">
                   <h3 className="text-sm font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-3 flex items-center gap-2">
                     <Repeat className="w-4 h-4 text-[var(--color-brand-blue)]" />
-                    3. Number of Sessions (optional: book several weeks at once)
+                    {tr("3. Jumlah Sesi (opsional — booking mingguan sekaligus)", "3. Number of Sessions (optional: book several weeks at once)")}
                   </h3>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {SESSION_COUNT_OPTIONS.map((count) => (
@@ -404,14 +429,16 @@ export default function SchedulePage() {
                           : "bg-white border-[var(--color-line)] text-[var(--color-ink)] hover:border-[var(--color-brand-blue)]"
                           }`}
                       >
-                        {count === 1 ? "1x (once)" : `${count}x`}
+                        {count === 1 ? tr("1x (sekali)", "1x (once)") : `${count}x`}
                       </button>
                     ))}
                   </div>
                   {sessionCount > 1 && (
                     <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-                      Automatically scheduled every {formatDateStr(selectedSlot.date, 'EEEE', 'en')} at{" "}
-                      {selectedSlot.start_time} {APP_TIMEZONE_LABEL}, for {sessionCount} weeks in a row.
+                      {tr(
+                        `Akan otomatis dijadwalkan tiap hari ${formatDateStr(selectedSlot.date, 'EEEE', lang)} jam ${selectedSlot.start_time} ${APP_TIMEZONE_LABEL}, ${sessionCount} minggu berturut-turut.`,
+                        `Automatically scheduled every ${formatDateStr(selectedSlot.date, 'EEEE', lang)} at ${selectedSlot.start_time} ${APP_TIMEZONE_LABEL}, for ${sessionCount} weeks in a row.`
+                      )}
                     </p>
                   )}
                 </div>
@@ -428,10 +455,13 @@ export default function SchedulePage() {
                       className="mt-1"
                     />
                     <span className="text-sm font-[var(--font-inter)] text-amber-900">
-                      <strong>Pay for this package up front</strong> (transfer before the classes start, instead of the usual pay-after-class system).
-                      In return, your unpaid cancellation fees of{" "}
-                      <strong>{formatPrice(unpaidFees.reduce((s, f) => s + f.amount, 0))}</strong> will be{" "}
-                      <strong>waived for free</strong>.
+                      <strong>{tr("Bayar paket ini di muka", "Pay for this package up front")}</strong>{" "}
+                      {tr(
+                        "(transfer sebelum kelas dimulai, bukan sistem bayar-setelah-kelas seperti biasa) — dengan ini, denda pembatalan Anda yang belum lunas sebesar",
+                        "(transfer before the classes start, instead of the usual pay-after-class system). In return, your unpaid cancellation fees of"
+                      )}{" "}
+                      <strong>{formatPrice(unpaidFees.reduce((s, f) => s + f.amount, 0))}</strong> {tr("akan", "will be")}{" "}
+                      <strong>{tr("dihapus gratis", "waived for free")}</strong>.
                     </span>
                   </label>
                 </div>
@@ -441,7 +471,7 @@ export default function SchedulePage() {
               {sessionCount > 1 && recurringPreview && (
                 <div className="mt-4 p-4 rounded-[var(--radius-card)] bg-[var(--color-paper-bg-alt)] border border-dashed border-[var(--color-line)]">
                   <p className="text-xs font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">
-                    Preview of {recurringPreview.length} sessions:
+                    {tr(`Preview ${recurringPreview.length} sesi:`, `Preview of ${recurringPreview.length} sessions:`)}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {recurringPreview.map((p) => (
@@ -452,14 +482,17 @@ export default function SchedulePage() {
                           : "bg-white text-[var(--color-ink-soft)]"
                           }`}
                       >
-                        {formatDateStr(p.date, 'dd MMM yyyy', 'en')}
+                        {formatDateStr(p.date, 'dd MMM yyyy', lang)}
                       </span>
                     ))}
                   </div>
                   {hasRecurringConflict && (
                     <p className="text-xs text-[var(--color-danger-red)] font-[var(--font-inter)] mt-2 flex items-center gap-1">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      Some dates clash, fall on a holiday or aren&apos;t open yet (crossed out above). Choose fewer sessions or another day/time.
+                      {tr(
+                        "Ada tanggal yang bentrok/libur/belum dibuka (dicoret di atas). Pilih jumlah sesi lebih sedikit atau jam/hari lain.",
+                        "Some dates clash, fall on a holiday or aren't open yet (crossed out above). Choose fewer sessions or another day/time."
+                      )}
                     </p>
                   )}
                 </div>
@@ -469,7 +502,7 @@ export default function SchedulePage() {
                 <div>
                   {selectedSlot && (
                     <p className="text-sm font-semibold text-[var(--color-ink)] font-[var(--font-inter)]">
-                      Selected session: {selectedSlot.start_time} - {selectedSlot.end_time} {APP_TIMEZONE_LABEL}
+                      {tr("Sesi Terpilih", "Selected session")}: {selectedSlot.start_time} - {selectedSlot.end_time} {APP_TIMEZONE_LABEL}
                     </p>
                   )}
                 </div>
@@ -479,7 +512,7 @@ export default function SchedulePage() {
                   disabled={!selectedSlot || bookingLoading || checkingRecurring || !activeContract || hasRecurringConflict || hasOverdue}
                   isLoading={bookingLoading || checkingRecurring}
                 >
-                  {sessionCount > 1 && !recurringPreview ? "Check Availability" : "Continue Booking"}
+                  {sessionCount > 1 && !recurringPreview ? tr("Cek Ketersediaan", "Check Availability") : tr("Lanjut Booking", "Continue Booking")}
                 </Button>
               </div>
             </Card>
@@ -493,6 +526,7 @@ export default function SchedulePage() {
         onClose={() => setIsContractOpen(false)}
         onAccept={handleContractAccept}
         contractHtml={activeContract?.content || ""}
+        contractHtmlEn={activeContract?.content_en}
         expectedName={userProfile?.full_name || ""}
         requireGuardian={needsGuardian(userProfile?.birth_date, todayStr())}
         guardianName={userProfile?.guardian_name || ""}
@@ -502,34 +536,34 @@ export default function SchedulePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[var(--radius-card)] p-6 space-y-4">
             <h3 className="font-[var(--font-kalam)] text-2xl text-[var(--color-brand-blue)]">
-              Pay Up Front: {formatPrice(prepaymentToPay.amount)}
+              {tr("Bayar di Muka", "Pay Up Front")}: {formatPrice(prepaymentToPay.amount)}
             </h3>
             <div className="bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)] rounded-[var(--radius-card)] p-4 font-[var(--font-inter)] text-sm space-y-2">
               {bankDetails?.account_number && (
-                <p className="flex items-center gap-2"><Landmark className="w-4 h-4" /> {bankDetails.bank_name}: <strong>{bankDetails.account_number}</strong> (account name: {bankDetails.account_name})</p>
+                <p className="flex items-center gap-2"><Landmark className="w-4 h-4" /> {bankDetails.bank_name}: <strong>{bankDetails.account_number}</strong> {tr(`a.n. ${bankDetails.account_name}`, `(account name: ${bankDetails.account_name})`)}</p>
               )}
               {ewalletDetails?.number && (
-                <p className="flex items-center gap-2"><Wallet className="w-4 h-4" /> {ewalletDetails.provider}: <strong>{ewalletDetails.number}</strong> (account name: {ewalletDetails.account_name})</p>
+                <p className="flex items-center gap-2"><Wallet className="w-4 h-4" /> {ewalletDetails.provider}: <strong>{ewalletDetails.number}</strong> {tr(`a.n. ${ewalletDetails.account_name}`, `(account name: ${ewalletDetails.account_name})`)}</p>
               )}
             </div>
             <Input
               type="file"
-              label="Upload Payment Proof"
+              label={tr("Upload Bukti Transfer", "Upload Payment Proof")}
               accept="image/*,application/pdf"
               onChange={(e) => setProofFile(e.target.files?.[0] || null)}
             />
             <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              You can also upload it later from My Sessions in your dashboard.
+              {tr("Bisa juga diunggah nanti dari menu Sesi Saya di dashboard.", "You can also upload it later from My Sessions in your dashboard.")}
             </p>
             <div className="flex justify-end gap-3">
               <Button
                 variant="ghost"
                 onClick={() => { setPrepaymentToPay(null); router.push('/dashboard'); }}
               >
-                Later
+                {tr("Nanti Saja", "Later")}
               </Button>
               <Button onClick={handleSubmitPrepaymentProof} isLoading={submittingProof} disabled={!proofFile}>
-                Send Proof
+                {tr("Kirim Bukti", "Send Proof")}
               </Button>
             </div>
           </div>

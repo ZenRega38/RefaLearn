@@ -1,7 +1,8 @@
 "use client";
 
 import { DayPicker } from "react-day-picker";
-import { enUS } from "date-fns/locale";
+import { enUS, id } from "date-fns/locale";
+import { useLang } from "@/components/i18n/LangProvider";
 import "react-day-picker/style.css";
 
 interface DatePickerProps {
@@ -12,6 +13,7 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ selected, onSelect, availableDates, disabledDays }: DatePickerProps) {
+  const { lang } = useLang();
 
   // Custom modifier to highlight dates that have available slots
   const modifiers = {
@@ -79,7 +81,7 @@ export function DatePicker({ selected, onSelect, availableDates, disabledDays }:
         mode="single"
         selected={selected}
         onSelect={onSelect}
-        locale={enUS}
+        locale={lang === "en" ? enUS : id}
         modifiers={modifiers}
         modifiersStyles={modifiersStyles}
         disabled={disabledDays || defaultDisabledDays}

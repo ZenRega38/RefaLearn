@@ -7,6 +7,7 @@ import { CategoryBadges } from "@/components/ui/CategoryBadges";
 import { PillDropdown } from "@/components/ui/PillDropdown";
 import { splitCategories } from "@/lib/format";
 import { Calendar, ArrowRight, LayoutGrid, List } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
 
 export type NewsListItem = {
   id: string;
@@ -21,16 +22,18 @@ export type NewsListItem = {
 /** Client-side grid/list toggle + category filter over server-fetched posts. */
 export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [category, setCategory] = useState("All");
+  const tr = useTr();
+  // "" is "all categories".
+  const [category, setCategory] = useState("");
   // A post can carry several comma-separated categories; each one becomes its own filter.
-  const categories = ["All", ...Array.from(new Set(posts.flatMap((p) => splitCategories(p.category))))];
-  const visible = category === "All" ? posts : posts.filter((p) => splitCategories(p.category).includes(category));
+  const categories = Array.from(new Set(posts.flatMap((p) => splitCategories(p.category))));
+  const visible = category === "" ? posts : posts.filter((p) => splitCategories(p.category).includes(category));
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <PillDropdown
-          options={categories.map((c) => ({ key: c, label: c }))}
+          options={[{ key: "", label: tr("Semua", "All") }, ...categories.map((c) => ({ key: c, label: c }))]}
           value={category}
           onChange={setCategory}
           className="w-full md:w-auto"
@@ -38,7 +41,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
         <div className="flex gap-1 bg-white border border-[var(--color-line)] rounded-full p-1 shrink-0">
           <button
             onClick={() => setView("grid")}
-            aria-label="Grid view"
+            aria-label={tr("Tampilan grid", "Grid view")}
             aria-pressed={view === "grid"}
             className={`p-2 rounded-full transition-colors ${view === "grid" ? "bg-[var(--color-brand-blue)] text-white" : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]"}`}
           >
@@ -46,7 +49,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
           </button>
           <button
             onClick={() => setView("list")}
-            aria-label="List view"
+            aria-label={tr("Tampilan daftar", "List view")}
             aria-pressed={view === "list"}
             className={`p-2 rounded-full transition-colors ${view === "list" ? "bg-[var(--color-brand-blue)] text-white" : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-bg-alt)]"}`}
           >
@@ -57,7 +60,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
 
       {visible.length === 0 ? (
         <div className="text-center py-20 bg-white/50 rounded-[var(--radius-card)] border-2 border-dashed border-[var(--color-line)]">
-          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">No stories in this category yet.</p>
+          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Belum ada story di kategori ini.", "No stories in this category yet.")}</p>
         </div>
       ) : view === "grid" ? (
         // auto-rows-fr: every card is as tall as the tallest one, across rows too.
@@ -99,7 +102,7 @@ export function NewsBrowser({ posts }: { posts: NewsListItem[] }) {
                   </div>
 
                   <div className="mt-auto flex items-center gap-2 text-sm font-semibold text-[var(--color-accent-coral)] font-[var(--font-inter)]">
-                    Read more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    {tr("Baca selengkapnya", "Read more")} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </Card>

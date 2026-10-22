@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Flame, Zap } from "lucide-react";
 import { XP_EVENT, type GamificationStats, type XpEventDetail } from "@/lib/gamification";
+import { useLang } from "@/components/i18n/LangProvider";
+import { documentTr, translator } from "@/lib/i18n";
 
 type Toast = { id: number; xp: number; label?: string };
 
@@ -14,6 +16,8 @@ type Toast = { id: number; xp: number; label?: string };
  * (see announceXp in lib/gamification).
  */
 export function XpBadge() {
+  const { lang } = useLang();
+  const tr = translator(lang);
   const [stats, setStats] = useState<GamificationStats | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
@@ -38,7 +42,7 @@ export function XpBadge() {
       .then((j) => {
         if (!alive || !j) return;
         setStats(j.stats);
-        if (j.awarded > 0) push(j.awarded, "Daily login");
+        if (j.awarded > 0) push(j.awarded, documentTr()("Login harian", "Daily login"));
       })
       .catch(() => {});
     return () => {
@@ -62,7 +66,10 @@ export function XpBadge() {
         <Link
           href="/dashboard"
           id="nav-xp-badge"
-          title={`Level ${stats.level.level} ${stats.title} · Study streak ${stats.study.current} ${stats.study.current === 1 ? "day" : "days"} · Login streak ${stats.login.current} ${stats.login.current === 1 ? "day" : "days"}`}
+          title={tr(
+            `Level ${stats.level.level} ${stats.title} · Streak belajar ${stats.study.current} hari · Streak login ${stats.login.current} hari`,
+            `Level ${stats.level.level} ${stats.title} · Study streak ${stats.study.current} ${stats.study.current === 1 ? "day" : "days"} · Login streak ${stats.login.current} ${stats.login.current === 1 ? "day" : "days"}`
+          )}
           className="flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white/80 px-3 py-1.5 text-xs font-bold hover:border-[var(--color-accent-coral)] transition-colors"
           style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
         >
@@ -72,7 +79,7 @@ export function XpBadge() {
           </span>
           <span className="flex items-center gap-1 text-[var(--color-brand-blue)]">
             <Zap className="w-4 h-4 fill-[var(--color-accent-yellow)] text-[var(--color-warning-amber)]" />
-            {stats.totalXp.toLocaleString("en-US")}
+            {stats.totalXp.toLocaleString(lang === "en" ? "en-US" : "id-ID")}
             <span className="hidden sm:inline">XP</span>
           </span>
         </Link>

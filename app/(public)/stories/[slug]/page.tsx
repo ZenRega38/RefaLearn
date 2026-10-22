@@ -12,9 +12,8 @@ import { siteUrl } from "@/lib/site";
 import { FOUNDER, founderLd, ldJson, organizationLd } from "@/lib/seo";
 import { youtubeEmbedUrl } from "@/lib/youtube";
 import { checkYoutube } from "@/lib/youtube-server";
-
-export const revalidate = 60; // Revalidate every minute
-
+import { getLang } from "@/lib/i18n-server";
+import { translator } from "@/lib/i18n";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -79,9 +78,12 @@ export default async function NewsDetailPage({ params }: Props) {
     notFound();
   }
 
+  const lang = await getLang();
+  const tr = translator(lang);
+
   // The header shows the event's date; the publish date sits at the bottom.
-  const formattedDate = storyDate(post, 'dd MMMM yyyy');
-  const publishedOn = post.published_at ? formatTimestamp(post.published_at, 'dd MMMM yyyy', 'en') : '';
+  const formattedDate = storyDate(post, 'dd MMMM yyyy', lang);
+  const publishedOn = post.published_at ? formatTimestamp(post.published_at, 'dd MMMM yyyy', lang) : '';
 
   // Related posts: those sharing the most categories first, topped up with the latest others.
   const supabase = createPublicClient();
@@ -134,7 +136,7 @@ export default async function NewsDetailPage({ params }: Props) {
         <div className="container-main max-w-3xl mx-auto">
 
           <Link href="/stories" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] transition-colors font-[var(--font-inter)] mb-8">
-            <ArrowLeft className="w-4 h-4" /> Back to Stories
+            <ArrowLeft className="w-4 h-4" /> {tr("Kembali ke Stories", "Back to Stories")}
           </Link>
 
           <div className="mb-8">
@@ -183,7 +185,7 @@ export default async function NewsDetailPage({ params }: Props) {
 
           {publishedOn && (
             <p className="mt-10 text-sm text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Published on <time dateTime={post.published_at}>{publishedOn}</time>
+              {tr("Diterbitkan pada", "Published on")} <time dateTime={post.published_at}>{publishedOn}</time>
             </p>
           )}
 
@@ -193,7 +195,7 @@ export default async function NewsDetailPage({ params }: Props) {
 
           {related.length > 0 && (
             <div className="mt-12">
-              <h2 className="text-2xl mb-6">More Stories</h2>
+              <h2 className="text-2xl mb-6">{tr("Stories Lainnya", "More Stories")}</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {related.map((r) => (
                   <Link key={r.id} href={`/stories/${r.slug}`} className="group">
@@ -202,8 +204,8 @@ export default async function NewsDetailPage({ params }: Props) {
                       <h3 className="font-bold font-[var(--font-inter)] text-[var(--color-ink)] group-hover:text-[var(--color-brand-blue)] transition-colors leading-snug">
                         {r.title}
                       </h3>
-                      {storyDate(r) && (
-                        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-2">{storyDate(r)}</p>
+                      {storyDate(r, undefined, lang) && (
+                        <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)] mt-2">{storyDate(r, undefined, lang)}</p>
                       )}
                     </Card>
                   </Link>

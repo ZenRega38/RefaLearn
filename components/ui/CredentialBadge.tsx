@@ -3,6 +3,7 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
 
 interface CredentialBadgeProps {
     /** e.g. "IELTS 7.0" or "CEFR C1 (Advanced)" */
@@ -25,6 +26,7 @@ interface CredentialBadgeProps {
  * for mouse users, not the only way in.
  */
 export function CredentialBadge({ label, imageSrc, imageAlt, icon }: CredentialBadgeProps) {
+    const tr = useTr();
     const [showPreview, setShowPreview] = useState(false);
     const [showFullscreen, setShowFullscreen] = useState(false);
 
@@ -58,7 +60,7 @@ export function CredentialBadge({ label, imageSrc, imageAlt, icon }: CredentialB
                     setShowFullscreen(true);
                 }}
                 className="flex items-center gap-2 text-sm font-[var(--font-inter)] bg-white px-3 py-1.5 rounded-full border border-[var(--color-line)] shadow-sm hover:shadow-md hover:border-[var(--color-brand-blue)] transition-all cursor-pointer"
-                aria-label={`View certificate: ${label}`}
+                aria-label={tr(`Lihat sertifikat ${label}`, `View certificate: ${label}`)}
             >
                 {icon}
                 <span>{label}</span>
@@ -78,7 +80,7 @@ export function CredentialBadge({ label, imageSrc, imageAlt, icon }: CredentialB
                             className="w-full h-32 object-cover rounded-[calc(var(--radius-card)-4px)]"
                         />
                         <p className="text-center text-xs text-[var(--color-ink-soft)] mt-1.5 font-[var(--font-inter)]">
-                            Click to enlarge
+                            {tr("Klik untuk perbesar", "Click to enlarge")}
                         </p>
                     </div>
                     {/* Chat-bubble tail */}
@@ -96,7 +98,7 @@ export function CredentialBadge({ label, imageSrc, imageAlt, icon }: CredentialB
                         type="button"
                         onClick={() => setShowFullscreen(false)}
                         className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-                        aria-label="Close"
+                        aria-label={tr("Tutup", "Close")}
                     >
                         <X className="w-5 h-5" />
                     </button>

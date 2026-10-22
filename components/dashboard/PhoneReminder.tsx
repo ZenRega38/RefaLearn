@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useTr } from "@/components/i18n/LangProvider";
 
 /**
  * Accounts made with "Daftar dengan Google" have no phone number yet (Google
@@ -12,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
  */
 export function PhoneReminder() {
   const pathname = usePathname();
+  const tr = useTr();
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
@@ -32,9 +34,14 @@ export function PhoneReminder() {
     <div className="container-main pt-4">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-accent-yellow)] bg-[var(--color-accent-yellow)]/15 px-4 py-3 font-[var(--font-inter)] text-sm text-[var(--color-ink)]">
         <Phone className="w-4 h-4 text-[var(--color-warning-amber)] shrink-0" />
-        <p className="flex-1">Add your WhatsApp number so your tutor can reach you about schedules and payments.</p>
+        <p className="flex-1">
+          {tr(
+            "Lengkapi nomor WhatsApp Anda agar tutor bisa menghubungi Anda tentang jadwal dan pembayaran.",
+            "Add your WhatsApp number so your tutor can reach you about schedules and payments."
+          )}
+        </p>
         <Link href="/dashboard/profile" className="font-bold text-[var(--color-brand-blue)] hover:underline shrink-0">
-          Complete profile
+          {tr("Lengkapi profil", "Complete profile")}
         </Link>
       </div>
     </div>

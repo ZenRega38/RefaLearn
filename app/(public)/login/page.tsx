@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { safeNextPath } from "@/lib/redirect";
@@ -17,13 +17,16 @@ import { Button } from "@/components/ui/Button";
 import { SketchBox } from "@/components/sketch/SketchBox";
 import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
 import { Mail, Lock } from "lucide-react";
+import { useTr } from "@/components/i18n/LangProvider";
+import type { Tr } from "@/lib/i18n";
 
-const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email format" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-});
+const loginSchema = (tr: Tr) =>
+  z.object({
+    email: z.string().email({ message: tr("Format email tidak valid", "Invalid email format") }),
+    password: z.string().min(6, { message: tr("Password minimal 6 karakter", "Password must be at least 6 characters") }),
+  });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<ReturnType<typeof loginSchema>>;
 
 export default function LoginPage() {
   return (
@@ -35,12 +38,13 @@ export default function LoginPage() {
 
 function LoginForm() {
   const searchParams = useSearchParams();
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "link"
-      ? "This link has expired or is invalid. Please try again."
+      ? tr("Link sudah kedaluwarsa atau tidak valid. Silakan coba lagi.", "This link has expired or is invalid. Please try again.")
       : searchParams.get("error") === "oauth"
-        ? "Google sign-in failed or was cancelled. Please try again."
+        ? tr("Masuk dengan Google gagal atau dibatalkan. Silakan coba lagi.", "Google sign-in failed or was cancelled. Please try again.")
         : null
   );
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -50,14 +54,14 @@ function LoginForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(useMemo(() => loginSchema(tr), [tr])),
   });
 
   const onSubmit = async (data: LoginFormValues) => {
     setError(null);
 
     if (!captchaToken) {
-      setError("Please complete the captcha first.");
+      setError(tr("Mohon selesaikan verifikasi captcha terlebih dahulu.", "Please complete the captcha first."));
       return;
     }
 
@@ -93,10 +97,13 @@ function LoginForm() {
       const message = err instanceof Error ? err.message : "";
       setError(
         message === "Invalid login credentials"
-          ? "Incorrect email or password."
+          ? tr("Email atau password salah.", "Incorrect email or password.")
           : message === "Email not confirmed"
-            ? "Your email hasn't been confirmed yet. Check your inbox for the confirmation link."
-            : message || "Couldn't log in. Please check your email and password."
+            ? tr(
+                "Email Anda belum dikonfirmasi. Cek kotak masuk email Anda untuk link konfirmasi.",
+                "Your email hasn't been confirmed yet. Check your inbox for the confirmation link."
+              )
+            : message || tr("Gagal masuk. Periksa kembali email dan password Anda.", "Couldn't log in. Please check your email and password.")
       );
     }
   };
@@ -108,10 +115,10 @@ function LoginForm() {
 
           <div className="text-center mb-8">
             <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-brand-blue)] mb-2">
-              Welcome Back
+              {tr("Selamat Datang Kembali", "Welcome Back")}
             </h1>
             <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              Log in to your <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> account
+              {tr("Masuk ke akun", "Log in to your")} <SketchBox color="var(--color-accent-coral)">Refa Learn</SketchBox> {tr("Anda", "account")}
             </p>
           </div>
 
@@ -122,14 +129,14 @@ function LoginForm() {
               </div>
             )}
 
-            <GoogleButton label="Log in with Google" next={searchParams.get("next")} />
-            <OrDivider text="or log in with email" />
+            <GoogleButton label={tr("Masuk dengan Google", "Log in with Google")} next={searchParams.get("next")} />
+            <OrDivider text={tr("atau masuk dengan email", "or log in with email")} />
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <Input
                 label="Email"
                 type="email"
-                placeholder="email@example.com"
+                placeholder={tr("email@contoh.com", "email@example.com")}
                 icon={<Mail className="w-4 h-4" />}
                 {...register("email")}
                 error={errors.email?.message}
@@ -146,7 +153,7 @@ function LoginForm() {
                 />
                 <div className="text-right">
                   <Link href="/forgot-password" className="text-xs font-[var(--font-inter)] text-[var(--color-brand-blue)] hover:underline">
-                    Forgot password?
+                    {tr("Lupa password?", "Forgot password?")}
                   </Link>
                 </div>
               </div>
@@ -165,15 +172,15 @@ function LoginForm() {
                   isLoading={isSubmitting}
                   disabled={!captchaToken}
                 >
-                  Log in
+                  {tr("Masuk", "Log in")}
                 </Button>
               </div>
             </form>
 
             <div className="mt-8 pt-6 border-t border-dashed border-[var(--color-line)] text-center text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-              Don&apos;t have an account?{" "}
+              {tr("Belum punya akun?", "Don't have an account?")}{" "}
               <Link href={`/register${searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next')!)}` : ''}`} className="text-[var(--color-brand-blue)] font-bold hover:underline">
-                Sign up now
+                {tr("Daftar sekarang", "Sign up now")}
               </Link>
             </div>
           </Card>

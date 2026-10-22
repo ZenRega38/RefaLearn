@@ -12,11 +12,13 @@ import { LimitedOffer, PriceTag } from "@/components/ui/PriceTag";
 import { BookOpen, ArrowLeft, Trash2, ShoppingCart } from "lucide-react";
 import { formatPrice, validBefore } from "@/lib/pricing";
 import { clearCart, removeFromCart, useCart } from "@/lib/cart";
+import { useTr } from "@/components/i18n/LangProvider";
 
 type CartItem = { id: string; title: string; slug: string; category: string; price: number; compare_at_price: number | null; cover_image_url: string | null };
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const tr = useTr();
   const [supabase] = useState(() => createClient());
   const cart = useCart();
   const [items, setItems] = useState<CartItem[]>([]);
@@ -65,7 +67,7 @@ export default function CheckoutPage() {
       router.push(data.order?.status === "confirmed" ? "/dashboard/materials" : `/dashboard/materials/pay/${data.order.id}`);
     } catch (err) {
       setSubmitting(false);
-      alert(`Couldn't create the order: ${err instanceof Error ? err.message : ""}`);
+      alert(`${tr("Gagal membuat pesanan", "Couldn't create the order")}: ${err instanceof Error ? err.message : ""}`);
     }
   };
 
@@ -74,20 +76,20 @@ export default function CheckoutPage() {
       <div className="container-main max-w-3xl mx-auto space-y-8">
         <Link href="/materials" className="inline-flex items-center text-[var(--color-ink-soft)] hover:text-[var(--color-brand-blue)] font-[var(--font-inter)] text-sm transition-colors group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Back to Catalog
+          {tr("Kembali ke Katalog", "Back to Catalog")}
         </Link>
 
         <h1 className="text-3xl font-[var(--font-kalam)] text-[var(--color-ink)] flex items-center gap-2">
-          <ShoppingCart className="w-8 h-8 text-[var(--color-brand-blue)]" /> Course Cart
+          <ShoppingCart className="w-8 h-8 text-[var(--color-brand-blue)]" /> {tr("Keranjang Materi", "Course Cart")}
         </h1>
 
         {loading ? (
-          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">Loading cart...</p>
+          <p className="text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Memuat keranjang...", "Loading cart...")}</p>
         ) : items.length === 0 ? (
           <Card className="text-center py-16 bg-white/50 border-dashed border-[var(--color-line)]">
             <BookOpen className="w-16 h-16 text-[var(--color-line)] mx-auto mb-4" />
-            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">Your cart is empty</h3>
-            <Button href="/materials" className="mt-4">Browse the Course Catalog</Button>
+            <h3 className="text-xl font-bold font-[var(--font-inter)] text-[var(--color-ink)] mb-2">{tr("Keranjang masih kosong", "Your cart is empty")}</h3>
+            <Button href="/materials" className="mt-4">{tr("Lihat Katalog Materi", "Browse the Course Catalog")}</Button>
           </Card>
         ) : (
           <Card variant="sketch" className="p-0 overflow-hidden">
@@ -115,7 +117,7 @@ export default function CheckoutPage() {
                   <div className="hidden sm:block whitespace-nowrap">
                     <PriceTag price={item.price} before={item.compare_at_price} size="sm" stacked align="end" />
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="px-2 text-[var(--color-danger-red)]" aria-label="Remove from cart">
+                  <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)} className="px-2 text-[var(--color-danger-red)]" aria-label={tr("Hapus dari keranjang", "Remove from cart")}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -123,23 +125,26 @@ export default function CheckoutPage() {
             </div>
             <div className="bg-[var(--color-paper-bg-alt)] border-t border-[var(--color-line)] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="font-[var(--font-inter)]">
-                <div className="text-sm text-[var(--color-ink-soft)]">Total ({items.length} {items.length === 1 ? "course" : "courses"})</div>
+                <div className="text-sm text-[var(--color-ink-soft)]">Total ({items.length} {tr("materi", items.length === 1 ? "course" : "courses")})</div>
                 {totalBefore > total && (
                   <div className="text-sm text-[var(--color-ink-soft)] line-through">{formatPrice(totalBefore)}</div>
                 )}
                 <div className="text-2xl font-bold text-[var(--color-brand-blue)]">{formatPrice(total)}</div>
                 {totalBefore > total && (
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-[var(--color-success-green)]">You save {formatPrice(totalBefore - total)}</span>
+                    <span className="text-sm font-semibold text-[var(--color-success-green)]">{tr("Kamu hemat", "You save")} {formatPrice(totalBefore - total)}</span>
                     <LimitedOffer />
                   </div>
                 )}
                 <p className="text-xs text-[var(--color-ink-soft)] mt-1">
-                  Once the order is created, you&apos;ll go straight to the QRIS payment and proof upload page.
+                  {tr(
+                    "Setelah pesanan dibuat, kamu langsung diarahkan ke halaman pembayaran QRIS & upload bukti.",
+                    "Once the order is created, you'll go straight to the QRIS payment and proof upload page."
+                  )}
                 </p>
               </div>
               <Button onClick={handleCheckout} isLoading={submitting} className="w-full sm:w-auto">
-                Place Order
+                {tr("Buat Pesanan", "Place Order")}
               </Button>
             </div>
           </Card>

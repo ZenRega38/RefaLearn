@@ -2,9 +2,11 @@ import { format, parseISO } from "date-fns";
 import { enUS, id } from "date-fns/locale";
 import { dateStrToLocalDate } from "@/lib/time";
 
-/** Interface language: public pages and the student dashboard are English;
- * admin pages and emails stay Indonesian (the default). */
-export type Lang = "id" | "en";
+import type { Lang } from "@/lib/i18n";
+
+/** Admin pages and emails stay Indonesian (the default); public pages and
+ * the student dashboard pass the visitor's language (see lib/i18n). */
+export type { Lang };
 const localeOf = (lang: Lang) => (lang === "en" ? enUS : id);
 
 /** Formats a stored yyyy-MM-dd date, without timezone drift. */
@@ -18,9 +20,9 @@ export function formatTimestamp(iso: string, pattern = "dd MMM yyyy", lang: Lang
 }
 
 /** The date a story shows: the event it's about, or else the day it was published. */
-export function storyDate(post: { event_date?: string | null; published_at?: string | null }, pattern = "dd MMM yyyy"): string {
-  if (post.event_date) return formatDateStr(post.event_date, pattern, "en");
-  return post.published_at ? formatTimestamp(post.published_at, pattern, "en") : "";
+export function storyDate(post: { event_date?: string | null; published_at?: string | null }, pattern = "dd MMM yyyy", lang: Lang = "id"): string {
+  if (post.event_date) return formatDateStr(post.event_date, pattern, lang);
+  return post.published_at ? formatTimestamp(post.published_at, pattern, lang) : "";
 }
 
 /** "Oktober 2026" — month is 1-12. */

@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import { Flame, LogIn, Zap, Trophy, Gift } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { nextMilestone, XP, XP_EVENT, type GamificationStats } from "@/lib/gamification";
+import { useLang } from "@/components/i18n/LangProvider";
+import { translator } from "@/lib/i18n";
 
-const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
-const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
+const WEEKDAYS = { id: ["S", "S", "R", "K", "J", "S", "M"], en: ["M", "T", "W", "T", "F", "S", "S"] };
 
 /** Dashboard card: level, XP, study and login streaks, and the last four weeks. */
 export function ProgressCard() {
+  const { lang } = useLang();
+  const tr = translator(lang);
+  const days = (n: number) => tr(`${n} hari`, `${n} ${n === 1 ? "day" : "days"}`);
   const [stats, setStats] = useState<GamificationStats | null>(null);
 
   useEffect(() => {
@@ -47,33 +51,33 @@ export function ProgressCard() {
               <div className="h-full bg-[var(--color-accent-yellow)] transition-all duration-700" style={{ width: `${Math.round(level.progress * 100)}%` }} />
             </div>
             <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-              {level.intoLevel} / {level.levelSize} XP · {level.toNext} XP to Level {level.level + 1}
+              {level.intoLevel} / {level.levelSize} XP · {tr(`${level.toNext} XP lagi ke Level ${level.level + 1}`, `${level.toNext} XP to Level ${level.level + 1}`)}
             </p>
           </div>
         </div>
         <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-0">
           <p className="text-3xl font-bold text-[var(--color-brand-blue)] font-[var(--font-inter)] flex items-center gap-1">
-            <Zap className="w-6 h-6 fill-[var(--color-accent-yellow)] text-[var(--color-warning-amber)]" /> {stats.totalXp.toLocaleString("en-US")}
+            <Zap className="w-6 h-6 fill-[var(--color-accent-yellow)] text-[var(--color-warning-amber)]" /> {stats.totalXp.toLocaleString(lang === "en" ? "en-US" : "id-ID")}
           </p>
-          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">total XP · +{stats.xpToday} today</p>
+          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">total XP · +{stats.xpToday} {tr("hari ini", "today")}</p>
         </div>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className={`rounded-[var(--radius-card)] border-2 p-4 space-y-1 ${study.doneToday ? "border-[var(--color-accent-coral)] bg-[var(--color-accent-coral)]/5" : "border-[var(--color-line)]"}`}>
           <p className="text-sm font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-1.5">
-            <Flame className={`w-4 h-4 ${study.doneToday ? "text-[var(--color-accent-coral)] fill-[var(--color-accent-yellow)]" : ""}`} /> Study streak
+            <Flame className={`w-4 h-4 ${study.doneToday ? "text-[var(--color-accent-coral)] fill-[var(--color-accent-yellow)]" : ""}`} /> {tr("Streak belajar", "Study streak")}
           </p>
           <p className="text-3xl font-bold text-[var(--color-ink)] font-[var(--font-inter)]">
-            {study.current} <span className="text-base font-medium text-[var(--color-ink-soft)]">{study.current === 1 ? "day" : "days"}</span>
+            {study.current} <span className="text-base font-medium text-[var(--color-ink-soft)]">{tr("hari", study.current === 1 ? "day" : "days")}</span>
           </p>
-          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">Best: {days(study.best)}</p>
+          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Terbaik", "Best")}: {days(study.best)}</p>
           <p className={`text-xs font-[var(--font-inter)] ${study.atRisk ? "text-[var(--color-danger-red)] font-semibold" : "text-[var(--color-ink-soft)]"}`}>
             {study.doneToday
-              ? "You studied today. Nice work!"
+              ? tr("Sudah belajar hari ini — mantap!", "You studied today. Nice work!")
               : study.atRisk
-                ? "Read or complete one lesson today to keep your streak alive!"
-                : "Read or complete a lesson to start a streak."}
+                ? tr("Baca atau kerjakan satu materi hari ini supaya streak tidak putus!", "Read or complete one lesson today to keep your streak alive!")
+                : tr("Baca atau kerjakan materi untuk memulai streak.", "Read or complete a lesson to start a streak.")}
           </p>
         </div>
         <div className={`rounded-[var(--radius-card)] border-2 p-4 space-y-1 ${login.doneToday ? "border-[var(--color-brand-blue)] bg-[var(--color-brand-blue)]/5" : "border-[var(--color-line)]"}`}>
@@ -81,10 +85,10 @@ export function ProgressCard() {
             <LogIn className="w-4 h-4 text-[var(--color-brand-blue)]" /> Streak login
           </p>
           <p className="text-3xl font-bold text-[var(--color-ink)] font-[var(--font-inter)]">
-            {login.current} <span className="text-base font-medium text-[var(--color-ink-soft)]">{login.current === 1 ? "day" : "days"}</span>
+            {login.current} <span className="text-base font-medium text-[var(--color-ink-soft)]">{tr("hari", login.current === 1 ? "day" : "days")}</span>
           </p>
-          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">Best: {days(login.best)}</p>
-          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">Log in every day: +{XP.dailyLogin} XP</p>
+          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Terbaik", "Best")}: {days(login.best)}</p>
+          <p className="text-xs text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("Masuk setiap hari", "Log in every day")}: +{XP.dailyLogin} XP</p>
         </div>
       </div>
 
@@ -92,22 +96,24 @@ export function ProgressCard() {
         <p className="flex items-center gap-2 text-sm text-[var(--color-ink)] font-[var(--font-inter)] rounded-[var(--radius-card)] bg-[var(--color-accent-yellow)]/15 border border-[var(--color-accent-yellow)]/40 px-3 py-2">
           <Gift className="w-4 h-4 text-[var(--color-accent-coral)] shrink-0" />
           <span>
-            {days(milestone.days - study.current)} to go for a <strong>+{milestone.xp} XP</strong> bonus ({milestone.days}-day study streak).
+            {tr(`${days(milestone.days - study.current)} lagi menuju bonus`, `${days(milestone.days - study.current)} to go for a`)}{" "}
+            <strong>+{milestone.xp} XP</strong>{" "}
+            {tr(`(streak belajar ${milestone.days} hari).`, `bonus (${milestone.days}-day study streak).`)}
           </span>
         </p>
       )}
 
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">Last 4 weeks</p>
+        <p className="text-sm font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{tr("4 minggu terakhir", "Last 4 weeks")}</p>
         <div className="grid grid-cols-7 gap-1.5 max-w-xs">
-          {WEEKDAYS.map((d, i) => (
+          {WEEKDAYS[lang].map((d, i) => (
             <span key={i} className="text-[0.65rem] text-center text-[var(--color-ink-soft)] font-[var(--font-inter)]">{d}</span>
           ))}
           {Array.from({ length: pad }, (_, i) => <span key={`pad-${i}`} />)}
           {stats.recent.map((d) => (
             <span
               key={d.day}
-              title={`${d.day}: ${d.studied ? "studied" : d.loggedIn ? "logged in" : "inactive"}${d.xp ? ` · +${d.xp} XP` : ""}`}
+              title={`${d.day}: ${d.studied ? tr("belajar", "studied") : d.loggedIn ? "login" : tr("tidak aktif", "inactive")}${d.xp ? ` · +${d.xp} XP` : ""}`}
               className={`aspect-square rounded-md border ${d.day === stats.today ? "border-[var(--color-ink)] border-2" : "border-[var(--color-line)]"} ${
                 d.studied ? "bg-[var(--color-accent-coral)]" : d.loggedIn ? "bg-[var(--color-brand-blue)]/30" : "bg-[var(--color-paper-bg-alt)]"
               }`}
@@ -115,24 +121,31 @@ export function ProgressCard() {
           ))}
         </div>
         <p className="flex flex-wrap gap-3 text-[0.7rem] text-[var(--color-ink-soft)] font-[var(--font-inter)]">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-accent-coral)]" /> studied</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-brand-blue)]/30" /> logged in only</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)]" /> inactive</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-accent-coral)]" /> {tr("belajar", "studied")}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-brand-blue)]/30" /> {tr("login saja", "logged in only")}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-paper-bg-alt)] border border-[var(--color-line)]" /> {tr("tidak aktif", "inactive")}</span>
         </p>
       </div>
 
       <details className="text-sm font-[var(--font-inter)] text-[var(--color-ink-soft)]">
-        <summary className="cursor-pointer font-semibold text-[var(--color-ink)]">How to earn XP</summary>
+        <summary className="cursor-pointer font-semibold text-[var(--color-ink)]">{tr("Cara mendapatkan XP", "How to earn XP")}</summary>
         <ul className="mt-2 space-y-1 list-disc pl-5">
-          <li>Daily login: +{XP.dailyLogin} XP</li>
-          <li>Reading a lesson for the first time: +{XP.lessonRead} XP</li>
-          <li>Completing a lesson (checkpoint): +{XP.lessonDone} XP</li>
-          <li>Taking a pretest: +{XP.pretest} XP</li>
-          <li>Taking a quiz: +{XP.quizDone} XP, passing it: +{XP.quizPassed} XP more</li>
-          <li>Finishing an exam (full pretest/tryout): +{XP.exam} XP</li>
-          <li>Study streak bonuses at 3, 7, 14, 30, 60 and 100 days</li>
+          <li>{tr("Login harian", "Daily login")}: +{XP.dailyLogin} XP</li>
+          <li>{tr("Membaca materi pertama kali", "Reading a lesson for the first time")}: +{XP.lessonRead} XP</li>
+          <li>{tr("Menyelesaikan materi (checkpoint)", "Completing a lesson (checkpoint)")}: +{XP.lessonDone} XP</li>
+          <li>{tr("Mengerjakan pretest", "Taking a pretest")}: +{XP.pretest} XP</li>
+          <li>
+            {tr("Mengerjakan quiz", "Taking a quiz")}: +{XP.quizDone} XP, {tr("lulus quiz", "passing it")}: +{XP.quizPassed} XP {tr("lagi", "more")}
+          </li>
+          <li>{tr("Menyelesaikan ujian (pretest/tryout penuh)", "Finishing an exam (full pretest/tryout)")}: +{XP.exam} XP</li>
+          <li>{tr("Bonus streak belajar 3, 7, 14, 30, 60, dan 100 hari", "Study streak bonuses at 3, 7, 14, 30, 60 and 100 days")}</li>
         </ul>
-        <p className="mt-2">Each action earns XP only once. Your study streak counts the days you read or complete a lesson.</p>
+        <p className="mt-2">
+          {tr(
+            "Setiap aksi hanya memberi XP sekali. Streak belajar dihitung dari hari kamu membaca atau mengerjakan materi.",
+            "Each action earns XP only once. Your study streak counts the days you read or complete a lesson."
+          )}
+        </p>
       </details>
     </Card>
   );

@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getTr } from "@/lib/i18n-server";
 
 type Role = "admin" | "student";
 
@@ -14,12 +15,13 @@ type Role = "admin" | "student";
  */
 export async function requireUser(role?: Role) {
     const supabase = await createClient();
+    const tr = await getTr();
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-        return { ok: false as const, error: "Please log in first.", status: 401 };
+        return { ok: false as const, error: tr("Silakan login terlebih dahulu.", "Please log in first."), status: 401 };
     }
 
     const { data: profile } = await supabase
@@ -29,13 +31,13 @@ export async function requireUser(role?: Role) {
         .single();
 
     if (!profile) {
-        return { ok: false as const, error: "Profile not found.", status: 403 };
+        return { ok: false as const, error: tr("Profil tidak ditemukan.", "Profile not found."), status: 403 };
     }
 
     if (role && profile.role !== role) {
         return {
             ok: false as const,
-            error: role === "admin" ? "Forbidden — admin only" : "This feature is only for student accounts.",
+            error: role === "admin" ? "Forbidden — admin only" : tr("Fitur ini khusus akun siswa.", "This feature is only for student accounts."),
             status: 403,
         };
     }
