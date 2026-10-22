@@ -15,6 +15,25 @@
 alter table public.contracts
   add column if not exists content_en text;
 
+-- A signed contract stays frozen: its text, version and date can't change and
+-- it can't be deleted. Only its English translation may be added or fixed,
+-- since that is not what anyone signed.
+create or replace function public.block_signed_contract_mutation()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if exists (select 1 from public.contract_acceptances where contract_id = old.id) then
+    if tg_op = 'UPDATE' and (to_jsonb(new) - 'content_en') = (to_jsonb(old) - 'content_en') then
+      return new;
+    end if;
+    raise exception 'Contract version % has acceptances and cannot be modified or deleted — publish a new version instead', old.version;
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
 update public.contracts
 set content_en = $en$<h2>PRIVATE ENGLISH TUTORING SERVICE AGREEMENT</h2>
 <p><strong>REFA LEARN — Tarakan, North Kalimantan</strong></p>
