@@ -68,8 +68,15 @@ export default function LevelQuizPage() {
   const [save, setSave] = useState<SaveState>("idle");
   const [timeUp, setTimeUp] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [questionRendered, setQuestionRendered] = useState(false);
 
   useFocusMode(phase === "running" || phase === "submitting");
+
+  useEffect(() => {
+    if (phase !== "running") {
+      setQuestionRendered(false);
+    }
+  }, [phase]);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -299,7 +306,7 @@ export default function LevelQuizPage() {
             totalMs={run.deadline - run.startedAt}
             save={save}
             onExit={exit}
-            showTimer={hasQuestions}
+            showTimer={hasQuestions && questionRendered}
           />
           {phase === "submitting" ? (
             <Card variant="sketch" className="text-center py-14 space-y-3 font-[var(--font-inter)]">
@@ -327,7 +334,15 @@ export default function LevelQuizPage() {
                 ))}
               </div>
 
-              <Card variant="sketch" className="p-5 md:p-8 space-y-4">
+              <Card
+                variant="sketch"
+                className="p-5 md:p-8 space-y-4"
+                ref={(node) => {
+                  if (node && !questionRendered) {
+                    setQuestionRendered(true);
+                  }
+                }}
+              >
                 <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.questionOf(index + 1, run.questions.length)}</p>
                 <QuestionBlock
                   key={`${run.attemptId}-${q.id}`}
