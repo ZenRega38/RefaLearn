@@ -97,7 +97,7 @@ describe("expired attempts & attemptState", () => {
       attempt_no: 1,
       started_at: new Date(Date.now() - 600_000).toISOString(),
       deadline_at: pastDeadline,
-      draft: { "q1": "A" },
+      draft: { q1: { type: "mc", choice: 0 } },
       submitted_at: null,
       auto_submitted: false,
       answers: null,
@@ -133,6 +133,7 @@ describe("expired attempts & attemptState", () => {
     } as unknown as SupabaseClient;
 
     const ctx: CourseCtx = {
+      ok: true,
       admin: mockAdmin,
       user: { id: "user-1" } as any,
       course: { slug: "eac-olympiad-5", quizSecondsPerQuestion: 60 } as any,
