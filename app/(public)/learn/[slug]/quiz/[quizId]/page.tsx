@@ -87,11 +87,6 @@ export default function LevelQuizPage() {
   }, [api, a.startFailed]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load the overview on mount
-    loadOverview().then((o) => o && setPhase("overview"));
-  }, [loadOverview]);
-
-  useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [index, phase]);
 
@@ -149,7 +144,7 @@ export default function LevelQuizPage() {
   }, [phase, saveNow]);
 
   // ------------------------------------------------------------- start/submit
-  const start = async () => {
+  const start = useCallback(async () => {
     setStarting(true);
     try {
       const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start" }) });
@@ -178,7 +173,19 @@ export default function LevelQuizPage() {
     } finally {
       setStarting(false);
     }
-  };
+  }, [api, a.startFailed, loadOverview]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
+    loadOverview().then((o) => {
+      if (!o) return;
+      if (o.state.open) {
+        start();
+      } else {
+        setPhase("overview");
+      }
+    });
+  }, [loadOverview, start]);
 
   const submit = useCallback(
     async (auto: boolean) => {
