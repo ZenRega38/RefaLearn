@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   let role = "guest";
   let progress: ProgressItem[] = [];
   let attempts: { id: string; kind: string; total_score: number | null; submitted_at: string | null; started_at: string; counted: boolean; auto_submitted: boolean }[] = [];
-  let quizAttempts: { item_id: string; counted: boolean; submitted_at: string | null }[] = [];
+  let quizAttempts: { item_id: string; counted: boolean; submitted_at: string | null; deadline_at: string }[] = [];
   // Lessons to study again after starting over a quiz (that chapter only).
   let restudy = new Set<string>();
 
@@ -48,7 +48,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         .eq("course_slug", slug)
         .not("submitted_at", "is", null)
         .order("submitted_at", { ascending: false }),
-      admin.from("course_quiz_attempts").select("item_id, counted, submitted_at").eq("student_id", user.id).eq("course_slug", slug),
+      admin.from("course_quiz_attempts").select("item_id, counted, submitted_at, deadline_at").eq("student_id", user.id).eq("course_slug", slug),
     ]);
     attempts = data || [];
     quizAttempts = quizRows || [];
@@ -90,6 +90,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const slidesByLevel = new Map((slideRows || []).map((r) => [r.level_id as string, r.url as string]));
 
   const count = (e: NonNullable<typeof course.pretest>) => e.sections.reduce((n, s) => n + s.questions.length, 0);
+  const now = Date.now();
   const quizInfo = (q: { id: string; title: string; questions: unknown[]; passPercent: number }) => ({
     id: q.id,
     title: q.title,
@@ -97,7 +98,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     passPercent: q.passPercent,
     minutes: Math.round(quizSeconds(q.questions.length, course.quizSecondsPerQuestion) / 60),
     attemptsUsed: quizAttempts.filter((a) => a.item_id === q.id && a.counted).length,
-    inProgress: quizAttempts.some((a) => a.item_id === q.id && !a.submitted_at),
+    inProgress: quizAttempts.some((a) => a.item_id === q.id && !a.submitted_at && Date.parse(a.deadline_at) > now),
     unlocked: access && unlocks.unlocked.has(q.id),
     passed: unlocks.done.has(q.id),
     score: byId.get(q.id)?.score ?? null,

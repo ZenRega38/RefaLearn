@@ -73,7 +73,8 @@ export function attemptState(
 ): AttemptState {
   const counted = rows.filter((r) => r.counted);
   const used = counted.length;
-  const open = rows.find((r) => !r.submittedAt) ?? null;
+  const now = Date.now();
+  const open = rows.find((r) => !r.submittedAt && Date.parse(r.deadline) > now) ?? null;
   const lastDone = [...counted].filter((r) => r.submittedAt).sort((a, b) => b.submittedAt!.localeCompare(a.submittedAt!))[0];
   const until = lastDone ? Date.parse(lastDone.submittedAt!) + cooldownMinutes(questionCount) * 60_000 : 0;
   return {
@@ -200,8 +201,8 @@ export async function finishQuizAttempt(
 }
 
 /** Submits, with their last autosaved answers, attempts whose time ran out while the student was away. */
-export async function closeExpiredQuizAttempts(ctx: CourseCtx, found: FoundQuiz, rows: QuizAttemptRow[], graceMs: number): Promise<QuizAttemptRow[]> {
-  const expired = rows.filter((r) => !r.submitted_at && Date.parse(r.deadline_at) + graceMs < Date.now());
+export async function closeExpiredQuizAttempts(ctx: CourseCtx, found: FoundQuiz, rows: QuizAttemptRow[], _graceMs?: number): Promise<QuizAttemptRow[]> {
+  const expired = rows.filter((r) => !r.submitted_at && Date.parse(r.deadline_at) <= Date.now());
   if (expired.length === 0) return rows;
   for (const row of expired) await finishQuizAttempt(ctx, found, row, row.draft || {}, true);
   return loadQuizAttempts(ctx.admin, ctx.user.id, ctx.course.slug, found.quiz.id);

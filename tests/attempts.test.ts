@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { lessonsToRestudy, pendingRestart, restartInfo } from "@/lib/course/attempts";
+import { attemptState, closeExpiredQuizAttempts, lessonsToRestudy, pendingRestart, restartInfo, type CourseCtx, type FoundQuiz, type QuizAttemptRow } from "@/lib/course/attempts";
 import { ALL_COURSES, computeUnlocks } from "@/lib/course/content";
 import type { AttemptState } from "@/lib/course/attempt-rules";
 import type { ProgressItem } from "@/lib/course/types";
@@ -70,5 +70,85 @@ describe("starting over", () => {
       course_progress: last.lessons.map((l) => ({ item_id: l.id, completed_at: "2025-01-02T00:00:00Z" })),
     });
     expect((await lessonsToRestudy(admin, "student", course)).size).toBe(0);
+  });
+});
+
+describe("expired attempts & attemptState", () => {
+  it("does not report an open attempt when deadline has passed", () => {
+    const pastDeadline = new Date(Date.now() - 10_000).toISOString();
+    const rows = [{ id: "1", no: 1, submittedAt: null, deadline: pastDeadline, counted: true }];
+    const summaries = [{ id: "1", no: 1, startedAt: "", submittedAt: null, score: null, maxScore: null, passed: null, autoSubmitted: false, counted: true }];
+    const res = attemptState(rows, summaries, 10, false);
+    expect(res.open).toBeNull();
+  });
+
+  it("reports open attempt when deadline is in the future", () => {
+    const futureDeadline = new Date(Date.now() + 60_000).toISOString();
+    const rows = [{ id: "1", no: 1, submittedAt: null, deadline: futureDeadline, counted: true }];
+    const summaries = [{ id: "1", no: 1, startedAt: "", submittedAt: null, score: null, maxScore: null, passed: null, autoSubmitted: false, counted: true }];
+    const res = attemptState(rows, summaries, 10, false);
+    expect(res.open).toEqual({ id: "1", no: 1, deadline: futureDeadline });
+  });
+
+  it("closes expired quiz attempts even within grace period", async () => {
+    const pastDeadline = new Date(Date.now() - 1000).toISOString();
+    const expiredRow: QuizAttemptRow = {
+      id: "att-1",
+      attempt_no: 1,
+      started_at: new Date(Date.now() - 600_000).toISOString(),
+      deadline_at: pastDeadline,
+      draft: { "q1": "A" },
+      submitted_at: null,
+      auto_submitted: false,
+      answers: null,
+      score: null,
+      max_score: null,
+      passed: null,
+      counted: true,
+      restarted_at: null,
+    };
+
+    const chain = {
+      eq: () => chain,
+      is: () => chain,
+      gte: () => chain,
+      order: () => chain,
+      limit: async () => ({ data: [] }),
+      select: () => chain,
+      maybeSingle: async () => ({
+        data: { ...expiredRow, submitted_at: new Date().toISOString(), auto_submitted: true, score: 1, max_score: 1, passed: true },
+        error: null,
+      }),
+      then: (resolve: (v: unknown) => void) => resolve({ data: [{ ...expiredRow, submitted_at: new Date().toISOString(), auto_submitted: true }] }),
+    };
+
+    const mockAdmin = {
+      rpc: async () => ({ error: null }),
+      from: () => ({
+        update: () => chain,
+        select: () => chain,
+        upsert: async () => ({ error: null }),
+        insert: async () => ({ error: null }),
+      }),
+    } as unknown as SupabaseClient;
+
+    const ctx: CourseCtx = {
+      admin: mockAdmin,
+      user: { id: "user-1" } as any,
+      course: { slug: "eac-olympiad-5", quizSecondsPerQuestion: 60 } as any,
+      profile: { role: "student" } as any,
+      progress: [],
+      unlocks: {} as any,
+      access: true,
+    };
+
+    const found: FoundQuiz = {
+      level: { lessons: [] } as any,
+      quiz: { id: "eac5-tryout", title: "Tryout", questions: [{ id: "q1" }], passPercent: 70 } as any,
+      isPretest: false,
+    };
+
+    const updatedRows = await closeExpiredQuizAttempts(ctx, found, [expiredRow]);
+    expect(updatedRows[0].submitted_at).not.toBeNull();
   });
 });
