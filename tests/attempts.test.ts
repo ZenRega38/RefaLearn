@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { attemptState, closeExpiredQuizAttempts, lessonsToRestudy, pendingRestart, restartInfo, type CourseCtx, type FoundQuiz, type QuizAttemptRow } from "@/lib/course/attempts";
 import { ALL_COURSES, computeUnlocks } from "@/lib/course/content";
 import type { AttemptState } from "@/lib/course/attempt-rules";
-import type { ProgressItem } from "@/lib/course/types";
+import type { ProgressItem, Response } from "@/lib/course/types";
 
 /** A read-only stand-in for the Supabase client: every query on a table returns its rows. */
 function fakeAdmin(tables: Record<string, unknown[]>): SupabaseClient {
@@ -97,7 +97,7 @@ describe("expired attempts & attemptState", () => {
       attempt_no: 1,
       started_at: new Date(Date.now() - 600_000).toISOString(),
       deadline_at: pastDeadline,
-      draft: { "q1": "A" },
+      draft: { "q1": { type: "mc", choice: 0 } },
       submitted_at: null,
       auto_submitted: false,
       answers: null,
@@ -133,6 +133,7 @@ describe("expired attempts & attemptState", () => {
     } as unknown as SupabaseClient;
 
     const ctx: CourseCtx = {
+      ok: true,
       admin: mockAdmin,
       user: { id: "user-1" } as any,
       course: { slug: "eac-olympiad-5", quizSecondsPerQuestion: 60 } as any,
