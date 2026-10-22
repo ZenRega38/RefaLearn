@@ -82,7 +82,6 @@ const id = {
   transcript: "Transkrip",
 
   // Quiz
-  loadingQuestions: "Memuat soal...",
   questionOf: (i: number, n: number) => `Soal ${i} dari ${n}`,
   timeUp: "Waktu habis",
   secondsLeft: (n: number) => `⏱ ${n} detik`,
@@ -290,7 +289,6 @@ const en: UiText = {
   useHeadset: "Use headphones for the best sound.",
   transcript: "Transcript",
 
-  loadingQuestions: "Loading questions...",
   questionOf: (i, n) => `Question ${i} of ${n}`,
   timeUp: "Time's up",
   secondsLeft: (n) => `⏱ ${n}s`,

@@ -20,16 +20,14 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
     }
 
     // Answering a quiz, checkpoint or test (see lib/focus-mode): the same.
-    if (focus) {
-        return <main className="flex-1">{children}</main>;
-    }
-
+    // The chrome is hidden in place, never by returning a different tree:
+    // that would remount the page and throw away the running quiz.
     return (
         <>
-            <Navbar />
+            {!focus && <Navbar />}
             <main className="flex-1">{children}</main>
-            <Footer />
-            <ChatWidget />
+            {!focus && <Footer />}
+            {!focus && <ChatWidget />}
         </>
     );
 }

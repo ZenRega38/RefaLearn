@@ -201,8 +201,8 @@ export async function finishQuizAttempt(
 }
 
 /** Submits, with their last autosaved answers, attempts whose time ran out while the student was away. */
-export async function closeExpiredQuizAttempts(ctx: CourseCtx, found: FoundQuiz, rows: QuizAttemptRow[], _graceMs?: number): Promise<QuizAttemptRow[]> {
-  const expired = rows.filter((r) => !r.submitted_at && Date.parse(r.deadline_at) <= Date.now());
+export async function closeExpiredQuizAttempts(ctx: CourseCtx, found: FoundQuiz, rows: QuizAttemptRow[], graceMs: number): Promise<QuizAttemptRow[]> {
+  const expired = rows.filter((r) => !r.submitted_at && Date.parse(r.deadline_at) + graceMs < Date.now());
   if (expired.length === 0) return rows;
   for (const row of expired) await finishQuizAttempt(ctx, found, row, row.draft || {}, true);
   return loadQuizAttempts(ctx.admin, ctx.user.id, ctx.course.slug, found.quiz.id);

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { attemptState, closeExpiredQuizAttempts, lessonsToRestudy, pendingRestart, restartInfo, type CourseCtx, type FoundQuiz, type QuizAttemptRow } from "@/lib/course/attempts";
 import { ALL_COURSES, computeUnlocks } from "@/lib/course/content";
@@ -90,8 +90,8 @@ describe("expired attempts & attemptState", () => {
     expect(res.open).toEqual({ id: "1", no: 1, deadline: futureDeadline });
   });
 
-  it("closes expired quiz attempts even within grace period", async () => {
-    const pastDeadline = new Date(Date.now() - 1000).toISOString();
+  it("closes expired quiz attempts once the grace period has passed", async () => {
+    const pastDeadline = new Date(Date.now() - 120_000).toISOString();
     const expiredRow: QuizAttemptRow = {
       id: "att-1",
       attempt_no: 1,
@@ -135,21 +135,25 @@ describe("expired attempts & attemptState", () => {
     const ctx: CourseCtx = {
       ok: true,
       admin: mockAdmin,
-      user: { id: "user-1" } as any,
-      course: { slug: "eac-olympiad-5", quizSecondsPerQuestion: 60 } as any,
-      profile: { role: "student" } as any,
+      user: { id: "user-1" } as never,
+      course: { slug: "eac-olympiad-5", quizSecondsPerQuestion: 60 } as never,
+      profile: { role: "student" } as never,
       progress: [],
-      unlocks: {} as any,
+      unlocks: {} as never,
       access: true,
     };
 
     const found: FoundQuiz = {
-      level: { lessons: [] } as any,
-      quiz: { id: "eac5-tryout", title: "Tryout", questions: [{ id: "q1" }], passPercent: 70 } as any,
+      level: { lessons: [] } as never,
+      quiz: { id: "eac5-tryout", title: "Tryout", questions: [{ id: "q1" }], passPercent: 70 } as never,
       isPretest: false,
     };
 
-    const updatedRows = await closeExpiredQuizAttempts(ctx, found, [expiredRow]);
+    const updatedRows = await closeExpiredQuizAttempts(ctx, found, [expiredRow], 60_000);
     expect(updatedRows[0].submitted_at).not.toBeNull();
+
+    // Inside the grace period the student's own submit still wins: left open.
+    const late = { ...expiredRow, deadline_at: new Date(Date.now() - 1000).toISOString() };
+    expect(await closeExpiredQuizAttempts(ctx, found, [late], 60_000)).toEqual([late]);
   });
 });

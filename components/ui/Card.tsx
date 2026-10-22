@@ -1,16 +1,18 @@
-import { ReactNode, forwardRef, ComponentPropsWithoutRef } from "react";
+import { ReactNode } from "react";
 
-export interface CardProps extends ComponentPropsWithoutRef<"div"> {
+interface CardProps {
   children?: ReactNode;
   variant?: "default" | "sketch" | "interactive";
   className?: string;
   onClick?: () => void;
 }
 
-export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { children, variant = "default", className = "", onClick, ...rest },
-  ref
-) {
+export function Card({
+  children,
+  variant = "default",
+  className = "",
+  onClick,
+}: CardProps) {
   // A padding passed in (p-0, p-4, …) replaces the default p-6. Both would
   // otherwise land in the class list and the CSS order, not the caller,
   // would decide which one wins.
@@ -28,26 +30,20 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   if (onClick || variant === "interactive") {
     return (
       <div
-        ref={ref}
         className={combinedClasses}
         onClick={onClick}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
+          if (e.key === 'Enter' || e.key === ' ') {
             onClick?.();
           }
         }}
-        {...rest}
       >
         {children}
       </div>
     );
   }
 
-  return (
-    <div ref={ref} className={combinedClasses} {...rest}>
-      {children}
-    </div>
-  );
-});
+  return <div className={combinedClasses}>{children}</div>;
+}
