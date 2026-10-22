@@ -6,8 +6,15 @@ import sharp from "sharp";
 import { PICTURES } from "@/components/course/pictures";
 import { PICTURE_NAMES } from "@/lib/course/pictures";
 
+import fs from "fs";
+import path from "path";
+
 it("renders contact sheet", async () => {
-  const out = process.env.PREVIEW_OUT ?? "C:/Users/MyBook Hype AMD/.claude/jobs/1ab2be6e/tmp/sheet.png";
+  const tmpDir = path.join(process.cwd(), "tmp");
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+  }
+  const out = process.env.PREVIEW_OUT ?? path.join(tmpDir, "sheet.png");
   const from = process.env.PREVIEW_FROM ?? "eye";
   const to = process.env.PREVIEW_TO;
   const start = PICTURE_NAMES.indexOf(from as never);

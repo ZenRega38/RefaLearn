@@ -287,23 +287,29 @@ export default function LevelQuizPage() {
   if ((phase === "running" || phase === "submitting") && run) {
     const q = run.questions[index];
     const answered = run.questions.filter((x) => isAnswered(x, responses[x.id])).length;
+    const hasQuestions = run.questions.length > 0;
     return (
       <PaperBackground className="pb-20 min-h-screen">
         <div className="container-main max-w-4xl mx-auto space-y-5">
           <FocusBar
             title={quiz.title}
-            detail={`${a.attempt(run.no)} · ${t.questionOf(index + 1, run.questions.length)} · ${answered}/${run.questions.length}`}
+            detail={hasQuestions ? `${a.attempt(run.no)} · ${t.questionOf(index + 1, run.questions.length)} · ${answered}/${run.questions.length}` : `${a.attempt(run.no)}`}
             deadline={run.deadline}
             offset={offset}
             totalMs={run.deadline - run.startedAt}
             save={save}
             onExit={exit}
+            showTimer={hasQuestions}
           />
-
           {phase === "submitting" ? (
             <Card variant="sketch" className="text-center py-14 space-y-3 font-[var(--font-inter)]">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--color-brand-blue)]" />
               <p className="text-[var(--color-ink)] font-semibold">{timeUp ? a.timeUpSubmitting : a.submitting}</p>
+            </Card>
+          ) : !hasQuestions ? (
+            <Card variant="sketch" className="text-center py-14 space-y-3 font-[var(--font-inter)]">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--color-brand-blue)]" />
+              <p className="text-[var(--color-ink)] font-semibold">{t.loadingQuestions}</p>
             </Card>
           ) : (
             <>
