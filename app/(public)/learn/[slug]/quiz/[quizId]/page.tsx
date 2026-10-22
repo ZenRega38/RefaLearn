@@ -87,6 +87,50 @@ export default function LevelQuizPage() {
     }
   }, [api, a.startFailed]);
 
+  // ------------------------------------------------------------- start/submit
+  const start = useCallback(async () => {
+    setStarting(true);
+    try {
+      const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start" }) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setOffset(offsetFrom(json.serverNow));
+      setRun({
+        attemptId: json.attempt.id,
+        no: json.attempt.no,
+        startedAt: Date.parse(json.attempt.startedAt),
+        deadline: Date.parse(json.attempt.deadline),
+        questions: json.questions,
+        passages: json.passages,
+      });
+      latest.current = json.draft || {};
+      dirty.current = false;
+      submittingRef.current = false;
+      setResponses(json.draft || {});
+      setIndex(0);
+      setSave("idle");
+      setTimeUp(false);
+      setPhase("running");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : a.startFailed);
+      setPhase("overview");
+    } finally {
+      setStarting(false);
+    }
+  }, [api, a.startFailed]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
+    loadOverview().then((o) => {
+      if (!o) return;
+      setPhase("overview");
+      if (o.state.open && !hasAutoStarted.current) {
+        hasAutoStarted.current = true;
+        start();
+      }
+    });
+  }, [loadOverview, start]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [index, phase]);
@@ -143,50 +187,6 @@ export default function LevelQuizPage() {
       window.clearInterval(retry);
     };
   }, [phase, saveNow]);
-
-  // ------------------------------------------------------------- start/submit
-  const start = useCallback(async () => {
-    setStarting(true);
-    try {
-      const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start" }) });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
-      setOffset(offsetFrom(json.serverNow));
-      setRun({
-        attemptId: json.attempt.id,
-        no: json.attempt.no,
-        startedAt: Date.parse(json.attempt.startedAt),
-        deadline: Date.parse(json.attempt.deadline),
-        questions: json.questions,
-        passages: json.passages,
-      });
-      latest.current = json.draft || {};
-      dirty.current = false;
-      submittingRef.current = false;
-      setResponses(json.draft || {});
-      setIndex(0);
-      setSave("idle");
-      setTimeUp(false);
-      setPhase("running");
-    } catch (err) {
-      alert(err instanceof Error ? err.message : a.startFailed);
-      setPhase("overview");
-    } finally {
-      setStarting(false);
-    }
-  }, [api, a.startFailed]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview on mount
-    loadOverview().then((o) => {
-      if (!o) return;
-      setPhase("overview");
-      if (o.state.open && !hasAutoStarted.current) {
-        hasAutoStarted.current = true;
-        start();
-      }
-    });
-  }, [loadOverview, start]);
 
   const submit = useCallback(
     async (auto: boolean) => {
