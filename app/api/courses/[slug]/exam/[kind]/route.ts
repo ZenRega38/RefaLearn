@@ -99,7 +99,7 @@ async function finish(ctx: Ctx, row: AttemptRow, answers: Record<string, Respons
 /** Attempts with expired timers submitted (with their autosave), plus the student's standing. */
 async function current(ctx: Ctx) {
   let rows = await loadAttempts(ctx);
-  const expired = rows.filter((r) => !r.submitted_at && deadlineOf(ctx.exam, r.started_at) <= Date.now());
+  const expired = rows.filter((r) => !r.submitted_at && deadlineOf(ctx.exam, r.started_at) + SUBMIT_GRACE_MS < Date.now());
   if (expired.length) {
     for (const r of expired) await finish(ctx, r, r.draft?.responses || {}, true);
     rows = await loadAttempts(ctx);

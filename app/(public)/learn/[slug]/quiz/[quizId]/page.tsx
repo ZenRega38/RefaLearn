@@ -68,15 +68,8 @@ export default function LevelQuizPage() {
   const [save, setSave] = useState<SaveState>("idle");
   const [timeUp, setTimeUp] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
-  const [questionRendered, setQuestionRendered] = useState(false);
 
   useFocusMode(phase === "running" || phase === "submitting");
-
-  useEffect(() => {
-    if (phase !== "running") {
-      setQuestionRendered(false);
-    }
-  }, [phase]);
 
   const loadOverview = useCallback(async () => {
     try {
@@ -92,6 +85,11 @@ export default function LevelQuizPage() {
       return null;
     }
   }, [api, a.startFailed]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load the overview on mount
+    loadOverview().then((o) => o && setPhase("overview"));
+  }, [loadOverview]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -151,7 +149,7 @@ export default function LevelQuizPage() {
   }, [phase, saveNow]);
 
   // ------------------------------------------------------------- start/submit
-  const start = useCallback(async () => {
+  const start = async () => {
     setStarting(true);
     try {
       const res = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start" }) });
@@ -180,14 +178,7 @@ export default function LevelQuizPage() {
     } finally {
       setStarting(false);
     }
-  }, [api, a.startFailed, loadOverview]);
-
-  useEffect(() => {
-    loadOverview().then((o) => {
-      if (!o) return;
-      setPhase("overview");
-    });
-  }, [loadOverview]);
+  };
 
   const submit = useCallback(
     async (auto: boolean) => {
@@ -294,29 +285,23 @@ export default function LevelQuizPage() {
   if ((phase === "running" || phase === "submitting") && run) {
     const q = run.questions[index];
     const answered = run.questions.filter((x) => isAnswered(x, responses[x.id])).length;
-    const hasQuestions = run.questions.length > 0;
     return (
       <PaperBackground className="pb-20 min-h-screen">
         <div className="container-main max-w-4xl mx-auto space-y-5">
           <FocusBar
             title={quiz.title}
-            detail={hasQuestions ? `${a.attempt(run.no)} · ${t.questionOf(index + 1, run.questions.length)} · ${answered}/${run.questions.length}` : `${a.attempt(run.no)}`}
+            detail={`${a.attempt(run.no)} · ${t.questionOf(index + 1, run.questions.length)} · ${answered}/${run.questions.length}`}
             deadline={run.deadline}
             offset={offset}
             totalMs={run.deadline - run.startedAt}
             save={save}
             onExit={exit}
-            showTimer={hasQuestions && questionRendered}
           />
+
           {phase === "submitting" ? (
             <Card variant="sketch" className="text-center py-14 space-y-3 font-[var(--font-inter)]">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--color-brand-blue)]" />
               <p className="text-[var(--color-ink)] font-semibold">{timeUp ? a.timeUpSubmitting : a.submitting}</p>
-            </Card>
-          ) : !hasQuestions ? (
-            <Card variant="sketch" className="text-center py-14 space-y-3 font-[var(--font-inter)]">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[var(--color-brand-blue)]" />
-              <p className="text-[var(--color-ink)] font-semibold">{t.loadingQuestions}</p>
             </Card>
           ) : (
             <>
@@ -334,15 +319,7 @@ export default function LevelQuizPage() {
                 ))}
               </div>
 
-              <Card
-                variant="sketch"
-                className="p-5 md:p-8 space-y-4"
-                ref={(node: HTMLDivElement | null) => {
-                  if (node && !questionRendered) {
-                    setQuestionRendered(true);
-                  }
-                }}
-              >
+              <Card variant="sketch" className="p-5 md:p-8 space-y-4">
                 <p className="text-xs font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)]">{t.questionOf(index + 1, run.questions.length)}</p>
                 <QuestionBlock
                   key={`${run.attemptId}-${q.id}`}
