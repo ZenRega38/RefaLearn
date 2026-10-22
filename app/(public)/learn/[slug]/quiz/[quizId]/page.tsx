@@ -63,6 +63,7 @@ export default function LevelQuizPage() {
   const [starting, setStarting] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [run, setRun] = useState<Run | null>(null);
+  const hasAutoStarted = useRef(false);
   const [index, setIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, Response | null>>({});
   const [save, setSave] = useState<SaveState>("idle");
@@ -169,20 +170,20 @@ export default function LevelQuizPage() {
       setPhase("running");
     } catch (err) {
       alert(err instanceof Error ? err.message : a.startFailed);
-      loadOverview();
+      setPhase("overview");
     } finally {
       setStarting(false);
     }
-  }, [api, a.startFailed, loadOverview]);
+  }, [api, a.startFailed]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview on mount
     loadOverview().then((o) => {
       if (!o) return;
-      if (o.state.open) {
+      setPhase("overview");
+      if (o.state.open && !hasAutoStarted.current) {
+        hasAutoStarted.current = true;
         start();
-      } else {
-        setPhase("overview");
       }
     });
   }, [loadOverview, start]);

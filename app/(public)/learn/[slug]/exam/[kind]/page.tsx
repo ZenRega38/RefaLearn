@@ -82,6 +82,7 @@ function ExamRunner() {
   const [starting, setStarting] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [save, setSave] = useState<SaveState>("idle");
+  const hasAutoStarted = useRef(false);
   const [timeUp, setTimeUp] = useState(false);
   const [tts] = useState(() => speechSupported());
 
@@ -264,11 +265,11 @@ function ExamRunner() {
       }
     } catch (err) {
       alert(err instanceof Error ? err.message : a.startFailed);
-      loadOverview();
+      setPhase("overview");
     } finally {
       setStarting(false);
     }
-  }, [api, tts, a.startFailed, loadOverview]);
+  }, [api, tts, a.startFailed]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
@@ -276,10 +277,12 @@ function ExamRunner() {
       if (!o) return;
       if (attemptParam) {
         openResult(attemptParam);
-      } else if (o.state.open) {
-        start();
       } else {
         setPhase("overview");
+        if (o.state.open && !hasAutoStarted.current) {
+          hasAutoStarted.current = true;
+          start();
+        }
       }
     });
   }, [loadOverview, openResult, attemptParam, start]);
