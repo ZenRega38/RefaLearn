@@ -271,18 +271,15 @@ function ExamRunner() {
   }, [api, tts, a.startFailed, loadOverview]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
     loadOverview().then((o) => {
       if (!o) return;
       if (attemptParam) {
         openResult(attemptParam);
-      } else if (o.state.open) {
-        start();
       } else {
         setPhase("overview");
       }
     });
-  }, [loadOverview, openResult, attemptParam, start]);
+  }, [loadOverview, openResult, attemptParam]);
 
   const restart = async () => {
     if (!window.confirm(a.restartConfirm)) return;
@@ -421,7 +418,16 @@ function ExamRunner() {
   if (phase === "section-intro") {
     return (
       <FocusShell>
-        {bar}
+        <FocusBar
+          title={exam.title}
+          detail={`${a.attempt(attempt.no)} · Section ${state.section + 1} of ${exam.sections.length}`}
+          deadline={attempt.deadline}
+          offset={offset}
+          totalMs={attempt.deadline - attempt.startedAt}
+          save={save}
+          onExit={exit}
+          showTimer={false}
+        />
         <Card variant="sketch" className="space-y-5 p-6 md:p-10">
           <p className="text-sm font-semibold text-[var(--color-ink-soft)] font-[var(--font-inter)] flex items-center gap-2">
             <SkillIcon skill={section.skill} /> Section {state.section + 1} of {exam.sections.length}
