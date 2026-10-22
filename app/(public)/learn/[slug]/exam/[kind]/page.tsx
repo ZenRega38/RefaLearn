@@ -512,7 +512,7 @@ function ExamRunner() {
         <Card
           variant="sketch"
           className="p-5 md:p-8 space-y-4"
-          ref={(node) => {
+          ref={(node: HTMLDivElement | null) => {
             if (node && !questionRendered) {
               setQuestionRendered(true);
             }
