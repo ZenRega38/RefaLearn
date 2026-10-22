@@ -94,11 +94,11 @@ function ExamRunner() {
       if (!res.ok) throw new Error(json.error);
       setOverview(json);
       setOffset(offsetFrom(json.state.serverNow));
-      return json as Overview;
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : a.startFailed);
       setPhase("error");
-      return null;
+      return false;
     }
   }, [api, a.startFailed]);
 
@@ -118,6 +118,15 @@ function ExamRunner() {
     },
     [api, a.startFailed]
   );
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load the overview on mount
+    loadOverview().then((ok) => {
+      if (!ok) return;
+      if (attemptParam) openResult(attemptParam);
+      else setPhase("overview");
+    });
+  }, [loadOverview, openResult, attemptParam]);
 
   // ---------------------------------------------------------------- autosave
   const latest = useRef(state);
@@ -240,7 +249,7 @@ function ExamRunner() {
     return () => clearInterval(id);
   }, []);
 
-  const start = useCallback(async () => {
+  const start = async () => {
     setStarting(true);
     // Speak a silent warm-up inside this click so later auto-play is allowed.
     if (tts) speak([{ speaker: "narrator", text: " " }]);
@@ -268,21 +277,7 @@ function ExamRunner() {
     } finally {
       setStarting(false);
     }
-  }, [api, tts, a.startFailed, loadOverview]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load overview or auto-resume open attempt on mount
-    loadOverview().then((o) => {
-      if (!o) return;
-      if (attemptParam) {
-        openResult(attemptParam);
-      } else if (o.state.open) {
-        start();
-      } else {
-        setPhase("overview");
-      }
-    });
-  }, [loadOverview, openResult, attemptParam, start]);
+  };
 
   const restart = async () => {
     if (!window.confirm(a.restartConfirm)) return;
